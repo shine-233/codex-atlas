@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH04 协议线路 · App Server 报文时间线 — CODEX ATLAS</title>
+<meta name="description" content="客户端与 Codex App Server 之间的 JSON-RPC 双向通道：Thread/Turn/Item 三原语、流式增量、以及审批请求怎样把整轮对话挂起。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .lanes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .14em;
+    color: var(--faint);
+    text-transform: uppercase;
+    padding: 4px 2px 10px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .msg {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: opacity .2s, background .15s;
+  }
+  .msg:hover { background: var(--bg2); }
+  .msg.ghost { opacity: .18; cursor: default; }
+  .msg.ghost:hover { background: none; }
+  .msg.cur { box-shadow: inset 3px 0 0 var(--amber); background: var(--bg2); }
+  .msg.gate-open { border-left: 3px solid var(--deny); }
+  .m-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .who {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    padding: 1px 7px;
+    border: 1px solid var(--line-strong);
+    color: var(--faint);
+    flex-shrink: 0;
+  }
+  .who.c { color: var(--steel); border-color: rgba(143,199,232,.45); }
+  .who.s { color: var(--amber); border-color: rgba(255,180,84,.45); }
+  .arr { font-family: var(--mono); font-size: 13px; flex-shrink: 0; }
+  .dir-c2s .arr { color: var(--steel); }
+  .dir-s2c .arr { color: var(--amber); }
+  .dir-gate .arr { color: var(--deny); }
+  .dir-int .arr { color: var(--faint); }
+  .mm { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+  .kk { margin-left: auto; }
+  .mdesc { font-size: 12.5px; color: var(--dim); margin-top: 5px; line-height: 1.6; max-width: 46em; }
+  .msg.int-row { background: repeating-linear-gradient(-45deg, transparent 0 9px, rgba(255,255,255,.015) 9px 18px); }
+  .decide {
+    display: none;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--deny);
+    background: var(--deny-dim);
+  }
+  .decide.show { display: flex; flex-wrap: wrap; align-items: center; }
+  .decide .dq { font-size: 13px; color: var(--ink); margin-right: auto; }
+
+  .detail-json { margin-top: 0; }
+  .detail-json pre { margin: 10px 0 0; }
+  .dj-tag { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .08em; }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">HOME · 总览</a>
+  <a href="loop.html">CH01 · 循环回路</a>
+  <a href="prompt.html">CH02 · 输入组装</a>
+  <a href="sandbox.html">CH03 · 权限沙箱</a>
+  <a href="appserver.html">CH04 · 协议线路</a>
+  <a href="atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>教学模型：报文形状为示意，非稳定 schema</span>
+      <span>协议行为出自官方博客《Unlocking the Codex harness》</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>CH04 协议线路</p>
+      <h1>一条双向通道，<br>和一次把整轮挂起的请求。</h1>
+      <p class="lede">
+        VS Code 插件、macOS App 和 TUI 共用同一个核心，靠的是 App Server 暴露的
+        JSON-RPC 双向通道。它有一条容易被忽略的性质：<b style="color:var(--ink);">服务端也会发请求</b>。
+        放一遍真实时序——当第 11 条报文到达时，整轮对话会停下来等你裁决。
+      </p>
+    </header>
+
+    <section class="panel hot" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3>PROTOCOL TIMELINE · 报文时间线</h3>
+        <span class="readout">已送达 <b id="pos-num">00</b> / <span id="pos-total">15</span></span>
+      </div>
+
+      <div class="lanes"><span>CLIENT · TUI / IDE / APP</span><span style="opacity:.4;">⇄ stdio JSONL ⇄</span><span>APP SERVER + CORE</span></div>
+
+      <div id="seq" aria-live="polite"></div>
+
+      <div id="gate-zone"></div>
+
+      <div class="controls" style="border-top:1px dashed var(--line-strong);">
+        <button class="btn primary" id="toggle">▶ 播放全程</button>
+        <button class="btn" id="prev" aria-label="上一条">◀</button>
+        <button class="btn" id="next" aria-label="下一条">▶</button>
+        <button class="btn" id="restart">↺ 重播</button>
+        <div class="seg" role="group" aria-label="播放速度">
+          <button data-sp="0.6">慢</button>
+          <button data-sp="1" class="on">常速</button>
+          <button data-sp="1.9">快</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel detail-json">
+      <div class="panel-title" style="margin-bottom:6px;">
+        <h3>报文形状</h3>
+        <span class="dj-tag" id="dj-method">点击上方任意已送达的报文查看结构</span>
+      </div>
+      <pre id="dj-pre" style="display:none;"></pre>
+      <p class="small muted" id="dj-desc" style="margin:10px 0 0;">字段名与嵌套为<b>示意形状</b>：v2 协议以固定提交下的 protocol crate 与 <code>codex app-server generate-ts</code> 输出为准。</p>
+    </section>
+
+    <section>
+      <h2>三原语：协议的全部词汇量</h2>
+      <table class="rt">
+        <thead><tr><th style="width:110px;">原语</th><th>定义与生命周期</th></tr></thead>
+        <tbody>
+          <tr><td><code>Item</code></td><td>输入/输出的基本单位。类型含用户消息、agent 消息、reasoning、命令执行、文件变更、审批请求、MCP 调用、网页搜索、todo、错误。生命周期固定为 started → delta → completed：started 到达即可渲染占位，delta 流式补全，completed 落定。</td></tr>
+          <tr><td><code>Turn</code></td><td>由用户输入发起的一轮智能体工作。从提交输入开始，到产出结束；包含过程中产生的全部 items——中间步骤和产物都在里面。</td></tr>
+          <tr><td><code>Thread</code></td><td>会话的持久容器。可创建、恢复（resume）、分叉（fork）、归档（archive）。事件历史持久化保存，客户端断线重连后能恢复出一致的时间线。</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        接入面不止一条：stdio JSONL 是主通道，streaming HTTP 备选；
+        <code>codex app-server generate-ts</code> 能直接从 Rust 协议生成 TypeScript 定义，
+        官方客户端已覆盖 Go / Python / TS / Swift / Kotlin。TUI 正在重构为标准子进程客户端——和其他界面同等待遇。
+      </p>
+    </section>
+
+    <hr class="sep">
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。<code>Op::UserInput</code> 入队一步依据 CH01 第 5–6 站的源码结构。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* br: both=两条分支都有 / approved / denied */
+  var MSGS = [
+    { dir:"c2s", who:"CLIENT", k:"request", m:"initialize",
+      j:'{ "jsonrpc": "2.0", "id": 1,\n  "method": "initialize",\n  "params": { "clientInfo": { "name": "vscode", "version": "0.5.2" } } }',
+      d:"握手：客户端声明身份与能力。所有官方客户端——TUI、IDE 插件、桌面 App——都从这里开始。" },
+    { dir:"s2c", who:"SERVER", k:"response", m:"initialize 返回",
+      j:'{ "result": { "serverInfo": { "name": "codex-app-server" },\n           "capabilities": { … } } }',
+      d:"能力协商完成，通道就绪。" },
+    { dir:"c2s", who:"CLIENT", k:"request", m:"newThread",
+      j:'{ "id": 2, "method": "thread/new", "params": {} }',
+      d:"开一条新线程。线程是会话容器：可创建、恢复、分叉、归档。" },
+    { dir:"s2c", who:"SERVER", k:"response", m:"newThread 返回",
+      j:'{ "result": { "threadId": "t_9f3a…" } }',
+      d:"句柄到手。事件历史已经持久化在磁盘上——之后断线重连，还能恢复出同一时间线。" },
+    { dir:"c2s", who:"CLIENT", k:"request", m:"turn/start",
+      j:'{ "id": 3, "method": "turn/start",\n  "params": {\n    "threadId": "t_9f3a…",\n    "input": [ { "type": "text",\n                 "text": "跑一遍测试，把失败的修掉" } ],\n    "cwd": "~/proj/api",\n    "approvalPolicy": "on-request",\n    "sandboxMode": "workspace-write" } }',
+      d:"一轮工作正式下单：输入内容、审批策略、沙箱模式都在这条报文里声明。" },
+    { dir:"int", who:"CORE", k:"internal", m:"Op::UserInput 入队",
+      j:"", d:"协议边界之外的事：App Server 把请求转成核心操作塞进队列对。核心内部怎么跑，客户端看不见——只有 Event 出来。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/started",
+      j:'{ "method": "item/started",\n  "params": { "type": "agent_message", "itemId": "i_01…" } }',
+      d:"started 先到：UI 可以立刻渲染占位，不必等完整内容。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/delta ×N",
+      j:'{ "method": "item/delta",\n  "params": { "delta": "我先跑一遍测试，看看哪里红了…" } }',
+      d:"流式增量按序追加。打字机效果的协议基础就是这一条。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed",
+      j:'{ "method": "item/completed", "params": { "type": "agent_message" } }',
+      d:"这条消息落定，可以被后续引用或检索。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/started (command)",
+      j:'{ "method": "item/started",\n  "params": { "type": "command_execution",\n              "command": "cargo test --all" } }',
+      d:"模型要执行命令了。命令本身先亮出来给你看。" },
+    { dir:"gate", who:"SERVER", k:"server request", m:"commandExecution/approval", gate:true,
+      j:'{ "jsonrpc": "2.0", "id": 77,\n  "method": "commandExecution/approval",\n  "params": { "threadId": "t_9f3a…", "itemId": "i_07…",\n              "command": "cargo test --all",\n              "cwd": "~/proj/api",\n              "reason": "在沙箱限制之外运行需要授权" } }',
+      d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等的是客户端，也就是你。" },
+    { dir:"c2s", who:"CLIENT", k:"decision", m:"approval 应答", br:true,
+      j:'/* 批准 */\n{ "id": 77, "result": { "decision": "approved" } }\n\n/* 拒绝同样是有效应答 */\n{ "id": 77, "result": { "decision": "denied" } }',
+      d:"由你在下面决定。拒绝不是报错：模型会收到反馈并调整方案。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed (command)", branch:"approved",
+      j:'{ "method": "item/completed",\n  "params": { "type": "command_execution", "exitCode": 0 } }',
+      d:"命令在沙箱内跑完了。管着它的可能是 Seatbelt、Landlock 或 WFP——取决于你在哪台机器上（见 CH03）。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"agent_message (调整方案)", branch:"denied",
+      j:'{ "method": "item/delta",\n  "params": { "delta": "收到，那我先只读检查测试文件…" } }',
+      d:"轮次继续而不是中断。拒绝被当成正常反馈消化掉了。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"file_change", branch:"approved",
+      j:'{ "method": "item/completed",\n  "params": { "type": "file_change",\n              "files": [ "src/auth.rs", "tests/login.rs" ] } }',
+      d:"修改落盘，diff 已经在 UI 上展开。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"turn/completed",
+      j:'{ "method": "turn/completed",\n  "params": { "usage": { "inputTokens": 48211,\n              "cachedInputTokens": 44120,\n              "outputTokens": 1873 } } }',
+      d:"token 用量回传。缓存命中的那一大块，就是把二次增长压回线性的证据。" }
+  ];
+
+  var seqBox = document.getElementById("seq");
+  var gateZone = document.getElementById("gate-zone");
+  var posNum = document.getElementById("pos-num");
+  var posTotal = document.getElementById("pos-total");
+  var toggleBtn = document.getElementById("toggle");
+  var djMethod = document.getElementById("dj-method");
+  var djPre = document.getElementById("dj-pre");
+  var djDesc = document.getElementById("dj-desc");
+
+  var cur = 0;          /* 已送达条数 */
+  var playing = false;
+  var timer = null;
+  var speed = 1;
+  var branch = null;    /* null | approved | denied */
+  var wasPlayingAtGate = false;
+
+  function visible() {
+    return MSGS.filter(function (m) {
+      if (!m.branch) return true;
+      return branch !== null && m.branch === branch;
+    });
+  }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function kindChip(k) {
+    var cls = { request:"steel", response:"steel", notification:"amber", "server request":"deny", decision:"ok", internal:"" }[k] || "";
+    return '<span class="chip kk ' + cls + '">' + k + "</span>";
+  }
+
+  function renderRow(msg, state) {
+    var d = document.createElement("div");
+    d.className = "msg dir-" + msg.dir +
+      (state === "ghost" ? " ghost" : state === "cur" ? " cur" : "") +
+      (msg.dir === "int" ? " int-row" : "");
+    var arrow = msg.dir === "c2s" ? "→" : msg.dir === "int" ? "⟳" : msg.dir === "gate" ? "⇦!" : "←";
+    d.innerHTML =
+      '<div class="m-top">' +
+      '<span class="who ' + (msg.dir === "c2s" ? "c" : "s") + '">' + msg.who + "</span>" +
+      '<span class="arr">' + arrow + "</span>" +
+      '<span class="mm">' + msg.m + "</span>" +
+      (msg.gate ? '<span class="chip deny">⏸ 整轮挂起</span>' : "") +
+      kindChip(msg.k) +
+      "</div>" +
+      '<div class="mdesc">' + msg.d + "</div>";
+    if (state !== "ghost") {
+      d.addEventListener("click", function () { showDetail(msg); });
+    }
+    return d;
+  }
+
+  function renderDecideBox(msg) {
+    gateZone.innerHTML = "";
+    if (!msg || !msg.gate || branch !== null) return;
+    var box = document.createElement("div");
+    box.className = "decide show";
+    box.innerHTML =
+      '<span class="dq"><b>审批请求到达：</b>' + msg.m + " —— 核心线程已暂停。你说了算：</span>";
+    var yes = document.createElement("button");
+    yes.className = "btn primary";
+    yes.textContent = "✓ 批准放行";
+    yes.addEventListener("click", function () { decide("approved"); });
+    var no = document.createElement("button");
+    no.className = "btn";
+    no.style.borderColor = "var(--deny)";
+    no.style.color = "var(--deny)";
+    no.textContent = "✗ 拒绝执行";
+    no.addEventListener("click", function () { decide("denied"); });
+    box.appendChild(yes);
+    box.appendChild(no);
+    gateZone.appendChild(box);
+  }
+
+  function render() {
+    var list = visible();
+    posTotal.textContent = pad(list.length);
+    posNum.textContent = pad(cur);
+    seqBox.innerHTML = "";
+    list.forEach(function (m, i) {
+      var state = i < cur ? (i === cur - 1 ? "cur" : "past") : "ghost";
+      seqBox.appendChild(renderRow(m, state));
+    });
+    var gateMsg = list[Math.max(0, cur - 1)];
+    if (cur > 0 && gateMsg && gateMsg.gate) renderDecideBox(gateMsg);
+    else gateZone.innerHTML = "";
+  }
+
+  function showDetail(msg) {
+    djMethod.textContent = msg.m + " · " + msg.k;
+    if (msg.j) {
+      djPre.style.display = "";
+      djPre.textContent = msg.j;
+    } else {
+      djPre.style.display = "none";
+    }
+    djDesc.innerHTML = msg.d;
+  }
+
+  function stop() {
+    playing = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    toggleBtn.textContent = "▶ 播放全程";
+  }
+
+  function start() {
+    if (playing) return;
+    playing = true;
+    toggleBtn.textContent = "❚❚ 暂停";
+    timer = setInterval(function () {
+      var list = visible();
+      if (cur >= list.length) { stop(); return; }
+      advance();
+    }, Math.round(2100 / speed));
+  }
+
+  function advance() {
+    var list = visible();
+    if (cur >= list.length) { stop(); return; }
+    var nextMsg = list[cur];
+    cur++;
+    PanelState.write({ n: cur, d: branch || "" });
+    render();
+    showDetail(nextMsg);
+    if (nextMsg.gate && branch === null) {
+      wasPlayingAtGate = playing;
+      stop();
+    }
+  }
+
+  function decide(v) {
+    branch = v;
+    PanelState.write({ n: cur, d: v });
+    render();
+    /* 决策后自动走出这一步，让应答报文立即可见 */
+    setTimeout(function () {
+      var list = visible();
+      if (cur < list.length) {
+        cur++;
+        render();
+        showDetail(list[cur - 1]);
+      }
+      if (wasPlayingAtGate) start();
+    }, 420);
+  }
+
+  toggleBtn.addEventListener("click", function () { playing ? stop() : start(); });
+  document.getElementById("prev").addEventListener("click", function () {
+    stop(); if (cur > 0) { cur--; render(); }
+  });
+  document.getElementById("next").addEventListener("click", function () { advance(); });
+  document.getElementById("restart").addEventListener("click", function () {
+    stop(); cur = 0; branch = null; wasPlayingAtGate = false;
+    PanelState.write({ n: "", d: "" });
+    render();
+    start();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg [data-sp]"), function (b) {
+    b.addEventListener("click", function () {
+      speed = parseFloat(b.getAttribute("data-sp"));
+      Array.prototype.forEach.call(document.querySelectorAll(".seg [data-sp]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      if (playing) { stop(); start(); }
+    });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "ArrowRight") { e.preventDefault(); advance(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); if (cur > 0) { cur--; render(); } }
+  });
+
+  /* URL 状态恢复 */
+  var st = PanelState.read();
+  var savedN = parseInt(st.n, 10);
+  if (st.d === "approved" || st.d === "denied") branch = st.d;
+  if (!isNaN(savedN)) cur = Math.max(0, Math.min(visible().length, savedN));
+  else cur = 0;
+
+  render();
+
+  window.addEventListener("hashchange", function () { location.reload(); });
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+})();
+</script>
+</body>
+</html>

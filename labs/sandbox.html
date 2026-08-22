@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS</title>
+<meta name="description" content="Codex 的 read-only / workspace-write / danger-full-access 三种沙箱模式下，读文件、写路径、联网分别怎么判？macOS Seatbelt、Linux Landlock、Windows WFP 各自怎么强制执行？">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .ctrl-row { margin-bottom: 18px; }
+  .ctrl-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; margin-bottom: 7px; }
+
+  .mode-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 720px) { .mode-cards { grid-template-columns: 1fr; } }
+  .mode-card {
+    border: 1px solid var(--line-strong);
+    background: var(--bg2);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .mode-card:hover { border-color: var(--dim); }
+  .mode-card.on { border-color: var(--amber); background: var(--amber-dim); }
+  .mode-card .mc-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+  .mode-card.on .mc-name { color: var(--amber); }
+  .mode-card .mc-desc { font-size: 12px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
+
+  .acts { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+  .act {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg2); border: 1px solid var(--line-strong);
+    color: var(--dim); font-size: 13px;
+    padding: 9px 13px; cursor: pointer; text-align: left;
+    font-family: var(--sans);
+    transition: border-color .15s, color .15s;
+  }
+  .act:hover { border-color: var(--dim); color: var(--ink); }
+  .act.on { border-color: var(--amber); color: var(--ink); background: var(--amber-dim); }
+  .act .glyph { font-family: var(--mono); color: var(--faint); width: 20px; flex-shrink: 0; }
+  .act.on .glyph { color: var(--amber); }
+
+  .verdict {
+    border: 1px solid var(--line-strong);
+    background: var(--bg1);
+    padding: 22px 24px;
+    min-height: 250px;
+    position: relative;
+  }
+  .v-stamp {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: .1em;
+    padding: 6px 16px;
+    border: 2px solid;
+    margin-bottom: 14px;
+  }
+  .v-stamp.allow { color: var(--ok); border-color: var(--ok); background: var(--ok-dim); }
+  .v-stamp.deny { color: var(--deny); border-color: var(--deny); background: var(--deny-dim); }
+  .v-stamp.cond { color: var(--amber); border-color: var(--amber); background: var(--amber-dim); }
+  .v-why { color: var(--dim); max-width: 40em; }
+  .v-mech {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line-strong);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--faint);
+    line-height: 1.9;
+  }
+  .v-mech b { color: var(--steel); font-weight: 500; }
+
+  table.mx td { text-align: center; }
+  table.mx td:first-child { text-align: left; }
+  .cell {
+    display: inline-block;
+    min-width: 58px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .04em;
+    padding: 3px 9px;
+    border: 1px solid;
+    cursor: pointer;
+  }
+  .cell.allow { color: var(--ok); border-color: rgba(123,201,139,.45); background: var(--ok-dim); }
+  .cell.deny { color: var(--deny); border-color: rgba(240,121,106,.45); background: var(--deny-dim); }
+  .cell.cond { color: var(--amber); border-color: rgba(255,180,84,.45); background: var(--amber-dim); }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">HOME · 总览</a>
+  <a href="loop.html">CH01 · 循环回路</a>
+  <a href="prompt.html">CH02 · 输入组装</a>
+  <a href="sandbox.html">CH03 · 权限沙箱</a>
+  <a href="appserver.html">CH04 · 协议线路</a>
+  <a href="atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>教学模型：判定规则来自公开文档与源码结构</span>
+      <span>不执行任何真实命令</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>CH03 权限沙箱</p>
+      <h1>同一个动作，换个模式就换一个判决。</h1>
+      <p class="lede">
+        沙箱是 Codex 敢在你机器上跑命令的底气。它有两条独立的轴：
+        <b style="color:var(--ink);">沙箱模式</b>决定进程能碰什么，
+        <b style="color:var(--ink);">审批策略</b>决定什么时候先问你。
+        这台判定器把两条轴拆开：选操作系统、选模式、选一个具体动作，看它落在哪一边——
+        以及是哪个内核机制在执行这道判决。
+      </p>
+    </header>
+
+    <section class="panel hot" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3>SCENARIO VERDICT · 场景判定器</h3>
+        <span class="readout" id="combo-readout"></span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:340px 1fr;gap:24px;" id="verdict-grid">
+        <div>
+          <div class="ctrl-row">
+            <div class="ctrl-label">操作系统（决定强制执行机制）</div>
+            <div class="seg" role="group" aria-label="选择操作系统">
+              <button data-os="mac" class="on">macOS · Seatbelt</button>
+              <button data-os="linux">Linux · Landlock</button>
+              <button data-os="win">Windows · WFP</button>
+            </div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">沙箱模式（决定能碰什么）</div>
+            <div class="mode-cards" role="group" aria-label="选择沙箱模式">
+              <button class="mode-card on" data-mode="ro">
+                <div class="mc-name">read-only</div>
+                <div class="mc-desc">全盘可读；不可写、不可联网。适合让它只出主意不动手。</div>
+              </button>
+              <button class="mode-card" data-mode="ww">
+                <div class="mc-name">workspace-write</div>
+                <div class="mc-desc">日常档位：工作目录与临时目录可写；联网默认关闭。</div>
+              </button>
+              <button class="mode-card" data-mode="full">
+                <div class="mc-name">danger-full-access</div>
+                <div class="mc-desc">全放开：任意读写加网络。名字里的 danger 不是装饰。</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">待判定动作（点一个）</div>
+            <div class="acts" id="acts"></div>
+          </div>
+        </div>
+
+        <div class="verdict" aria-live="polite">
+          <div id="v-stamp-wrap"><span class="v-stamp cond">选择一个动作</span></div>
+          <p class="v-why" id="v-why">左边六个动作各对应一条真实场景。选定后这里给出该模式下的判定与理由。</p>
+          <div class="v-mech" id="v-mech">
+            强制执行机制：<b>—</b><br>相关源码位置：<b>—</b>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>全景矩阵</h2>
+      <p class="muted small">六行三列一览全部组合。单元格可直接点选联动上方判定器。</p>
+      <table class="rt mx">
+        <thead>
+          <tr><th style="text-align:left;">动作</th><th>read-only</th><th>workspace-write</th><th>danger-full-access</th></tr>
+        </thead>
+        <tbody id="mx-body"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>MCP 工具不在保护范围内</h2>
+      <div class="panel">
+        <p style="margin-bottom:8px;">
+          沙箱声明（CH02 的第 3 层）只描述<b>内置 shell 工具</b>的运行环境。
+          经 MCP 服务器接入的工具完全绕开这套 Seatbelt / Landlock / WFP 信封——
+          官方博客原话：它们「需自行负责执行其防护措施」。
+        </p>
+        <p class="muted" style="margin-bottom:0;">
+          换句话说：给模型接一个 MCP 文件服务器，它的删除操作不会因为 Codex 处于 read-mode 而被拦截。
+          能拦住它的只有两样：MCP 服务器自己的权限设计，和你对审批弹窗的手。
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>另一条轴：审批策略</h2>
+      <p class="muted small">模式管「能不能」，审批管「要不要先问」。两者正交，CLI 上独立配置。</p>
+      <table class="rt">
+        <thead><tr><th>策略</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td><code>untrusted</code></td><td>最保守：除少数白名单命令外都要人工批准。</td></tr>
+          <tr><td><code>on-failure</code></td><td>沙箱内先跑；失败或被拦时请求升级重试。full-auto 预设 = workspace-write + on-failure。</td></tr>
+          <tr><td><code>on-request</code></td><td>模型自行判断何时申请提权。</td></tr>
+          <tr><td><code>never</code></td><td>从不打扰：拿不到的就直接失败，绝不弹窗。无人值守跑批常用。</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        判定器里 workspace-write 对「写工作区外路径」给出的琥珀色结果，走的就是这条轴：沙箱说不行，但你可以点头放行一次。
+      </p>
+    </section>
+
+    <hr class="sep">
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）、<code>windows-sandbox-rs/</code>（WFP）。
+      「workspace-write 联网默认关闭、可在 config 显式开启」与四种审批策略取自官方文档口径。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名，但固定提交的 workspace 成员名单中并无此 crate，实现位置随版本演进——以你实际检出的提交为准。具体开关名随版本演进，以固定提交下的 <code>docs/config.md</code> 为准。本页不运行真实命令，所有判定均为教学演示。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var OS_MECH = {
+    mac:  { name:"Apple Seatbelt", lib:"sandbox-exec profile", crates:"codex-rs/sandboxing/",
+            note:"每个命令在 Seatbelt profile 下启动：profile 由代码按当前模式生成，文件系统与网络限制都写在 profile 规则里。" },
+    linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
+            note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
+    win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：固定提交 @343074d4 的 workspace 成员名单里没有独立的 Windows 沙箱 crate——早期版本曾见 windows-sandbox-rs 目录名，实现位置随版本演进，这正是固定基线的意义。" }
+  };
+
+  /* v: ro / ww / full 三模式的判定。cond = 条件放行 */
+  var ACTS = [
+    { id:"rw", glyph:"cat", name:"读工作区内的源码文件",
+      v:{ ro:"allow", ww:"allow", full:"allow" },
+      why:"读取在任何模式下都放行——Codex 的沙箱主轴是写入与网络，不是阅读。这也是它能先通读你的仓库再动第一行键盘的前提。",
+      mech:"普通文件读取，无需额外授权。" },
+    { id:"ra", glyph:"cat ~/", name:"读工作区外的文件（如 ~/.ssh/config）",
+      v:{ ro:"allow", ww:"allow", full:"allow" },
+      why:"同样是放行，但值得停下来想一下：<b>全盘可读是设计取舍，不是疏忽</b>。敏感文件的隔离要靠磁盘权限和信任边界解决，别指望沙箱替你保密。",
+      mech:"同上；对应枚举中的 DiskFullReadAccess 语义。" },
+    { id:"ww", glyph:"edit", name:"修改工作区内的文件",
+      v:{ ro:"deny", ww:"allow", full:"allow" },
+      why:"read-only 模式下被拒——它连临时目录都不该碰。workspace-write 是为这个动作设计的日常档位：git root 到 cwd 的路径都在白名单里。",
+      mech:"workspace-write 白名单 = 工作目录 + 系统临时目录。" },
+    { id:"wt", glyph:"mktemp", name:"写系统临时目录（/tmp、$TMPDIR）",
+      v:{ ro:"deny", ww:"allow", full:"allow" },
+      why:"编译产物、测试缓存都落在这里。对应协议枚举 DiskWriteTempOnly：临时目录被视为工作区的延伸，而不是越界。",
+      mech:"同上；临时目录与工作目录同级放行。" },
+    { id:"wo", glyph:"touch ~/x", name:"改写工作区外的路径（如 ~/.bashrc）",
+      v:{ ro:"deny", ww:"cond", full:"allow" },
+      why:"两种保守模式都挡住。workspace-write 下显示琥珀色：沙箱本身不放行，但如果审批策略允许，会弹窗征求你的一次性同意——<b>拦住它的不是墙，是你的签名</b>。danger-full-access 则毫无阻拦。",
+      mech:"拒绝发生在沙箱层；放行走审批升级流（shell-escalation）。" },
+    { id:"net", glyph:"curl", name:"访问网络（下载依赖、调 API）",
+      v:{ ro:"deny", ww:"cond", full:"allow" },
+      why:"read-only 与 workspace-write 默认断网；后者可在 config 里显式打开 network_access——打开后这格变绿。需要联网装依赖又不想全放开时，这是唯一的中间档。",
+      mech:"macOS 在 Seatbelt profile 内关网络；Linux 由 seccomp 兜底；Windows 走 WFP 规则。对应 NetworkFullAccess 语义。" }
+  ];
+
+  var curOs = "mac";
+  var curMode = "ww";
+  var curAct = null;
+
+  var actsBox = document.getElementById("acts");
+  var stampWrap = document.getElementById("v-stamp-wrap");
+  var vWhy = document.getElementById("v-why");
+  var vMech = document.getElementById("v-mech");
+  var comboReadout = document.getElementById("combo-readout");
+  var mxBody = document.getElementById("mx-body");
+
+  function chipCls(v) {
+    return v === "allow" ? ["ALLOW", "allow"] : v === "deny" ? ["DENY", "deny"] : ["条件放行", "cond"];
+  }
+
+  function renderVerdict() {
+    if (!curAct) {
+      stampWrap.innerHTML = '<span class="v-stamp cond">选择一个动作</span>';
+      vWhy.textContent = "左边六个动作各对应一条真实场景。选定后这里给出该模式下的判定与理由。";
+      renderMech(null);
+      comboReadout.innerHTML = "";
+      return;
+    }
+    var st = curAct.v[curMode];
+    var cls = chipCls(st);
+    stampWrap.innerHTML = '<span class="v-stamp ' + cls[1] + '">' + cls[0] + "</span>";
+    vWhy.innerHTML = "<b>" + curAct.name + "</b> · " + curAct.why;
+    renderMech(curAct);
+    comboReadout.innerHTML =
+      "<b>" + OS_MECH[curOs].name.split(" ")[0] + "</b> × <b>" +
+      ({ro:"read-only",ww:"workspace-write",full:"danger-full-access"})[curMode] + "</b>";
+    PanelState.write({ os: curOs, m: curMode, a: curAct.id });
+  }
+
+  function renderMech(act) {
+    var o = OS_MECH[curOs];
+    vMech.innerHTML =
+      "强制执行机制：<b>" + o.name + "</b>（" + o.lib + "）<br>" +
+      "相关源码位置：<b>" + o.crates + "</b><br>" +
+      (act ? "说明：" + act.mech : "说明：—" ) + "<br>" +
+      "<span style='opacity:.75;'>" + o.note + "</span>";
+  }
+
+  function buildActs() {
+    actsBox.innerHTML = "";
+    ACTS.forEach(function (a) {
+      var b = document.createElement("button");
+      b.className = "act" + (curAct && curAct.id === a.id ? " on" : "");
+      b.type = "button";
+      b.innerHTML = '<span class="glyph">$ ' + a.glyph + '</span><span>' + a.name + "</span>";
+      b.addEventListener("click", function () {
+        curAct = a;
+        Array.prototype.forEach.call(actsBox.children, function (c) { c.classList.remove("on"); });
+        b.classList.add("on");
+        renderVerdict();
+      });
+      actsBox.appendChild(b);
+    });
+  }
+
+  function buildMatrix() {
+    mxBody.innerHTML = "";
+    ACTS.forEach(function (a) {
+      var tr = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.textContent = a.name;
+      tr.appendChild(td0);
+      ["ro","ww","full"].forEach(function (m) {
+        var td = document.createElement("td");
+        var c = document.createElement("span");
+        var txt_cls = chipCls(a.v[m]);
+        c.className = "cell " + txt_cls[1];
+        c.textContent = txt_cls[0];
+        c.title = "点击查看此组合";
+        c.addEventListener("click", function () {
+          setMode(m);
+          curAct = a;
+          buildActs();
+          renderVerdict();
+          window.scrollTo({ top: 0, behavior: window.PrefersReducedMotion ? "auto" : "smooth" });
+        });
+        td.appendChild(c);
+        tr.appendChild(td);
+      });
+      mxBody.appendChild(tr);
+    });
+  }
+
+  function setMode(m) {
+    curMode = m;
+    Array.prototype.forEach.call(document.querySelectorAll(".mode-card"), function (c) {
+      c.classList.toggle("on", c.getAttribute("data-mode") === m);
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-os]"), function (b) {
+    b.addEventListener("click", function () {
+      curOs = b.getAttribute("data-os");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-os]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      renderVerdict();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".mode-card"), function (b) {
+    b.addEventListener("click", function () {
+      setMode(b.getAttribute("data-mode"));
+      renderVerdict();
+    });
+  });
+
+  /* URL 状态恢复 */
+  var st = PanelState.read();
+  if (st.os && OS_MECH[st.os]) {
+    curOs = st.os;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-os]"), function (x) {
+      x.classList.toggle("on", x.getAttribute("data-os") === curOs);
+    });
+  }
+  if (st.m && {ro:1,ww:1,full:1}[st.m]) setMode(st.m);
+  buildActs();
+  buildMatrix();
+  if (st.a) {
+    var found = ACTS.filter(function (a) { return a.id === st.a; })[0];
+    if (found) {
+      curAct = found;
+      Array.prototype.forEach.call(actsBox.children, function (c, i) {
+        c.classList.toggle("on", ACTS[i].id === curAct.id);
+      });
+    }
+  }
+  renderVerdict();
+
+  window.addEventListener("hashchange", function () { location.reload(); });
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS</title>
+<meta name="description" content="openai/codex 固定提交下 codex-rs 工作区的 135 个成员，按九条功能带分层陈列：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持检索高亮。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .search-box {
+    flex: 1;
+    min-width: 220px;
+    background: var(--bg2);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 9px 14px;
+  }
+  .search-box:focus { border-color: var(--amber); outline: none; }
+  .search-box::placeholder { color: var(--faint); }
+  .match-readout { font-family: var(--mono); font-size: 11.5px; color: var(--faint); letter-spacing: .05em; white-space: nowrap; }
+  .match-readout b { color: var(--amber); font-weight: 500; }
+
+  .band { margin-top: 22px; border: 1px solid var(--line); background: var(--bg1); }
+  .band-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    background: linear-gradient(transparent, rgba(255,255,255,.012));
+  }
+  .band-head:hover { background: var(--bg2); }
+  .band-no { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .1em; width: 34px; flex-shrink: 0; }
+  .band-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .band-en { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; color: var(--faint); text-transform: uppercase; }
+  .band-count { margin-left: auto; }
+  .band-desc { padding: 8px 16px 0; font-size: 12.5px; color: var(--dim); }
+  .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 16px; }
+
+  .cr {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--dim);
+    background: var(--bg2);
+    border: 1px solid var(--line-strong);
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .cr:hover { color: var(--amber); border-color: var(--amber); }
+  .cr.sel { color: #171207; background: var(--amber); border-color: var(--amber); font-weight: 500; }
+  .cr.dimmed { opacity: .18; pointer-events: none; }
+  .cr.hit { color: var(--amber); border-color: rgba(255,180,84,.55); }
+
+  .detail-card {
+    margin-top: 22px;
+    border: 1px dashed var(--line-strong);
+    padding: 18px 20px;
+    min-height: 92px;
+  }
+  .detail-card h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 15px; }
+  .detail-card .dc-band { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--steel); text-transform: uppercase; }
+  .detail-card p { color: var(--dim); font-size: 13.5px; max-width: 46em; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">HOME · 总览</a>
+  <a href="loop.html">CH01 · 循环回路</a>
+  <a href="prompt.html">CH02 · 输入组装</a>
+  <a href="sandbox.html">CH03 · 权限沙箱</a>
+  <a href="appserver.html">CH04 · 协议线路</a>
+  <a href="atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>成员名单实测于固定提交 @343074d4</span>
+      <span>分带是本站归纳，非上游分类</span>
+      <span>可对照 codex-rs/Cargo.toml 复核</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>CH05 CRATE 图谱</p>
+      <h1>135 个 crate，<br>九条功能带，一张地图。</h1>
+      <p class="lede">
+        读大仓库最怕迷路。这份图谱把固定提交下 codex-rs 工作区的全部 135 个成员按职责排成九条带：
+        想读某个功能的实现，先在图上找到它的位置和邻居，再点进去。
+        支持按名字检索；每一条成员名都能回 Cargo.toml 复核。
+      </p>
+    </header>
+
+    <section class="panel hot" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3>ATLAS INDEX · 检索与定位</h3>
+        <span class="readout">共 <b>135</b> 成员 · <b>9</b> 带</span>
+      </div>
+
+      <div class="search-row">
+        <input type="text" id="q" class="search-box"
+               placeholder="输入 crate 名片段，如 core / sandbox / mcp …（Esc 清除）"
+               aria-label="检索 crate 名称">
+        <span class="match-readout" id="match-out">匹配 <b>135</b> / 135</span>
+      </div>
+
+      <div id="bands"></div>
+
+      <div class="detail-card" aria-live="polite">
+        <div class="dc-band" id="dc-band">—</div>
+        <h4 id="dc-name">点任意成员或带标题查看注解</h4>
+        <p id="dc-body">每个成员的名字都取自固定提交下的 workspace 名单。带标题给出该带的整体职责。</p>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <section>
+      <h2 style="margin-top:0;">怎么用这张地图读源码</h2>
+      <table class="rt">
+        <tbody>
+          <tr><td style="width:52%;">想看一轮对话怎么跑起来</td><td>第 2 带 <b>core</b> + 第 1 带 <b>tui / app-server</b>，配合 <a href="loop.html">CH01 循环回路</a></td></tr>
+          <tr><td>想知道模型改文件的完整链路</td><td>第 2 带 <b>protocol</b> → 第 3 带 <b>tools → apply-patch → shell-command</b></td></tr>
+          <tr><td>想确认命令被谁拦截、放行</td><td>第 4 带 <b>sandboxing / execpolicy</b> + <b>shell-escalation</b>，配合 <a href="sandbox.html">CH03 权限沙箱</a></td></tr>
+          <tr><td>想给 IDE 写自己的客户端</td><td>第 6 带 <b>app-server-*</b> 三件套，配合 <a href="appserver.html">CH04 协议线路</a></td></tr>
+          <tr><td>想接本地模型不开官方 API</td><td>第 5 带 <b>ollama / lmstudio / model-provider-info</b></td></tr>
+          <tr><td>想研究记忆系统怎么存取</td><td>第 7 带 <b>memories/read + memories/write</b> 与 ext/memories</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      135 个成员名单逐项取自 openai/codex 固定提交 343074d4 的 <code>codex-rs/Cargo.toml</code> workspace members 字段（2026-08-22 经 GitHub API 实测），可在同一路径直接复核。九条带是<b>本站归纳</b>，不是上游分类；个别跨带成员（如 <code>login</code>）按主要职责归带。成员级注解依据仓库结构与官方博客撰写，未逐个核对源码实现细节——把注解当路标，别当代码评审。上游快速演进中，数字以固定提交为准。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* 九条功能带：成员为固定提交 @343074d4 实测名单 */
+  var BANDS = [
+    { no:"B1", name:"入口", en:"SURFACE", count:8,
+      desc:"用户与外部程序接触 Codex 的地方。同一个核心，多种打开方式。",
+      crates:["cli","tui","exec","app-server","app-server-daemon","arg0","install-context","login"],
+      notes:{
+        "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端——和其他界面同等待遇。",
+        "exec":"非交互式一次性执行入口：codex exec \"任务\"。CI 与脚本场景的主力形态。",
+        "app-server":"JSON-RPC 服务进程。IDE 插件与桌面应用的接入口，见 CH04 报文时间线。",
+        "login":"ChatGPT 账号登录流程与凭据状态管理。",
+        "arg0":"按 argv[0] 分发行为的机制——一个二进制可以伪装成多个命令。",
+        "app-server-daemon":"App Server 常驻守护形态。"
+      } },
+    { no:"B2", name:"核心引擎", en:"CORE ENGINE", count:14,
+      desc:"Agent 循环、会话状态、轨迹持久化。CH01 十三站的舞台在这带。",
+      crates:["core","core-api","protocol","codex-client","state","thread-store","rollout","rollout-trace","history","prompts","features","collaboration-mode-templates","context-fragments","codex-experimental-api-macros"],
+      notes:{
+        "core":"Agent 循环所在。Codex 队列对、RegularTask、run_turn 都在这里——见 CH01 循环回路。",
+        "protocol":"EventMsg、Op 等核心事件与协议类型的定义处。",
+        "rollout":"会话轨迹落盘：事件历史写进磁盘文件，断线恢复的数据基础。",
+        "rollout-trace":"轨迹追踪视图。",
+        "thread-store":"Thread 原语的持久化容器。",
+        "state":"运行时状态管理。",
+        "prompts":"随 CLI 打包的基础指令文本一族——CH02 输入组装第 1 层的出处。",
+        "history":"对话历史的存取。",
+        "codex-client":"面向核心的客户端封装。",
+        "features":"特性开关。"
+      } },
+    { no:"B3", name:"工具执行", en:"TOOLING", count:15,
+      desc:"模型能调用的每个动作，在这里落地成受控的系统操作。",
+      crates:["tools","apply-patch","shell-command","shell-escalation","file-search","file-watcher","git-utils","code-mode","code-mode-host","code-mode-protocol","code-mode-runtime","v8-poc","exec-server","exec-server-protocol","exec-server/tests/support"],
+      notes:{
+        "tools":"工具注册表与 ToolRouter：模型看到的 tool spec 从这里发出（CH01 第 9 站）。",
+        "apply-patch":"Codex 特色补丁工具：模型输出的修改在这里变成磁盘上的变更。",
+        "shell-command":"命令解析与受控执行。",
+        "shell-escalation":"审批升级流——CH03 琥珀色「条件放行」走的就是这条路。",
+        "file-search":"快速文件检索工具。",
+        "git-utils":"git 操作辅助。",
+        "code-mode":"Code Mode 主 crate：V8 里跑模型生成代码的实验模式。",
+        "v8-poc":"V8 集成的概念验证。名字里的 poc 就是字面意思。",
+        "exec-server":"命令执行服务化拆分。"
+      } },
+    { no:"B4", name:"沙箱安全", en:"SANDBOX & SECURITY", count:9,
+      desc:"强制执行机制与凭据保管。CH03 判定器的物理基础。固定提交名单里没有独立的 Windows 沙箱 crate——实现位置随版本演进，这正是固定基线的意义。",
+      crates:["sandboxing","linux-sandbox","bwrap","execpolicy","process-hardening","secrets","keyring-store","workload-identity","aws-auth"],
+      notes:{
+        "sandboxing":"macOS Seatbelt profile 的生成与强制执行（CH03 macOS 一列的实现处）。",
+        "linux-sandbox":"Landlock + seccomp 路线的沙箱执行器。",
+        "bwrap":"bubblewrap 容器路线的替代沙箱。",
+        "execpolicy":"执行策略引擎：判定哪些命令免审批直接跑。",
+        "secrets":"凭据引用能力。",
+        "keyring-store":"系统钥匙串接入。",
+        "process-hardening":"进程加固原语。"
+      } },
+    { no:"B5", name:"模型连接", en:"MODEL LINKS", count:12,
+      desc:"Responses API 客户端、代理与本地模型接入。请求从这里出站。",
+      crates:["codex-api","backend-client","http-client","websocket-client","responses-api-proxy","network-proxy","model-provider","model-provider-info","models-manager","lmstudio","ollama","connectors"],
+      notes:{
+        "codex-api":"Responses API 类型与客户端封装（CH01 第 10 站的 HTTP 层）。",
+        "responses-api-proxy":"请求出站的代理层。",
+        "network-proxy":"受控网络代理：workspace-write 默认断网的实现位置之一。",
+        "model-provider-info":"provider 配置解析：wire_api 选择、端点组装。",
+        "ollama":"Ollama 本地模型接入。",
+        "lmstudio":"LM Studio 本地模型接入。",
+        "connectors":"外部连接器抽象。"
+      } },
+    { no:"B6", name:"协议接入", en:"PROTOCOL ADAPTERS", count:10,
+      desc:"MCP 双向集成与 App Server 传输层。CH04 报文的承运人。",
+      crates:["codex-mcp","mcp-server","rmcp-client","stdio-to-uds","uds","app-server-transport","app-server-client","app-server-protocol","app-server-protocol-noop-macros","app-server-test-client"],
+      notes:{
+        "rmcp-client":"作为 MCP 客户端去接外部 MCP 服务器。",
+        "mcp-server":"把 Codex 自身暴露为一个 MCP server 给别的 agent 用。",
+        "codex-mcp":"MCP 子命令与集成逻辑。",
+        "app-server-protocol":"CH04 时间线里那些方法的协议定义本体。",
+        "app-server-transport":"stdio JSONL / streaming HTTP 传输实现。",
+        "app-server-client":"客户端侧绑定。",
+        "uds":"Unix domain socket 支持。",
+        "stdio-to-uds":"桥接转换层。"
+      } },
+    { no:"B7", name:"扩展生态", en:"EXTENSIONS", count:20,
+      desc:"插件系统与 ext/* 实验族：记忆、技能、钩子、图像生成。带内一半以上还在快速变化。",
+      crates:["plugin","core-plugins","skills","hooks","memories/read","memories/write","ext/agent","ext/connectors","ext/extension-api","ext/goal","ext/git-attribution","ext/guardian-v2","ext/history-notes","ext/image-generation","ext/items","ext/memories","ext/mcp","ext/queue","ext/skills","ext/web-search"],
+      notes:{
+        "plugin":"插件系统核心机制。",
+        "core-plugins":"内置插件集。",
+        "skills":"技能注入：markdown 指令包按需挂进 prompt——CH02 层叠机制的近亲。",
+        "hooks":"生命周期钩子：工具执行前后可插自定义逻辑。",
+        "memories/read":"记忆系统读取端。",
+        "memories/write":"记忆系统写入端。",
+        "ext/guardian-v2":"实验性守卫机制第二代。",
+        "ext/image-generation":"图像生成实验位。",
+        "ext/web-search":"网页搜索实验位。"
+      } },
+    { no:"B8", name:"云协作", en:"CLOUD", count:7,
+      desc:"Codex Cloud 任务下发、agent 图谱与外部 agent 迁移。",
+      crates:["cloud-config","cloud-tasks","cloud-tasks-client","cloud-tasks-mock-client","agent-graph-store","agent-identity","external-agent-migration"],
+      notes:{
+        "cloud-tasks":"云端任务下发与轮询主逻辑。",
+        "cloud-tasks-client":"云任务客户端 API。",
+        "cloud-tasks-mock-client":"测试用 mock——名字直白得可爱。",
+        "external-agent-migration":"把外部 agent 会话迁移进 Codex。",
+        "agent-graph-store":"agent 关系图谱存储。"
+      } },
+    { no:"B9", name:"基础设施", en:"INFRA", count:40,
+      desc:"零业务语义的地基件。数量最多，存在感最低，缺一个都编译不过。",
+      crates:["utils/absolute-path","utils/audio","utils/path-uri","utils/cargo-bin","utils/cache","utils/image","utils/json-to-toml","utils/home-dir","utils/pty","utils/readiness","utils/redacted-string","utils/rustls-provider","utils/string","utils/cli","utils/elapsed","utils/sandbox-summary","utils/sleep-inhibitor","utils/approval-presets","utils/oss","utils/output-truncation","utils/path-utils","utils/plugins","utils/fuzzy-match","utils/stream-parser","utils/template","ansi-escape","async-utils","build-info","codex-home","config","diagnostics","feedback","file-system","otel","analytics","terminal-detection","test-binary-support","thread-manager-sample","codex-backend-openapi-models","response-debug-context"],
+      notes:{
+        "utils/pty":"伪终端封装——TUI 和交互式命令的地基。",
+        "utils/fuzzy-match":"模糊匹配：文件检索的手感来源。",
+        "config":"config.toml 解析与校验（CH02 developer_instructions 一层的读取处）。",
+        "codex-home":"~/.codex 目录布局管理。",
+        "otel":"OpenTelemetry 观测埋点。",
+        "terminal-detection":"终端能力探测。",
+        "utils/output-truncation":"超长输出截断——保护上下文的隐形闸门。",
+        "utils/redacted-string":"脱敏字符串类型：日志里不漏密钥的类型级保证。"
+      } }
+  ];
+
+  var bandsBox = document.getElementById("bands");
+  var qInput = document.getElementById("q");
+  var matchOut = document.getElementById("match-out");
+  var dcBand = document.getElementById("dc-band");
+  var dcName = document.getElementById("dc-name");
+  var dcBody = document.getElementById("dc-body");
+
+  var selCrate = null;
+
+  function total() {
+    return BANDS.reduce(function (n, b) { return n + b.crates.length; }, 0);
+  }
+
+  function build() {
+    bandsBox.innerHTML = "";
+    BANDS.forEach(function (b) {
+      var sec = document.createElement("div");
+      sec.className = "band";
+      var head = document.createElement("div");
+      head.className = "band-head";
+      head.setAttribute("role", "button");
+      head.tabIndex = 0;
+      head.innerHTML =
+        '<span class="band-no">' + b.no + "</span>" +
+        '<span class="band-name">' + b.name + '</span>' +
+        '<span class="band-en">' + b.en + "</span>" +
+        '<span class="chip band-count">' + b.crates.length + "</span>";
+      function showBand() {
+        dcBand.textContent = b.no + " · " + b.en;
+        dcName.textContent = b.name + "带 · " + b.crates.length + " 个成员";
+        dcBody.textContent = b.desc;
+        Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) { c.classList.remove("sel"); });
+      }
+      head.addEventListener("click", showBand);
+      head.addEventListener("keydown", function (e) { if (e.key === "Enter") showBand(); });
+      sec.appendChild(head);
+
+      var dd = document.createElement("div");
+      dd.className = "band-desc";
+      dd.textContent = b.desc;
+      sec.appendChild(dd);
+
+      var wrap = document.createElement("div");
+      wrap.className = "chips-wrap";
+      b.crates.forEach(function (name) {
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "cr";
+        chip.textContent = name;
+        chip.dataset.band = b.no;
+        chip.addEventListener("click", function () {
+          selCrate = name;
+          dcBand.textContent = b.no + " · " + b.en;
+          dcName.textContent = name;
+          dcBody.textContent = (b.notes && b.notes[name]) ||
+            "属于「" + b.name + "」带。要定位它的角色：从所在带入手，回到仓库看这个 crate 的 lib.rs 头部注释与依赖方向。";
+          Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
+            c.classList.toggle("sel", c === chip);
+          });
+        });
+        wrap.appendChild(chip);
+      });
+      sec.appendChild(wrap);
+      bandsBox.appendChild(sec);
+    });
+  }
+
+  function applyFilter() {
+    var q = qInput.value.trim().toLowerCase();
+    var hits = 0;
+    if (!q) {
+      Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
+        c.classList.remove("dimmed"); c.classList.remove("hit");
+      });
+      matchOut.innerHTML = '匹配 <b>' + total() + "</b> / " + total();
+      PanelState.write({ q: "" });
+      return;
+    }
+    Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
+      var isHit = c.textContent.toLowerCase().indexOf(q) !== -1;
+      c.classList.toggle("dimmed", !isHit);
+      c.classList.toggle("hit", isHit);
+      if (isHit) hits++;
+    });
+    matchOut.innerHTML = hits
+      ? '匹配 <b>' + hits + "</b> / " + total()
+      : "没有匹配 — 换个关键词试试";
+    PanelState.write({ q: q });
+  }
+
+  qInput.addEventListener("input", applyFilter);
+  qInput.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { qInput.value = ""; applyFilter(); }
+  });
+
+  build();
+  var savedQ = PanelState.read().q || "";
+  if (savedQ) { qInput.value = savedQ; applyFilter(); }
+  else { matchOut.innerHTML = '匹配 <b>135</b> / 135'; }
+
+  window.addEventListener("hashchange", function () { location.reload(); });
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+})();
+</script>
+</body>
+</html>

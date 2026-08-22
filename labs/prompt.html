@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH02 输入组装 · 一次请求的七层构成 — CODEX ATLAS</title>
+<meta name="description" content="发往 Responses API 的请求里到底有什么？instructions、tools、input 七个组成部分逐层开关，32 KiB 指令上限在哪一层生效。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .lab-grid { display: grid; grid-template-columns: 300px 1fr; }
+  @media (max-width: 900px) { .lab-grid { grid-template-columns: 1fr; } }
+
+  .layer-controls {
+    border-right: 1px solid var(--line);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  @media (max-width: 900px) { .layer-controls { border-right: none; border-bottom: 1px solid var(--line); } }
+
+  .lc-head { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; margin-bottom: 2px; }
+
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .presets button { flex: 1; white-space: nowrap; }
+
+  /* 组装栈 */
+  .stack-wrap { padding: 20px 24px; }
+  .payload-tag {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    letter-spacing: .08em; margin-bottom: 12px;
+  }
+  .payload-tag b { color: var(--steel); font-weight: 500; }
+
+  .field-group { margin-bottom: 16px; }
+  .fg-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .fg-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .lyr {
+    position: relative;
+    border: 1px solid var(--line-strong);
+    background: var(--bg2);
+    padding: 10px 14px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    transition: opacity .18s, border-color .18s;
+  }
+  .lyr:hover { border-color: var(--amber); z-index: 2; }
+  .lyr.off { opacity: .38; }
+  .lyr.off .ly-name { text-decoration: line-through; text-decoration-color: var(--faint); }
+  .lyr.sel { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); z-index: 3; }
+  .ly-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .ly-name { font-family: var(--mono); font-size: 13px; color: var(--ink); font-weight: 500; }
+  .ly-src { font-size: 12px; color: var(--faint); margin-left: auto; }
+  .ly-bar { height: 4px; background: var(--bg0); border: 1px solid var(--line); margin-top: 8px; position: relative; overflow: hidden; }
+  .ly-bar i { display: block; height: 100%; background: var(--amber); opacity: .75; transition: width .25s; }
+  .ly-cap { font-family: var(--mono); font-size: 10px; color: var(--deny); letter-spacing: .06em; }
+
+  /* AGENTS.md 子层 */
+  .sub-files { padding: 10px 0 4px 14px; display: flex; flex-direction: column; gap: 7px; }
+  .sub-files .switch-row { font-size: 12px; color: var(--dim); font-family: var(--mono); }
+  .cascade-meter { height: 5px; background: var(--bg0); border: 1px solid var(--line-strong); margin-top: 9px; position: relative; }
+  .cascade-meter i { display: block; height: 100%; background: var(--amber); transition: width .25s; }
+  .cascade-meter.over i { background: var(--deny); }
+  .cap-note { font-size: 11px; font-family: var(--mono); color: var(--faint); margin-top: 5px; }
+  .cap-note.deny { color: var(--deny); }
+
+  /* 明细卡 */
+  .detail-card {
+    margin-top: 18px;
+    border-top: 1px dashed var(--line-strong);
+    padding-top: 16px;
+    min-height: 96px;
+  }
+  .detail-card h4 { margin: 0 0 8px; font-size: 15px; }
+  .detail-card p { color: var(--dim); font-size: 13.5px; max-width: 44em; }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">HOME · 总览</a>
+  <a href="loop.html">CH01 · 循环回路</a>
+  <a href="prompt.html">CH02 · 输入组装</a>
+  <a href="sandbox.html">CH03 · 权限沙箱</a>
+  <a href="appserver.html">CH04 · 协议线路</a>
+  <a href="atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>教学模型：不发网络请求</span>
+      <span>层叠规则与 32 KiB 上限出自官方博客</span>
+      <span>体积刻度为示意</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>CH02 输入组装</p>
+      <h1>一次请求的七层构成，<br>逐层打开看清楚。</h1>
+      <p class="lede">
+        你以为发给模型的只是一句话。实际发出去的是一个结构化负载：
+        身份指令、工具清单、沙箱声明、目录里层层叠叠的 AGENTS.md、环境描述，
+        再加上<b style="color:var(--ink);">全量重发的对话历史</b>。
+        右边的组装仪按真实字段顺序排列，拨动左边的开关，看每一层进进出出。
+      </p>
+    </header>
+
+    <section class="panel hot" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3>PAYLOAD ASSEMBLER · 请求组装仪</h3>
+        <span class="readout">启用 <b id="cnt-on">6</b> / 7 层</span>
+      </div>
+
+      <div class="lab-grid">
+        <!-- 左：控制列 -->
+        <div class="layer-controls">
+          <div class="lc-head">预设场景</div>
+          <div class="presets seg" role="group" aria-label="预设场景">
+            <button data-preset="fresh">全新会话</button>
+            <button data-preset="typical" class="on">典型仓库</button>
+            <button data-preset="heavy">重度定制</button>
+          </div>
+
+          <div class="lc-head">层开关 · 按请求字段顺序</div>
+          <div id="toggles" style="display:flex;flex-direction:column;gap:12px;"></div>
+
+          <p class="small muted" style="margin:8px 0 0;">
+            「对话历史」只在第二轮起出现——第一轮没有过去。<br>
+            「AGENTS.md 层叠」展开后可单独控制四个目录位。
+          </p>
+        </div>
+
+        <!-- 右：组装栈 -->
+        <div class="stack-wrap">
+          <div class="payload-tag">POST <b>/responses</b> · JSON 负载示意形状</div>
+          <div id="stack"></div>
+
+          <div class="detail-card" id="detail" aria-live="polite">
+            <h4 id="dt-title">点任意一层查看它的来源与作用</h4>
+            <p id="dt-body">每一层的文字说明、真实路径和证据类别都会显示在这里。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <section>
+      <h2 style="margin-top:0;">两个容易答错的问题</h2>
+      <table class="rt">
+        <tbody>
+          <tr>
+            <td style="width:52%;">AGENTS.md 越写越长会撑爆上下文吗</td>
+            <td>不会直接撑爆：层叠总量受 <b>32 KiB 默认上限</b>约束（见左侧「重度定制」预设的截断演示）。官方博客的原话是它天然鼓励把信息按目录拆开，而不是堆进一个巨型文件。</td>
+          </tr>
+          <tr>
+            <td>历史越滚越大怎么办</td>
+            <td>Codex 不用 previous_response_id，每次全量重发以保持无状态（兼容零数据保留）。当 token 总量超过 auto_compact_limit 阈值，自动调用 <b>/responses/compact</b> 压缩历史，压缩项携带 encrypted_content 供模型延续理解。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        相关线路：<a href="loop.html">CH01 循环回路</a> 第 9–10 步是这些层的装配现场；
+        <a href="sandbox.html">CH03 权限沙箱</a> 解释第 3 层声明的权限到底怎么落地。
+      </p>
+    </section>
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限、auto_compact_limit 与 /responses/compact 行为，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。
+      <b>柱状刻度是示意相对体积，不是实测 token 数。</b>本站不运行模型，不测量任何真实请求。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* 七个组成部分：id / 名称 / 来源 / 示意权重 / 说明 / 默认态 */
+  var LAYERS = [
+    { id:"instr", grp:"instructions", name:"base_instructions", src:"随 CLI 打包",
+      w:34, on:true,
+      detail:"模型的身份定义：你是 Codex CLI、一个基于终端的编码助手，加上可用操作清单（接收 prompt、流式响应、执行 shell、应用补丁、在沙箱中工作）。config.toml 里指定 model_instructions_file 时整体替换这一层。",
+      ev:["官方博客","codex-rs/core/gpt_5_codex_prompt.md"] },
+    { id:"tools", grp:"tools", name:"tools · 工具清单", src:"内置 + API + MCP 三类合并",
+      w:22, on:true,
+      detail:"三类工具统一列在 tools 字段：CLI 内置工具（shell 执行、文件编辑）、API 侧返回的工具、用户经 MCP 服务器接入的工具。模型在推理时自主选择调用哪个。注意：Codex 沙箱只约束内置 shell 工具，MCP 工具的安全防护由提供方自己负责。",
+      ev:["官方博客"] },
+    { id:"sandbox", grp:"input[0]", name:"developer message · 沙箱声明", src:"打包的 Markdown 模板",
+      w:12, on:true,
+      detail:"一条 role=developer 消息，向模型描述当前沙盒权限（读盘范围、临时目录写入等）。关键边界：它描述的是内置 shell 工具所处的沙箱，不是全局安全策略。",
+      ev:["官方博客"] },
+    { id:"devinstr", grp:"input[1]", name:"developer_instructions", src:"~/.codex/config.toml（可选）",
+      w:6, on:false, optional:true,
+      detail:"用户在配置文件里写的开发者指令，存在才注入。适合放长期偏好；项目级约定请写进下一层的 AGENTS.md。",
+      ev:["官方博客"] },
+    { id:"agents", grp:"input[2]", name:"user instructions · AGENTS.md 层叠", src:"$CODEX_HOME → git root → … → cwd",
+      w:26, on:true,
+      cap:true,
+      detail:"从 $CODEX_HOME 开始，沿 git root 到当前工作目录的路径逐层读取 AGENTS.md 和 AGENTS.override.md，更具体的覆盖更通用的。层叠总量受 32 KiB 默认上限约束——这个设计在系统层面鼓励把信息分散到目录结构，而不是堆一个巨型文件。",
+      ev:["官方博客"],
+      subs:[
+        { id:"home", label:"~/.codex/AGENTS.md", w:.28 },
+        { id:"root", label:"repo/AGENTS.md（git root）", w:.30 },
+        { id:"pkg",  label:"repo/codex-rs/AGENTS.md（子目录）", w:.24 },
+        { id:"ovr",  label:"…/tui/AGENTS.override.md（覆盖位）", w:.18 }
+      ] },
+    { id:"env", grp:"input[3]", name:"environment context · 本地环境消息", src:"运行时探测",
+      w:8, on:true,
+      detail:"一条 role=user 消息，告诉模型它身处的机器：当前工作目录、用户 shell 等。换一台电脑这层内容就不同——它是会话的环境锚点。",
+      ev:["官方博客"] },
+    { id:"history", grp:"input[4+]", name:"conversation history · 全量历史", src:"session 记录回放",
+      w:48, on:true,
+      detail:"之前的全部对话条目（含 reasoning、function_call 及其输出）作为 input 列表整体重发。不用 previous_response_id 是有意为之：请求完全无状态，兼容零数据保留部署。二次增长的代价靠提示缓存命中摊平。",
+      ev:["官方博客"] }
+  ];
+
+  var stack = document.getElementById("stack");
+  var togglesBox = document.getElementById("toggles");
+  var cntOn = document.getElementById("cnt-on");
+  var dtTitle = document.getElementById("dt-title");
+  var dtBody = document.getElementById("dt-body");
+  var selLayer = null;
+
+  LAYERS.forEach(function (L) {
+    if (L.subs) L.subs.forEach(function (s) { s.on = true; });
+  });
+
+  function buildToggles() {
+    togglesBox.innerHTML = "";
+    LAYERS.forEach(function (L) {
+      var row = document.createElement("label");
+      row.className = "switch-row";
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = L.on;
+      input.setAttribute("aria-label", L.name);
+      input.addEventListener("change", function () {
+        L.on = input.checked;
+        render();
+      });
+      var sw = document.createElement("span");
+      sw.className = "sw";
+      var txt = document.createElement("span");
+      txt.style.cssText = "font-family:var(--mono);font-size:12px;";
+      txt.textContent = L.name.split(" · ")[0];
+      if (L.optional) {
+        var o = document.createElement("i");
+        o.className = "chip";
+        o.style.marginLeft = "6px";
+        o.textContent = "可选";
+        txt.appendChild(o);
+      }
+      row.appendChild(input); row.appendChild(sw); row.appendChild(txt);
+      togglesBox.appendChild(row);
+
+      if (L.subs && L.on) {
+        var subWrap = document.createElement("div");
+        subWrap.className = "sub-files";
+        subWrap.style.cssText = "margin-left:40px;display:flex;flex-direction:column;gap:8px;";
+        L.subs.forEach(function (s) {
+          var sr = document.createElement("label");
+          sr.className = "switch-row";
+          var si = document.createElement("input");
+          si.type = "checkbox";
+          si.checked = s.on;
+          si.addEventListener("change", function () { s.on = si.checked; render(); });
+          var ss = document.createElement("span"); ss.className = "sw";
+          var st = document.createElement("span");
+          st.style.cssText = "font-size:11px;";
+          st.textContent = s.label;
+          sr.appendChild(si); sr.appendChild(ss); sr.appendChild(st);
+          subWrap.appendChild(sr);
+        });
+        togglesBox.appendChild(subWrap);
+      }
+    });
+  }
+
+  function buildStack() {
+    stack.innerHTML = "";
+    var groups = {};
+    LAYERS.forEach(function (L) {
+      (groups[L.grp] = groups[L.grp] || []).push(L);
+    });
+    Object.keys(groups).forEach(function (g) {
+      var fg = document.createElement("div");
+      fg.className = "field-group";
+      var lab = document.createElement("div");
+      lab.className = "fg-label";
+      lab.textContent = g.replace(/\[\d+\+?\]/, function (m) { return m; });
+      fg.appendChild(lab);
+
+      groups[g].forEach(function (L) {
+        var d = document.createElement("div");
+        d.className = "lyr" + (L.on ? "" : " off") + (selLayer === L.id ? " sel" : "");
+        var row = document.createElement("div");
+        row.className = "ly-row";
+        var nm = document.createElement("span");
+        nm.className = "ly-name";
+        nm.textContent = L.name;
+        row.appendChild(nm);
+        if (!L.on) {
+          var offTag = document.createElement("span");
+          offTag.className = "chip";
+          offTag.textContent = "未启用";
+          row.appendChild(offTag);
+        } else {
+          var onTag = document.createElement("span");
+          onTag.className = "chip amber";
+          onTag.textContent = "已注入";
+          row.appendChild(onTag);
+        }
+        var src = document.createElement("span");
+        src.className = "ly-src";
+        src.textContent = L.src;
+        row.appendChild(src);
+        d.appendChild(row);
+
+        if (L.on && !L.cap) {
+          var bar = document.createElement("div");
+          bar.className = "ly-bar";
+          var fill = document.createElement("i");
+          fill.style.width = Math.min(100, L.w * 2) + "%";
+          bar.appendChild(fill);
+          d.appendChild(bar);
+        }
+
+        if (L.cap && L.on) {
+          var subBox = document.createElement("div");
+          subBox.className = "sub-files";
+          L.subs.forEach(function (s) {
+            var line = document.createElement("div");
+            line.style.cssText = "display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;" +
+              (s.on ? "color:var(--dim);" : "color:var(--faint);text-decoration:line-through;");
+            var dot = document.createElement("i");
+            dot.style.cssText = "width:5px;height:5px;background:" + (s.on ? "var(--amber)" : "var(--line-strong)") + ";flex-shrink:0;";
+            line.appendChild(dot);
+            line.appendChild(document.createTextNode(s.label));
+            subBox.appendChild(line);
+          });
+          var meter = document.createElement("div");
+          meter.className = "cascade-meter";
+          var mfill = document.createElement("i");
+          var frac = L.subs.filter(function (s) { return s.on; }).length / L.subs.length;
+          mfill.style.width = (frac * 100) + "%";
+          meter.appendChild(mfill);
+          subBox.appendChild(meter);
+          var note = document.createElement("div");
+          note.className = "cap-note" + (frac >= 1 ? " deny" : "");
+          note.textContent = frac >= 1
+            ? "≥ 32 KiB 上限触发 · 最早读入的内容被截断"
+            : "层叠合计 · 上限 32 KiB（示意刻度）";
+          subBox.appendChild(note);
+          d.appendChild(subBox);
+        }
+
+        d.addEventListener("click", function () {
+          selLayer = L.id;
+          dtTitle.textContent = L.name;
+          dtBody.innerHTML = L.detail +
+            '<br><span class="chips" style="margin-top:8px;">' +
+            '<span class="chip steel">依据 ' + L.ev.join("</span><span class=\"chip steel\">") + "</span>" +
+            "</span>";
+          render();
+        });
+
+        fg.appendChild(d);
+      });
+      stack.appendChild(fg);
+    });
+  }
+
+  function render() {
+    cntOn.textContent = LAYERS.filter(function (L) { return L.on; }).length;
+    buildStack();
+    syncToggleChecks();
+    persistState();
+  }
+
+  function syncToggleChecks() {
+    var boxes = togglesBox.querySelectorAll('input[type="checkbox"]');
+    var li = 0;
+    LAYERS.forEach(function (L) {
+      boxes[li].checked = L.on;
+      li++;
+      if (L.subs && L.on) {
+        L.subs.forEach(function (s) {
+          if (boxes[li]) boxes[li].checked = s.on;
+          li++;
+        });
+      }
+    });
+  }
+
+  function applyPreset(name) {
+    LAYERS.forEach(function (L) {
+      if (L.id === "devinstr") return; /* devinstr 由 preset 单独定 */
+    });
+    var P = {
+      fresh:   { instr:1, tools:1, sandbox:1, devinstr:0, agents:0, env:1, history:0 },
+      typical: { instr:1, tools:1, sandbox:1, devinstr:0, agents:1, env:1, history:1 },
+      heavy:   { instr:1, tools:1, sandbox:1, devinstr:1, agents:1, env:1, history:1 }
+    }[name];
+    LAYERS.forEach(function (L) {
+      L.on = !!P[L.id];
+      if (L.subs) L.subs.forEach(function (s) { s.on = true; });
+    });
+    if (name === "heavy") {
+      var ag = LAYERS.filter(function (L) { return L.id === "agents"; })[0];
+      ag.subs.forEach(function (s) { s.on = true; }); /* 四位全开 → 触顶截断演示 */
+    }
+    if (name === "typical") {
+      var ag2 = LAYERS.filter(function (L) { return L.id === "agents"; })[0];
+      ag2.subs.forEach(function (s, i) { s.on = i < 3; }); /* 典型仓库三位，留余量 */
+    }
+    selLayer = null;
+    dtTitle.textContent = "点任意一层查看它的来源与作用";
+    dtBody.textContent = "每一层的文字说明、真实路径和证据类别都会显示在这里。";
+    buildToggles();
+    render();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".presets [data-preset]"), function (b) {
+    b.addEventListener("click", function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".presets button"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      applyPreset(b.getAttribute("data-preset"));
+    });
+  });
+
+  function persistState() {
+    var o = {};
+    LAYERS.forEach(function (L) {
+      o[L.id] = L.on ? 1 : 0;
+      if (L.subs) L.subs.forEach(function (s) { o["sub_" + s.id] = s.on ? 1 : 0; });
+    });
+    PanelState.write(o);
+  }
+
+  function restoreState() {
+    var st = PanelState.read();
+    if (Object.keys(st).length === 0) { applyPreset("typical"); return; }
+    LAYERS.forEach(function (L) {
+      if (st[L.id] !== undefined) L.on = st[L.id] === "1";
+      if (L.subs) L.subs.forEach(function (s) {
+        if (st["sub_" + s.id] !== undefined) s.on = st["sub_" + s.id] === "1";
+      });
+    });
+    buildToggles();
+    render();
+  }
+
+  restoreState();
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+})();
+</script>
+</body>
+</html>

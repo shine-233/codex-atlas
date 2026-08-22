@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS</title>
+<meta name="description" content="从 codex 命令到 TurnComplete：把一轮 Codex 对话拆成 13 个阶段单步走。每一步给出真实文件路径与事件名。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  .lab-grid { display: grid; grid-template-columns: 250px 1fr; gap: 0; }
+  @media (max-width: 860px) { .lab-grid { grid-template-columns: 1fr; } }
+
+  .stage-rail {
+    border-right: 1px solid var(--line);
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  @media (max-width: 860px) {
+    .stage-rail { border-right: none; border-bottom: 1px solid var(--line); max-height: 200px; }
+  }
+  .stage-item {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 9px 14px;
+    cursor: pointer;
+    line-height: 1.5;
+  }
+  .stage-item:hover { color: var(--ink); background: var(--bg2); }
+  .stage-item .no { color: var(--faint); font-size: 10.5px; flex-shrink: 0; width: 20px; }
+  .stage-item.on { background: var(--amber-dim); color: var(--amber); }
+  .stage-item.on .no { color: var(--amber); }
+  .stage-item.done .no::after { content: "·"; }
+
+  .stage-detail { padding: 22px 24px; min-height: 380px; }
+  .stage-detail h3 { margin: 0 0 6px; font-size: 19px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .stage-body { color: var(--dim); max-width: 40em; }
+  .stage-body b { color: var(--ink); font-weight: 500; }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 24px;
+    border-top: 1px dashed var(--line-strong);
+  }
+  .controls .slider-wrap { flex: 1; min-width: 160px; display: flex; align-items: center; gap: 12px; }
+  .controls .pos { font-family: var(--mono); font-size: 11px; color: var(--faint); white-space: nowrap; }
+  .tick-ruler { display: flex; justify-content: space-between; padding: 0 2px; margin-top: -4px; }
+  .tick-ruler i { width: 1px; height: 5px; background: var(--line-strong); }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">HOME · 总览</a>
+  <a href="loop.html">CH01 · 循环回路</a>
+  <a href="prompt.html">CH02 · 输入组装</a>
+  <a href="sandbox.html">CH03 · 权限沙箱</a>
+  <a href="appserver.html">CH04 · 协议线路</a>
+  <a href="atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>教学模型：不发网络请求，不运行真实 Codex</span>
+      <span>阶段依据固定提交源码结构</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>CH01 循环回路</p>
+      <h1>一轮对话的完整回路，<br>停在任意一步看清楚。</h1>
+      <p class="lede">
+        从你敲下 <code>codex</code> 到模型吐出最终回答，中间要过十三站。
+        这台仪器把每一站拆开：哪份文件在做事、什么事件正在流动、为什么改一行代码常常要过两次模型。
+        播放键走全程；滑杆和方向键可以停在任意一站反复看。
+      </p>
+    </header>
+
+    <section class="panel hot" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3 id="readout-title">阶段 <b id="pos-now">01</b> / 13 · <span id="cur-name">npm 启动器交棒</span></h3>
+        <span class="readout" id="play-state">待机 STANDBY</span>
+      </div>
+
+      <div class="lab-grid">
+        <ol class="stage-rail" id="rail" style="margin:0;padding:0;list-style:none;" aria-label="13 个阶段列表"></ol>
+
+        <div class="stage-detail" aria-live="polite">
+          <h3 id="d-title"></h3>
+          <div class="chips" id="d-files"></div>
+          <div class="chips" id="d-events"></div>
+          <p class="stage-body" id="d-body"></p>
+          <p class="small muted" id="d-next" style="border-left:2px solid var(--line-strong);padding-left:12px;margin-top:18px;"></p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="prev" aria-label="上一阶段">◀ 上一步</button>
+        <button class="btn primary" id="toggle" aria-label="播放全部阶段">▶ 播放全程</button>
+        <button class="btn" id="next" aria-label="下一阶段">下一步 ▶</button>
+        <div class="seg" role="group" aria-label="播放速度">
+          <button data-sp="0.6">慢</button>
+          <button data-sp="1" class="on">常速</button>
+          <button data-sp="1.8">快</button>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="seek" min="1" max="13" step="1" value="1" aria-label="跳转到阶段">
+          <span class="pos"><b id="pos-num">01</b>/13</span>
+        </div>
+      </div>
+      <div class="tick-ruler" style="padding:0 24px 14px;" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </section>
+
+    <p class="small muted" style="margin-top:14px;">
+      键盘：<span class="kbd">←</span> <span class="kbd">→</span> 切换阶段，<span class="kbd">空格</span> 播放/暂停。当前进度写入地址栏，刷新不丢。
+    </p>
+
+    <hr class="sep">
+
+    <section>
+      <h2 style="margin-top:0;">这一站看完，接着去哪</h2>
+      <table class="rt">
+        <tbody>
+          <tr><td>想看清第 9 步组装出来的请求长什么样</td><td><a href="prompt.html">CH02 输入组装 →</a></td></tr>
+          <tr><td>想确认第 12 步工具执行时被什么策略管着</td><td><a href="sandbox.html">CH03 权限沙箱 →</a></td></tr>
+          <tr><td>想知道 TUI 和核心之间的报文原文形状</td><td><a href="appserver.html">CH04 协议线路 →</a></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；个别类型名（如 <code>Op::UserTurn</code> 与 <code>Op::UserInput</code> 的分工）随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var STAGES = [
+    { n:"npm 启动器交棒", files:["codex-cli/bin/codex.js"], ev:[],
+      body:"你敲的 <b>codex</b> 命令先落在一个 Node 脚本上。它不做任何业务：识别平台与架构，从 optional dependencies 里挑出对应的原生二进制，然后把控制权整个交给 Rust 程序。跨平台支持因此只换二进制，不改逻辑。",
+      next:"这一步解释了为什么仓库里同时有 TypeScript 启动器和 Rust 主体两套代码。" },
+    { n:"Rust CLI 分发入口", files:["codex-rs/cli/src/main.rs"], ev:["MultitoolCli"],
+      body:"Rust 入口用 clap 解析 MultitoolCli。<b>没有子命令时默认启动 TUI</b>；exec、app-server、mcp-server 等子命令共用同一个原生分发物。一个二进制，多种打开方式——这也是后面所有客户端能共用核心的原因。",
+      next:"注意：从这里开始，交互模式不再影响核心逻辑。" },
+    { n:"TUI 挂载内嵌 App Server", files:["codex-rs/tui/src/main.rs"], ev:["AppServerTarget::embedded"],
+      body:"TUI 启动时选择 AppServerTarget：本地默认走 <b>embedded</b>——App Server 跑在与 TUI 同一个进程里。即便同进程，概念上也已经被协议边界隔开：TUI 是客户端，核心是服务端。远端模式则走 websocket 连别的机器。",
+      next:"OpenAI 正计划把 TUI 重构为标准客户端：启动子进程、走 stdio JSON-RPC。" },
+    { n:"TurnStart 请求发出", files:["app-server-protocol（v2）"], ev:["ClientRequest::TurnStart","TurnStartParams"],
+      body:"你按下回车，TUI 通过 active thread routing 把这轮输入送进 App Server。<b>TurnStartParams</b> 里带着 input、工作目录、模型、审批策略与沙箱覆盖项，字段以 camelCase 暴露给协议调用方。",
+      next:"协议词（thread / turn / request）在这里首次登场，它们不属于任何一个 UI 组件。" },
+    { n:"转成核心操作", files:["codex-rs/app-server/src/*"], ev:["process_request","turn_start","submit_core_op"],
+      body:"分发层把客户端请求收束成 core 能理解的操作：校验输入大小与 thread 状态，做 v2 输入到核心输入的转换，构造 <b>Op::UserInput</b>，经 submit_core_op 送入 submit_with_trace 入队。<b>它自己不跑模型。</b>",
+      next:"投递路径应读成 turn_start → submit_core_op → submit_with_trace，不是一步直达。" },
+    { n:"队列对：Submission 进 Event 出", files:["core/src/session/mod.rs"], ev:["Codex::spawn","submission_loop","Op::Shutdown"],
+      body:"核心抽象 <b>Codex 是一个队列对</b>：一边收 Submission/Op，一边吐 Event。spawn 创建 Session 并启动后台 submission_loop 常驻循环，直到收到 Op::Shutdown 才退出。submit 只负责生成 submission id 并入队。",
+      next:"两条异步 channel 是这个循环系统的循环带——理解了队列对，后面全是它的推论。" },
+    { n:"会话占用检查", files:["core/src/session/mod.rs"], ev:["user_input_or_turn_inner","steer_input"],
+      body:"一个 Session 同一时刻<b>最多只有一个 running task</b>。空闲：新建 turn 并启动 RegularTask。忙碌：尝试 steer_input，把你这句新输入导入正在跑的那一轮。<b>打断不是取消，是并入。</b>",
+      next:"这就是为什么连续追问不会排队等上一轮彻底结束。" },
+    { n:"TurnStarted 广播", files:["core/src/session（task wrapper）"], ev:["EventMsg::TurnStarted","RegularTask::run"],
+      body:"RegularTask::run 很短：先发出 <b>TurnStarted</b>，然后进入真正的循环体反复调用 run_turn。「轮次」从这里才正式开始计数——它是用户任务的生命周期单位，<b>不是</b>模型请求次数。",
+      next:"一次 turn 包含几次采样，取决于模型要几次才能完成任务。" },
+    { n:"build_prompt 组装", files:["core/src（Prompt 构建）"], ev:["ToolRouter::model_visible_specs","base_instructions"],
+      body:"每次采样前重新组装 Prompt：<b>history 加本轮新增输入</b>、工具表来自 ToolRouter 的 model_visible_specs()、加上基础指令与 personality。模型看到的是 tool spec；handler 注册表、并发策略、审批和沙箱都在 core 内部维护。",
+      next:"每一层具体装了什么、顺序如何，CH02 输入组装逐层拆给你看。" },
+    { n:"POST /responses · 读 SSE 流", files:["codex-api（HTTP 客户端）"], ev:["POST responses","SSE"],
+      body:"向 Responses API 端点发起 HTTP POST：ChatGPT 登录走 chatgpt.com/backend-api/codex/responses，API key 走 api.openai.com/v1/responses，本地模型走 localhost 端点。然后循环读取 SSE 事件流。<b>每次都发送完整历史</b>，不用 previous_response_id——保持请求无状态以兼容零数据保留配置。",
+      next:"总量二次增长的直觉是对的；靠提示缓存命中把采样成本压回线性。" },
+    { n:"ResponseEvent 流水线", files:["core/src（ModelClientSession::stream）"], ev:["OutputItemAdded","OutputTextDelta","OutputItemDone","Completed"],
+      body:"core 把服务器 SSE 事件重新发布为内部事件对象：<b>OutputItemAdded</b> 表示条目开始（UI 可立即渲染），OutputTextDelta 支持流式输出，<b>OutputItemDone</b> 可能触发工具分发，Completed 带回 token usage 并给出 needs_follow_up 标记。",
+      next:"事件驱动意味着 UI 不需要读 core 内部任务状态，只消费 EventMsg。" },
+    { n:"function_call → 工具分发", files:["core/src/tools/handlers/*","sandboxing"], ev:["handle_output_item_done","ToolRouter::build_tool_call"],
+      body:"handle_output_item_done 用 <b>ToolRouter::build_tool_call</b> 识别工具并创建 in-flight future。只要有工具调用就置 <b>needs_follow_up = true</b>——工具输出还要反馈给模型继续推理。执行发生在沙箱策略之下：macOS Seatbelt、Linux Landlock+bwrap、Windows WFP。",
+      next:"沙箱到底拦什么放什么，CH03 权限沙箱可以现场判定。" },
+    { n:"写回再采样，或收束", files:["core/src/session（task wrapper）"], ev:["needs_follow_up","EventMsg::TurnComplete"],
+      body:"工具输出写进 history，回到第 9 步<b>再次采样</b>——这条回路会转多少圈，取决于任务难度。当模型返回纯 assistant message（没有 tool call），needs_follow_up 为 false，本轮结束。标准的 TurnComplete envelope 由 task wrapper 在任务返回后统一发出，不在 run_turn 内部。",
+      next:"所以「一轮对话」的正确读法是：用户任务的完整生命周期，而不是一次 API 调用。" }
+  ];
+
+  var rail = document.getElementById("rail");
+  var dTitle = document.getElementById("d-title");
+  var dFiles = document.getElementById("d-files");
+  var dEvents = document.getElementById("d-events");
+  var dBody = document.getElementById("d-body");
+  var dNext = document.getElementById("d-next");
+  var posNow = document.getElementById("pos-now");
+  var posNum = document.getElementById("pos-num");
+  var curName = document.getElementById("cur-name");
+  var seek = document.getElementById("seek");
+  var toggleBtn = document.getElementById("toggle");
+  var playState = document.getElementById("play-state");
+
+  var cur = 1;
+  var playing = false;
+  var timer = null;
+  var speed = 1;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function chip(text, cls) {
+    var s = document.createElement("span");
+    s.className = "chip " + (cls || "");
+    s.textContent = text;
+    return s;
+  }
+
+  function renderDetail(i) {
+    var st = STAGES[i - 1];
+    dTitle.textContent = pad(i) + " · " + st.n;
+    dFiles.innerHTML = "";
+    if (st.files.length) {
+      var fl = chip("文件 FILE", "steel");
+      fl.style.opacity = ".7";
+      dFiles.appendChild(fl);
+      st.files.forEach(function (f) { dFiles.appendChild(chip(f)); });
+    }
+    dEvents.innerHTML = "";
+    if (st.ev.length) {
+      var el2 = chip("信号 EVENT", "amber");
+      el2.style.opacity = ".7";
+      dEvents.appendChild(el2);
+      st.ev.forEach(function (e) { dEvents.appendChild(chip(e, "amber")); });
+    }
+    dBody.innerHTML = st.body;
+    dNext.textContent = "看点 · " + st.next;
+    curName.textContent = st.n;
+    posNow.textContent = pad(i);
+    posNum.textContent = pad(i);
+    seek.value = i;
+  }
+
+  function setStage(i, keepPlaying) {
+    cur = Math.max(1, Math.min(STAGES.length, i));
+    renderDetail(cur);
+    Array.prototype.forEach.call(rail.children, function (li, idx) {
+      li.classList.toggle("on", idx === cur - 1);
+      li.classList.toggle("done", idx < cur - 1);
+    });
+    if (!keepPlaying) PanelState.write({ s: cur });
+    if (!keepPlaying && playing && cur >= STAGES.length) stop();
+  }
+
+  /* 构建左侧轨道 */
+  STAGES.forEach(function (st, idx) {
+    var b = document.createElement("button");
+    b.className = "stage-item";
+    b.type = "button";
+    b.innerHTML = '<span class="no">' + pad(idx + 1) + "</span><span>" + st.n + "</span>";
+    b.addEventListener("click", function () { setStage(idx + 1); });
+    var li = document.createElement("li");
+    li.appendChild(b);
+    rail.appendChild(li);
+  });
+
+  function stop() {
+    playing = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    toggleBtn.textContent = "▶ 播放全程";
+    playState.textContent = "待机 STANDBY";
+  }
+
+  function start() {
+    if (playing) return;
+    if (cur >= STAGES.length) setStage(1);
+    playing = true;
+    toggleBtn.textContent = "❚❚ 暂停";
+    playState.innerHTML = '运行中 RUNNING · <b>' + speed.toFixed(1) + '×</b>';
+    timer = setInterval(function () {
+      if (cur >= STAGES.length) { stop(); return; }
+      setStage(cur + 1, true);
+    }, Math.round(2600 / speed));
+  }
+
+  toggleBtn.addEventListener("click", function () { playing ? stop() : start(); });
+  document.getElementById("prev").addEventListener("click", function () { stop(); setStage(cur - 1); });
+  document.getElementById("next").addEventListener("click", function () { stop(); setStage(cur + 1); });
+  seek.addEventListener("input", function () { stop(); setStage(parseInt(seek.value, 10)); });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg [data-sp]"), function (b) {
+    b.addEventListener("click", function () {
+      speed = parseFloat(b.getAttribute("data-sp"));
+      Array.prototype.forEach.call(document.querySelectorAll(".seg [data-sp]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      if (playing) { stop(); start(); }
+    });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "ArrowRight") { e.preventDefault(); stop(); setStage(cur + 1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); setStage(cur - 1); }
+    else if (e.key === " " ) {
+      var tag = e.target.tagName;
+      if (tag === "BUTTON") return; /* 让按钮自己的空格生效 */
+      e.preventDefault();
+      playing ? stop() : start();
+    }
+  });
+
+  /* URL 状态恢复 */
+  var saved = parseInt(PanelState.read().s, 10);
+  setStage(isNaN(saved) ? 1 : saved);
+
+  window.addEventListener("hashchange", function () { location.reload(); });
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+})();
+</script>
+</body>
+</html>

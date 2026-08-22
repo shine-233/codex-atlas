@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODEX ATLAS · openai/codex 源码交互图鉴</title>
+<meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、135 个 crate 图谱，全部做成可操作的交互仪器。非官方中文学习站。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<nav class="rail" aria-label="站点频道">
+  <a class="rail-brand" href="index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="index.html"><span class="ch-no">HOME</span>总览</a>
+    <a class="rail-ch" href="labs/loop.html"><span class="ch-no">CH01</span>循环回路</a>
+    <a class="rail-ch" href="labs/prompt.html"><span class="ch-no">CH02</span>输入组装</a>
+    <a class="rail-ch" href="labs/sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
+    <a class="rail-ch" href="labs/appserver.html"><span class="ch-no">CH04</span>协议线路</a>
+    <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
+  </div>
+  <div class="rail-foot">
+    基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关
+  </div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="index.html">HOME · 总览</a>
+  <a href="labs/loop.html">CH01 · 循环回路</a>
+  <a href="labs/prompt.html">CH02 · 输入组装</a>
+  <a href="labs/sandbox.html">CH03 · 权限沙箱</a>
+  <a href="labs/appserver.html">CH04 · 协议线路</a>
+  <a href="labs/atlas.html">CH05 · Crate 图谱</a>
+</div>
+
+<div class="wrap">
+  <main class="container">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>上游基线 @343074d4（2026-08-22）</span>
+      <span>Apache-2.0 开源</span>
+      <span>★ 111,904</span>
+      <span>codex-rs 工作区实测 135 crate</span>
+    </div>
+
+    <!-- 主视觉 -->
+    <section style="padding-top:26px;">
+      <p class="eyebrow"><span class="tick">▮</span>OPENAI / CODEX 源码交互图鉴</p>
+      <h1>把 Codex CLI 拆到事件级，<br>再看着它装回去。</h1>
+      <p class="lede">
+        Codex CLI 的核心代码是开源的，但一万多个提交不会自己解释自己。这个站不搬运教程，
+        而是把五条主干线路做成可以动手的仪器：单步走完一轮 Agent 循环，逐层搭出一次模型请求，
+        切换沙箱模式看权限判定，放一遍客户端协议报文，翻 135 个 crate 的分层图谱。
+      </p>
+      <p style="margin:20px 0 6px;">
+        <a class="btn primary" href="labs/loop.html">▶ 从 CH01 循环回路开始</a>
+        <a class="btn" href="#route" style="margin-left:10px;">按问题查路由表</a>
+      </p>
+      <div id="hero-scope" style="margin:34px 0 8px;"></div>
+      <p class="small muted" style="font-family:var(--mono); font-size:11px; letter-spacing:.08em;">
+        琥珀点 = 请求出站方向 · 钢青点 = SSE 事件回流 · 示意图，非真实拓扑
+      </p>
+    </section>
+
+    <hr class="sep">
+
+    <!-- 三步上手：这是真实顺序 -->
+    <section>
+      <p class="eyebrow"><span class="tick">02</span>三步上手</p>
+      <h2 style="margin-top:6px;">第一次来，按顺序走这三步</h2>
+      <table class="rt">
+        <thead>
+          <tr><th style="width:64px;">步</th><th>做什么</th><th>结束时你应能回答</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b style="color:var(--amber);font-family:var(--mono);">01</b></td>
+            <td>进 <a href="labs/loop.html">CH01 循环回路</a>，按播放或拖动滑杆，走完一次用户输入到 TurnComplete 的全程。</td>
+            <td>一轮对话为什么可能包含多次模型调用；工具输出去了哪里。</td>
+          </tr>
+          <tr>
+            <td><b style="color:var(--amber);font-family:var(--mono);">02</b></td>
+            <td>进 <a href="labs/prompt.html">CH02 输入组装</a>，逐层打开开关，看一次请求的实际构成和 32 KiB 指令上限的位置。</td>
+            <td>AGENTS.md 从哪些目录读进来；完整历史为什么每次重发。</td>
+          </tr>
+          <tr>
+            <td><b style="color:var(--amber);font-family:var(--mono);">03</b></td>
+            <td>带着具体问题去 <a href="labs/sandbox.html">CH03 权限沙箱</a>、<a href="labs/appserver.html">CH04 协议线路</a> 或 <a href="labs/atlas.html">CH05 Crate 图谱</a>，在下面路由表里找入口。</td>
+            <td>你的那个问题，答案落在哪个源码目录。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 五个频道 -->
+    <section>
+      <p class="eyebrow"><span class="tick">03</span>五个频道</p>
+      <h2 style="margin-top:6px;">每条线路是一台独立仪器</h2>
+
+      <div class="panel hot">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH01</span>循环回路</h3>
+          <span class="readout">labs/loop.html · 单步 + 播放 + 键盘 ←→</span>
+        </div>
+        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
+        <p style="margin-bottom:12px;">用户敲下一句话之后，Codex 内部发生了什么？为什么改一行代码常常要过两次模型？工具调用的结果又从哪条路回到上下文里？</p>
+        <p class="small muted">13 个阶段可单步停留。每一步给出对应的真实文件路径与事件名，如 <code>core/src/session/mod.rs</code> 的队列对、<code>ResponseEvent::OutputItemDone</code>。</p>
+        <p style="margin:14px 0 0;"><a class="btn on" href="labs/loop.html">进入 CH01 →</a></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH02</span>输入组装</h3>
+          <span class="readout">labs/prompt.html · 层开关 + 预算条</span>
+        </div>
+        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
+        <p style="margin-bottom:12px;">发往 Responses API 的那次请求里到底有什么？base_instructions、config.toml 里的开发者指令、沿目录层叠的 AGENTS.md、环境消息、工具清单——各占哪一层，谁覆盖谁，32 KiB 上限卡在哪。</p>
+        <p class="small muted">每层开关可独立启停；体积为示意刻度，非实测 token 数，出处见页面脚注。</p>
+        <p style="margin:14px 0 0;"><a class="btn" href="labs/prompt.html">进入 CH02 →</a></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH03</span>权限沙箱</h3>
+          <span class="readout">labs/sandbox.html · 场景判定器</span>
+        </div>
+        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
+        <p style="margin-bottom:12px;">read-only / workspace-write / danger-full-access 三种模式分别放行什么？macOS 用 Seatbelt、Linux 用 Landlock+bwrap、Windows 用 WFP——同一动作在三套机制下怎么判？为什么 MCP 工具不在 Codex 沙箱的管辖范围内？</p>
+        <p class="small muted">选系统、选模式、选一个具体动作，直接给判定和理由。</p>
+        <p style="margin:14px 0 0;"><a class="btn" href="labs/sandbox.html">进入 CH03 →</a></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH04</span>协议线路</h3>
+          <span class="readout">labs/appserver.html · 报文时间线</span>
+        </div>
+        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
+        <p style="margin-bottom:12px;">VS Code 插件、macOS App 和 TUI 是怎么共用同一个核心的？JSON-RPC 双向通道上，Thread/Turn/Item 三原语的生命周期怎样流动？审批请求为什么能把整轮对话挂起，等的是谁？</p>
+        <p class="small muted">报文序列可整段播放，也可点击任意一条查看结构示例（标注为示意形状）。</p>
+        <p style="margin:14px 0 0;"><a class="btn" href="labs/appserver.html">进入 CH04 →</a></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH05</span>Crate 图谱</h3>
+          <span class="readout">labs/atlas.html · 九带分层 + 检索高亮</span>
+        </div>
+        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
+        <p style="margin-bottom:12px;">想读某个功能的实现，该从哪个 crate 下手？135 个工作区成员分成九条功能带：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持按名字检索高亮。</p>
+        <p class="small muted">成员名单取自固定提交下的 codex-rs/Cargo.toml，可直接复核；分带是本站归纳，不是上游分类。</p>
+        <p style="margin:14px 0 0;"><a class="btn" href="labs/atlas.html">进入 CH05 →</a></p>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- 按问题路由 -->
+    <section id="route">
+      <p class="eyebrow"><span class="tick">04</span>信号路由</p>
+      <h2 style="margin-top:6px;">按你的问题选入口</h2>
+      <table class="rt">
+        <thead>
+          <tr><th style="width:52%;">你的问题</th><th>去这里</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>一轮对话内部到底发生了什么，为什么不止一次模型调用</td><td><a href="labs/loop.html">CH01 循环回路</a></td></tr>
+          <tr><td>我的 AGENTS.md 是从哪些目录被读进去的，有上限吗</td><td><a href="labs/prompt.html">CH02 输入组装</a></td></tr>
+          <tr><td>Codex 会写我工作区之外的路径吗，临时目录呢</td><td><a href="labs/sandbox.html">CH03 权限沙箱</a></td></tr>
+          <tr><td>MCP 服务器提供的工具受不受 Codex 沙箱保护</td><td><a href="labs/sandbox.html">CH03 权限沙箱</a> · 底部说明</td></tr>
+          <tr><td>IDE 插件用什么协议跟核心通信，断线了怎么办</td><td><a href="labs/appserver.html">CH04 协议线路</a></td></tr>
+          <tr><td>审批弹窗出现时，是谁在暂停、谁在等待</td><td><a href="labs/appserver.html">CH04 协议线路</a></td></tr>
+          <tr><td>我想从某个功能（记忆/云任务/代码执行）入手读源码</td><td><a href="labs/atlas.html">CH05 Crate 图谱</a></td></tr>
+          <tr><td>启动命令 codex 在 npm 包和 Rust 二进制之间发生了什么</td><td><a href="labs/loop.html">CH01 循环回路</a> · 阶段 1–3</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 证据边界 -->
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      上游基线固定为 openai/codex main 分支提交 <code>343074d4207d572809bd8cea15f4be1d09d98e0b</code>（2026-08-22，"Report runtime MCP connection status"）。星标数与 crate 数为该日经 GitHub API 实测；上游持续变化，数字以固定提交为准。
+      内容来源分三类：① 仓库文件与 Cargo.toml 成员名单，可自行复核；② OpenAI 官方博客《Unrolling the Codex agent loop》与《Unlocking the Codex harness》；③ 社区源码研究（wineandchord 逐函数分析等），仅作交叉参考。
+      凡属推断或示意，页面内均就地标注。本站是非官方学习项目，与 OpenAI 无隶属关系；发现事实错误请提 issue 指出具体页面与依据。
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/panel.js"></script>
+<script src="assets/loop-hero.js"></script>
+<script>
+  LoopScope.mount(document.getElementById("hero-scope"), {
+    width: 760, height: 300, labels: true, speed: 46
+  });
+</script>
+</body>
+</html>
