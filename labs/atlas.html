@@ -175,8 +175,13 @@
           <tr><td>想给 IDE 写自己的客户端</td><td>第 6 带 <b>app-server-*</b> 三件套，配合 <a href="appserver.html">CH04 协议线路</a></td></tr>
           <tr><td>想接本地模型不开官方 API</td><td>第 5 带 <b>ollama / lmstudio / model-provider-info</b></td></tr>
           <tr><td>想研究记忆系统怎么存取</td><td>第 7 带 <b>memories/read + memories/write</b> 与 ext/memories</td></tr>
+          <tr><td>想给 CI 写非交互自动化</td><td>第 1 带 <b>exec</b>：codex exec "任务"，与 TUI 共用同一个核心</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
     </section>
 
     <aside class="evidence">
@@ -573,6 +578,21 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "想读 Agent 循环的实现本体，先去哪条带？",
+      opts: ["B2 核心引擎（core）", "B9 基础设施", "B8 云协作"],
+      a: 0,
+      why: "Codex 队列对、RegularTask、run_turn 都在 core 里——CH01 十三站的舞台就在这条带。动线图上它也是主链的第三站。" },
+    { q: "「135 个成员」这个数字是怎么来的？",
+      opts: ["OpenAI 官方文档宣称", "固定提交下 Cargo.toml workspace members 实测", "GitHub 搜索结果计数"],
+      a: 1,
+      why: "名单逐项来自 openai/codex@343074d4 的 codex-rs/Cargo.toml members 字段，本页每个芯片都能对着同一路径复核。" },
+    { q: "九条功能带是上游的官方分类吗？",
+      opts: ["是", "部分是", "否——分带是本站归纳"],
+      a: 2,
+      why: "上游没有这种分类。跨带成员（如 login）按主要职责归带，读的时候把它当路标：定位用，别当代码评审结论。" }
+  ]);
 })();
 </script>
 </body>

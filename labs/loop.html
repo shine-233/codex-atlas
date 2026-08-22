@@ -227,6 +227,10 @@
       </table>
     </section>
 
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
+    </section>
+
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
       本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；个别类型名（如 <code>Op::UserTurn</code> 与 <code>Op::UserInput</code> 的分工）随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图为拓扑示意；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
@@ -591,6 +595,21 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "一轮对话（turn）里，模型最多可能被调用几次？",
+      opts: ["恰好一次", "至少一次——有工具调用就再采样一次", "固定三次"],
+      a: 1,
+      why: "第 9–13 步是可循环的采样环：只要模型发出工具调用，输出写回历史后回到第 9 步重新组装、再次采样；返回纯文本才收束到 TurnComplete。" },
+    { q: "needs_follow_up 标记在什么时候被置为 true？",
+      opts: ["用户中途追加输入时", "本轮存在工具调用时", "TurnComplete 发出之后"],
+      a: 1,
+      why: "第 11–12 步：handle_output_item_done 用 ToolRouter 建立工具调用 future 时置位；它决定历史写回后要不要再转一圈。" },
+    { q: "本地默认启动时，TUI 和核心是什么关系？",
+      opts: ["跨进程 websocket 连接", "核心跑在 OpenAI 云端", "同进程（embedded），但概念上已被协议边界隔开"],
+      a: 2,
+      why: "第 3 站：AppServerTarget 默认走 embedded。即便同进程，TUI 是客户端、核心是服务端的分工不变——远端模式才走 websocket 连别的机器。" }
+  ]);
 })();
 </script>
 </body>

@@ -266,6 +266,10 @@
       </p>
     </section>
 
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
+    </section>
+
     <hr class="sep">
 
     <aside class="evidence">
@@ -507,6 +511,21 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "workspace-write 模式下，模型默认能访问网络吗？",
+      opts: ["默认断网，可在 config 里显式打开 network_access", "默认放行", "只有 danger-full-access 才谈网络"],
+      a: 0,
+      why: "判定器里那格琥珀色就是它：默认 deny，打开配置后变 ALLOW。需要装依赖又不想全放开时，这是唯一的中间档。" },
+    { q: "经 MCP 服务器接入的工具，受 Codex 沙箱管辖吗？",
+      opts: ["完全受管，和内置 shell 工具一样", "不受管——防护由 MCP 提供方自行负责", "只在 read-only 模式下受管"],
+      a: 1,
+      why: "沙箱声明只描述内置 shell 工具的运行环境。官方博客原话：MCP 工具「需自行负责执行其防护措施」。能拦住它的只有提供方自己的权限设计和你的审批之手。" },
+    { q: "审批策略设为 never 时，「条件放行」的动作会怎样？",
+      opts: ["照常弹窗征求同意", "自动放行一次", "直接失败——不会弹窗"],
+      a: 2,
+      why: "矩阵里切到 never 看得最清楚：琥珀格全部压成 DENY。无人值守跑批选它，拿不到的权限宁可失败也不等人。" }
+  ]);
 })();
 </script>
 </body>

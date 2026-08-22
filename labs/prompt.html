@@ -220,6 +220,10 @@
       </p>
     </section>
 
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
+    </section>
+
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
       组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限、auto_compact_limit 与 /responses/compact 行为，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。
@@ -608,6 +612,21 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "四个目录位的 AGENTS.md 全部启用时，会发生什么？",
+      opts: ["请求直接报错", "层叠总量触顶 32 KiB 默认上限，最早读入的被截断", "自动压缩成一条摘要"],
+      a: 1,
+      why: "组装仪里的 cascade-meter 演示的就是这一幕：上限约束的是层叠总量，截断发生在读入侧。官方博客的原话是这种设计鼓励把信息按目录拆开。" },
+    { q: "为什么 Codex 每次采样都全量重发对话历史？",
+      opts: ["服务端强制要求带 previous_response_id", "为了保持请求无状态，兼容零数据保留部署", "因为历史很小，发了也不心疼"],
+      a: 1,
+      why: "第 7 层：不用 previous_response_id 是有意为之——请求完全无状态，零数据保留配置才能成立。二次增长的计费代价靠提示缓存命中摊平。" },
+    { q: "developer_instructions 这一层的内容从哪里来？",
+      opts: ["~/.codex/config.toml（可选配置）", "仓库根目录的 AGENTS.md", "随 CLI 打包的 base_instructions"],
+      a: 0,
+      why: "它是用户在 config.toml 里写的开发者指令，存在才注入；项目级约定走 AGENTS.md 层叠，模型身份则来自 base_instructions——三层别混。" }
+  ]);
 })();
 </script>
 </body>

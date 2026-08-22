@@ -622,3 +622,47 @@ button.ribbon-seg { appearance: none; border-width: 0 1px 0 0; padding: 0; }
   overflow: hidden;
 }
 .ribbon-note { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: 0.06em; margin-bottom: 6px; }
+
+/* ---------- CHECKPOINT · 出站自检 ---------- */
+.cq-list { list-style: none; margin: 0; padding: 0; counter-reset: cq; }
+.cq-item { border-top: 1px solid var(--line); padding: 15px 0 13px; }
+.cq-item:first-child { border-top: none; padding-top: 4px; }
+.cq-q { margin: 0 0 11px; color: var(--ink); font-size: 14px; }
+.cq-q::before {
+  counter-increment: cq;
+  content: "Q" counter(cq) " · ";
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: var(--amber);
+}
+.cq-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cq-opt {
+  appearance: none;
+  background: var(--bg2);
+  border: 1px solid var(--line-strong);
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 7px 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.cq-opt:hover:not(:disabled) { border-color: var(--dim); color: var(--ink); }
+.cq-opt.right { color: var(--ok); border-color: rgba(123, 201, 139, 0.5); background: var(--ok-dim); }
+.cq-opt.wrong { color: var(--deny); border-color: rgba(240, 121, 106, 0.5); background: var(--deny-dim); }
+.cq-item.done .cq-opt.mute { opacity: 0.4; }
+.cq-opt:disabled { cursor: default; }
+.cq-ex {
+  display: none;
+  margin: 11px 0 0;
+  max-width: 46em;
+  font-size: 13px;
+  color: var(--dim);
+  border-left: 2px solid var(--line-strong);
+  padding-left: 11px;
+}
+.cq-item.done .cq-ex { display: block; animation: ca-rise 0.22s ease-out both; }
+.cq-ex b { color: var(--ink); font-weight: 500; }

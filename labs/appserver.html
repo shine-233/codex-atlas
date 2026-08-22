@@ -186,6 +186,10 @@
       </p>
     </section>
 
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
+    </section>
+
     <hr class="sep">
 
     <aside class="evidence">
@@ -537,6 +541,21 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "commandExecution/approval 这种审批请求，是从哪边发往哪边的？",
+      opts: ["客户端 → 服务端", "服务端 → 客户端", "两边同时向对方发"],
+      a: 1,
+      why: "时间线第 11 条标红了方向：这次是服务端发请求，JSON-RPC 的「双向」在这里兑现。核心线程整个暂停，等的是客户端——也就是你。" },
+    { q: "Item 的生命周期顺序是？",
+      opts: ["started → delta → completed", "completed → delta → started", "没有固定顺序，随实现变化"],
+      a: 0,
+      why: "started 先到即可渲染占位，delta 流式补全（打字机效果的协议基础），completed 落定后才能被引用或检索。" },
+    { q: "拒绝审批之后，这轮对话会怎样？",
+      opts: ["立即终止并报错", "永久挂起直到批准", "继续推进——模型收到反馈并调整方案"],
+      a: 2,
+      why: "时间线的 denied 分支：拒绝被当成正常反馈消化掉，agent_message 换个思路接着来。拒绝不是报错。" }
+  ]);
 })();
 </script>
 </body>
