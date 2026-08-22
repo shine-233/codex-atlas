@@ -26,7 +26,8 @@
   .match-readout { font-family: var(--mono); font-size: 11.5px; color: var(--faint); letter-spacing: .05em; white-space: nowrap; }
   .match-readout b { color: var(--amber); font-weight: 500; }
 
-  .band { margin-top: 22px; border: 1px solid var(--line); background: var(--bg1); }
+  .band { margin-top: 22px; border: 1px solid var(--line); background: var(--bg1); transition: border-color .3s; }
+  .band.flash { border-color: var(--amber); }
   .band-head {
     display: flex;
     align-items: baseline;
@@ -135,6 +136,9 @@
         <span class="match-readout" id="match-out">匹配 <b>135</b> / 135</span>
       </div>
 
+      <div class="ribbon-note">PROPORTION · 段宽 = 该带成员数占比（合计 135）· 点段跳转</div>
+      <div class="ribbon" id="ribbon" role="img" aria-label="九条功能带的成员数量比例条"></div>
+
       <div id="bands"></div>
 
       <div class="detail-card" aria-live="polite">
@@ -180,7 +184,7 @@
       desc:"用户与外部程序接触 Codex 的地方。同一个核心，多种打开方式。",
       crates:["cli","tui","exec","app-server","app-server-daemon","arg0","install-context","login"],
       notes:{
-        "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端——和其他界面同等待遇。",
+        "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端，走 stdio JSON-RPC（CH04 有它的报文时序）。",
         "exec":"非交互式一次性执行入口：codex exec \"任务\"。CI 与脚本场景的主力形态。",
         "app-server":"JSON-RPC 服务进程。IDE 插件与桌面应用的接入口，见 CH04 报文时间线。",
         "login":"ChatGPT 账号登录流程与凭据状态管理。",
@@ -298,11 +302,48 @@
   var dcBand = document.getElementById("dc-band");
   var dcName = document.getElementById("dc-name");
   var dcBody = document.getElementById("dc-body");
+  var ribbonBox = document.getElementById("ribbon");
 
   var selCrate = null;
+  var bandEls = {};
+  var RIBBON_ALPHA = [0.92, 0.8, 0.68, 0.58, 0.48, 0.4, 0.32, 0.24, 0.18];
 
   function total() {
     return BANDS.reduce(function (n, b) { return n + b.crates.length; }, 0);
+  }
+
+  /* 构成比例带：段宽 = 实测成员数占比 */
+  (function buildRibbon() {
+    if (!ribbonBox) return;
+    var all = total();
+    BANDS.forEach(function (b, i) {
+      var pct = Math.round(b.crates.length / all * 100);
+      var seg = document.createElement("div");
+      seg.className = "ribbon-seg";
+      seg.style.flexGrow = b.crates.length;
+      seg.style.background = "rgba(255,180,84," + RIBBON_ALPHA[i] + ")";
+      seg.title = b.no + " " + b.name + "带 · " + b.crates.length + " 个成员 · ≈" + pct + "%";
+      if (b.crates.length / all >= 0.08) {
+        var lab = document.createElement("span");
+        lab.textContent = b.no + " · " + b.crates.length;
+        seg.appendChild(lab);
+      }
+      seg.addEventListener("click", function () {
+        var el = bandEls[b.no];
+        if (!el) return;
+        el.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "nearest" });
+        el.classList.add("flash");
+        setTimeout(function () { el.classList.remove("flash"); }, 950);
+        showBandInfo(b);
+      });
+      ribbonBox.appendChild(seg);
+    });
+  })();
+
+  function showBandInfo(b) {
+    dcBand.textContent = b.no + " · " + b.en;
+    dcName.textContent = b.name + "带 · " + b.crates.length + " 个成员";
+    dcBody.textContent = b.desc;
   }
 
   function build() {
@@ -310,19 +351,19 @@
     BANDS.forEach(function (b) {
       var sec = document.createElement("div");
       sec.className = "band";
+      bandEls[b.no] = sec;
       var head = document.createElement("div");
       head.className = "band-head";
       head.setAttribute("role", "button");
       head.tabIndex = 0;
+      var pct = Math.round(b.crates.length / total() * 100);
       head.innerHTML =
         '<span class="band-no">' + b.no + "</span>" +
         '<span class="band-name">' + b.name + '</span>' +
         '<span class="band-en">' + b.en + "</span>" +
-        '<span class="chip band-count">' + b.crates.length + "</span>";
+        '<span class="chip band-count">' + b.crates.length + " · " + pct + "%</span>";
       function showBand() {
-        dcBand.textContent = b.no + " · " + b.en;
-        dcName.textContent = b.name + "带 · " + b.crates.length + " 个成员";
-        dcBody.textContent = b.desc;
+        showBandInfo(b);
         Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) { c.classList.remove("sel"); });
       }
       head.addEventListener("click", showBand);

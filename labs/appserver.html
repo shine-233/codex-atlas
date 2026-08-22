@@ -128,7 +128,11 @@
 
       <div class="lanes"><span>CLIENT · TUI / IDE / APP</span><span style="opacity:.4;">⇄ stdio JSONL ⇄</span><span>APP SERVER + CORE</span></div>
 
-      <div id="seq" aria-live="polite"></div>
+      <div class="seqwrap">
+        <div class="seqscroll" id="seqscroll"></div>
+      </div>
+
+      <div id="seq" aria-live="polite" style="margin-top:6px;"></div>
 
       <div id="gate-zone"></div>
 
@@ -271,7 +275,7 @@
   function renderRow(msg, state) {
     var d = document.createElement("div");
     d.className = "msg dir-" + msg.dir +
-      (state === "ghost" ? " ghost" : state === "cur" ? " cur" : "") +
+      (state === "ghost" ? " ghost" : state === "cur" ? " cur ca-rise" : "") +
       (msg.dir === "int" ? " int-row" : "");
     var arrow = msg.dir === "c2s" ? "→" : msg.dir === "int" ? "⟳" : msg.dir === "gate" ? "⇦!" : "←";
     d.innerHTML =
@@ -320,9 +324,106 @@
       var state = i < cur ? (i === cur - 1 ? "cur" : "past") : "ghost";
       seqBox.appendChild(renderRow(m, state));
     });
+    rebuildSeq(list);
     var gateMsg = list[Math.max(0, cur - 1)];
     if (cur > 0 && gateMsg && gateMsg.gate) renderDecideBox(gateMsg);
     else gateZone.innerHTML = "";
+  }
+
+  /* ---------- 时序图：双生命线 + 方向箭头，与列表联动 ---------- */
+  var seqScroll = document.getElementById("seqscroll");
+  var SG_NS = "http://www.w3.org/2000/svg";
+  var LANE_CX = 110, LANE_SX = 610, ROW_H = 34, SEQ_TOP = 46;
+
+  function sgEl(n, a) { var x = document.createElementNS(SG_NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+
+  function sgColor(m) {
+    if (m.dir === "int") return "#5f6c79";
+    if (m.gate) return "#f0796a";
+    if (m.k === "decision") return branch === "denied" ? "#f0796a" : "#7bc98b";
+    return m.dir === "c2s" ? "#8fc7e8" : "#ffb454";
+  }
+
+  function rebuildSeq(list) {
+    if (!seqScroll) return;
+    seqScroll.innerHTML = "";
+    var H = SEQ_TOP + list.length * ROW_H + 12;
+    var svg = sgEl("svg", {
+      viewBox: "0 0 720 " + H, width: "100%", height: H,
+      preserveAspectRatio: "xMidYMin meet", role: "img",
+      "aria-label": "报文时序图：已送达 " + cur + " 条"
+    });
+
+    var defs = sgEl("defs", {});
+    [["sg-steel", "#8fc7e8"], ["sg-amber", "#ffb454"], ["sg-deny", "#f0796a"], ["sg-ok", "#7bc98b"], ["sg-dim", "#5f6c79"]]
+      .forEach(function (p) {
+        var mk = sgEl("marker", { id: p[0], viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6.5", markerHeight: "6.5", orient: "auto-start-reverse" });
+        mk.appendChild(sgEl("path", { d: "M0 0 L10 5 L0 10 z", fill: p[1] }));
+        defs.appendChild(mk);
+      });
+    svg.appendChild(defs);
+
+    /* 生命线 */
+    [[LANE_CX, "CLIENT"], [LANE_SX, "SERVER"]].forEach(function (lane) {
+      svg.appendChild(sgEl("line", { x1: lane[0], y1: 26, x2: lane[0], y2: H - 6, stroke: "#263140", "stroke-dasharray": "3 5" }));
+      var t = sgEl("text", { x: lane[0], y: 14, "text-anchor": "middle", class: "sg-lane" });
+      t.textContent = lane[1];
+      svg.appendChild(t);
+    });
+
+    list.forEach(function (m, i) {
+      var y = SEQ_TOP + i * ROW_H;
+      var state = i < cur ? (i === cur - 1 ? "cur" : "past") : "ghost";
+      var col = sgColor(m);
+      var g = sgEl("g", {});
+      if (state === "ghost") g.setAttribute("opacity", "0.13");
+
+      if (m.dir === "int") {
+        g.appendChild(sgEl("rect", { x: LANE_SX - 44, y: y - 11, width: 88, height: 20, rx: 3, fill: "#151b22", stroke: col, "stroke-width": "1.2" }));
+        var it = sgEl("text", { x: LANE_SX, y: y + 4, "text-anchor": "middle", class: "sg-label" });
+        it.textContent = "core 内部入队";
+        g.appendChild(it);
+      } else {
+        var toServer = m.dir === "c2s";
+        var x1 = toServer ? LANE_CX + 4 : LANE_SX - 4;
+        var x2 = toServer ? LANE_SX - 6 : LANE_CX + 6;
+        var lineAttr = { x1: x1, y1: y, x2: x2, y2: y, stroke: col, "stroke-width": state === "cur" ? "2" : "1.3" };
+        if (m.gate) lineAttr["stroke-dasharray"] = "6 4";
+        lineAttr["marker-end"] = "url(#sg-" + (m.k === "decision" ? (branch === "denied" ? "deny" : "ok") : m.gate ? "deny" : toServer ? "steel" : "amber") + ")";
+        g.appendChild(sgEl("line", lineAttr));
+
+        var lt = sgEl("text", {
+          x: (x1 + x2) / 2, y: y - 6, "text-anchor": "middle",
+          class: "sg-label" + (m.gate ? " gate" : "")
+        });
+        lt.textContent = pad(i + 1) + " · " + m.m + (m.gate ? "  ⏸ 挂起等你" : "");
+        g.appendChild(lt);
+
+        g.appendChild(sgEl("rect", { class: "sg-hit", x: 60, y: y - 15, width: 600, height: 28 }));
+      }
+
+      if (state === "cur") {
+        var ox = m.dir === "s2c" || m.dir === "gate" ? LANE_SX : LANE_CX;
+        if (m.dir === "int") ox = LANE_SX;
+        g.appendChild(sgEl("circle", { cx: ox, cy: y, r: 3.4, fill: col === "#5f6c79" ? "#9aa7b4" : col }));
+      }
+
+      if (state !== "ghost") {
+        g.style.cursor = "pointer";
+        g.addEventListener("click", function () {
+          stop();
+          cur = i + 1;
+          PanelState.write({ n: cur, d: branch || "" });
+          render();
+          showDetail(list[i]);
+        });
+      }
+      svg.appendChild(g);
+    });
+
+    seqScroll.appendChild(svg);
+    /* 视口跟随最新报文 */
+    seqScroll.scrollTop = Math.max(0, cur * ROW_H - seqScroll.clientHeight + ROW_H * 3);
   }
 
   function showDetail(msg) {

@@ -163,12 +163,26 @@
         <!-- 右：组装栈 -->
         <div class="stack-wrap">
           <div class="payload-tag">POST <b>/responses</b> · JSON 负载示意形状</div>
+
+          <div class="budget">
+            <div class="budget-head">
+              <span class="payload-tag" style="margin-bottom:0;">LOADOUT · 各层相对体积占比（示意权重）</span>
+              <span class="match-readout">合计 ≈ <b id="budget-total">0</b> 单位</span>
+            </div>
+            <div class="budget-track" id="budget-track"></div>
+          </div>
+
           <div id="stack"></div>
 
           <div class="detail-card" id="detail" aria-live="polite">
             <h4 id="dt-title">点任意一层查看它的来源与作用</h4>
             <p id="dt-body">每一层的文字说明、真实路径和证据类别都会显示在这里。</p>
           </div>
+
+          <details class="payload-view">
+            <summary>PAYLOAD PREVIEW · 负载形状预览（随开关实时变化 · 示意形状）</summary>
+            <pre id="pj-pre" aria-live="polite"></pre>
+          </details>
         </div>
       </div>
     </section>
@@ -254,7 +268,18 @@
   var cntOn = document.getElementById("cnt-on");
   var dtTitle = document.getElementById("dt-title");
   var dtBody = document.getElementById("dt-body");
+  var budgetTrack = document.getElementById("budget-track");
+  var budgetTotal = document.getElementById("budget-total");
+  var pjPre = document.getElementById("pj-pre");
   var selLayer = null;
+  var layerEls = {};
+
+  /* 构成条分段色：琥珀/钢青/绿交替降透明度，仅作区隔，不表语义 */
+  var BUDGET_COLORS = [
+    "rgba(255,180,84,.92)", "rgba(143,199,232,.85)", "rgba(123,201,139,.7)",
+    "rgba(255,180,84,.62)", "rgba(143,199,232,.55)", "rgba(123,201,139,.45)",
+    "rgba(255,180,84,.4)"
+  ];
 
   LAYERS.forEach(function (L) {
     if (L.subs) L.subs.forEach(function (s) { s.on = true; });
@@ -328,6 +353,7 @@
       groups[g].forEach(function (L) {
         var d = document.createElement("div");
         d.className = "lyr" + (L.on ? "" : " off") + (selLayer === L.id ? " sel" : "");
+        layerEls[L.id] = d;
         var row = document.createElement("div");
         row.className = "ly-row";
         var nm = document.createElement("span");
@@ -408,8 +434,91 @@
   function render() {
     cntOn.textContent = LAYERS.filter(function (L) { return L.on; }).length;
     buildStack();
+    renderBudget();
+    renderPreview();
     syncToggleChecks();
     persistState();
+  }
+
+  /* 负载构成条：各启用层的示意权重占比 */
+  function renderBudget() {
+    var totalW = 0;
+    LAYERS.forEach(function (L) {
+      if (!L.on) { L._w = 0; return; }
+      var w = L.w;
+      if (L.id === "agents" && L.subs) {
+        var onSubs = L.subs.filter(function (s) { return s.on; }).length;
+        w = L.w * onSubs / L.subs.length;
+      }
+      L._w = Math.round(w * 10) / 10;
+      totalW += L._w;
+    });
+    budgetTrack.innerHTML = "";
+    LAYERS.forEach(function (L, i) {
+      if (!L.on || !L._w) return;
+      var seg = document.createElement("div");
+      seg.className = "budget-seg";
+      seg.style.width = (L._w / totalW * 100) + "%";
+      seg.style.background = BUDGET_COLORS[i % BUDGET_COLORS.length];
+      seg.title = L.name + " · ≈" + L._w + " 单位（示意权重）";
+      var overCap = L.id === "agents" && L.subs && L.subs.every(function (s) { return s.on; });
+      if (overCap) { seg.classList.add("over"); seg.title += " · 已触顶截断"; }
+      seg.addEventListener("click", function () {
+        if (layerEls[L.id]) layerEls[L.id].click();
+      });
+      budgetTrack.appendChild(seg);
+    });
+    budgetTotal.textContent = Math.round(totalW);
+  }
+
+  /* 负载形状预览：按当前开关拼出 JSON 形状（示意） */
+  function renderPreview() {
+    function isOn(id) {
+      var L = LAYERS.filter(function (x) { return x.id === id; })[0];
+      return L && L.on;
+    }
+    var rows = [];
+    rows.push(isOn("instr") ? '  "instructions": "«base_instructions · 随 CLI 打包»"' : '  // instructions 层关闭');
+    rows.push(isOn("tools") ? '  "tools": [ "shell", "apply_patch", "«MCP 工具…»" ]' : '  // tools 层关闭');
+
+    var items = [];
+    items.push(isOn("sandbox")
+      ? '    { "role": "developer", "content": "«沙箱声明：当前权限范围»" }'
+      : '    // 沙箱声明层关闭');
+    items.push(isOn("devinstr")
+      ? '    { "role": "developer", "content": "«config.toml 里的开发者指令»" }'
+      : '    // developer_instructions 未配置');
+    if (isOn("agents")) {
+      var ag = LAYERS.filter(function (x) { return x.id === "agents"; })[0];
+      var nOn = ag.subs.filter(function (s) { return s.on; }).length;
+      var capped = nOn === ag.subs.length;
+      items.push('    { "role": "user", "content": "«AGENTS.md 层叠 · ' + nOn + ' 个目录位' +
+        (capped ? ' · 已触 32 KiB 上限截断' : '') + '»" }');
+    } else {
+      items.push('    // 无 AGENTS.md 注入');
+    }
+    items.push(isOn("env")
+      ? '    { "role": "user", "content": "«环境上下文：cwd、shell»" }'
+      : '    // 环境上下文层关闭');
+    items.push(isOn("history")
+      ? '    …'
+      : '    // 第一轮没有历史');
+
+    var text =
+      "{\n" +
+      rows.filter(Boolean).join(",\n") + ",\n" +
+      '  "input": [\n' +
+      items.join(",\n") +
+      "\n  ]\n" +
+      "}";
+
+    pjPre.innerHTML = text.split("\n").map(function (line) {
+      var t = line.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      if (t.trim().indexOf("//") === 0 || t.trim() === "…" ) {
+        return '<span class="pj-cmt">' + t + "</span>";
+      }
+      return t;
+    }).join("\n");
   }
 
   function syncToggleChecks() {
@@ -428,9 +537,6 @@
   }
 
   function applyPreset(name) {
-    LAYERS.forEach(function (L) {
-      if (L.id === "devinstr") return; /* devinstr 由 preset 单独定 */
-    });
     var P = {
       fresh:   { instr:1, tools:1, sandbox:1, devinstr:0, agents:0, env:1, history:0 },
       typical: { instr:1, tools:1, sandbox:1, devinstr:0, agents:1, env:1, history:1 },

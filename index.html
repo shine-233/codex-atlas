@@ -66,8 +66,11 @@
         <a class="btn primary" href="labs/loop.html">▶ 从 CH01 循环回路开始</a>
         <a class="btn" href="#route" style="margin-left:10px;">按问题查路由表</a>
       </p>
-      <div id="hero-scope" style="margin:34px 0 8px;"></div>
-      <p class="small muted" style="font-family:var(--mono); font-size:11px; letter-spacing:.08em;">
+      <div id="hero-scope" style="margin:34px 0 0;"></div>
+      <div class="loopscope-tip" id="hero-tip" aria-live="polite">
+        悬停任一站点看它在源码里的位置，点击直达对应频道。
+      </div>
+      <p class="small muted" style="font-family:var(--mono); font-size:11px; letter-spacing:.08em; margin-top:10px;">
         琥珀点 = 请求出站方向 · 钢青点 = SSE 事件回流 · 示意图，非真实拓扑
       </p>
     </section>
@@ -110,7 +113,7 @@
       <div class="panel hot">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH01</span>循环回路</h3>
-          <span class="readout">labs/loop.html · 单步 + 播放 + 键盘 ←→</span>
+          <span class="readout">13 站 · 单步 / 播放 / 键盘 ←→</span>
         </div>
         <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">用户敲下一句话之后，Codex 内部发生了什么？为什么改一行代码常常要过两次模型？工具调用的结果又从哪条路回到上下文里？</p>
@@ -121,7 +124,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH02</span>输入组装</h3>
-          <span class="readout">labs/prompt.html · 层开关 + 预算条</span>
+          <span class="readout">7 层开关 · 组装栈 · 32 KiB 演示</span>
         </div>
         <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">发往 Responses API 的那次请求里到底有什么？base_instructions、config.toml 里的开发者指令、沿目录层叠的 AGENTS.md、环境消息、工具清单——各占哪一层，谁覆盖谁，32 KiB 上限卡在哪。</p>
@@ -132,7 +135,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH03</span>权限沙箱</h3>
-          <span class="readout">labs/sandbox.html · 场景判定器</span>
+          <span class="readout">6 动作 × 3 模式 × 审批轴</span>
         </div>
         <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">read-only / workspace-write / danger-full-access 三种模式分别放行什么？macOS 用 Seatbelt、Linux 用 Landlock+bwrap、Windows 用 WFP——同一动作在三套机制下怎么判？为什么 MCP 工具不在 Codex 沙箱的管辖范围内？</p>
@@ -143,7 +146,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH04</span>协议线路</h3>
-          <span class="readout">labs/appserver.html · 报文时间线</span>
+          <span class="readout">16 条报文 · 审批闸口分支</span>
         </div>
         <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">VS Code 插件、macOS App 和 TUI 是怎么共用同一个核心的？JSON-RPC 双向通道上，Thread/Turn/Item 三原语的生命周期怎样流动？审批请求为什么能把整轮对话挂起，等的是谁？</p>
@@ -154,7 +157,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">CH05</span>Crate 图谱</h3>
-          <span class="readout">labs/atlas.html · 九带分层 + 检索高亮</span>
+          <span class="readout">135 crate · 9 带 · 检索高亮</span>
         </div>
         <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">想读某个功能的实现，该从哪个 crate 下手？135 个工作区成员分成九条功能带：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持按名字检索高亮。</p>
@@ -200,9 +203,40 @@
 <script src="assets/panel.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>
+(function () {
+  "use strict";
+  var tip = document.getElementById("hero-tip");
+  var IDLE = "悬停任一站点看它在源码里的位置，点击直达对应频道。";
+
+  var STATIONS = [
+    { f: 0.13, label: "Responses API", sub: "POST · SSE", color: "steel",
+      href: "labs/loop.html#s=10",
+      tip: "<b>Responses API</b> — 请求从这里出站：POST /responses，然后逐条读 SSE。→ CH01 第 10 站" },
+    { f: 0.31, label: "run_turn 采样", sub: "core/src/session", color: "amber",
+      href: "labs/loop.html#s=9",
+      tip: "<b>run_turn</b> — 循环体的心脏：每次采样前重新组装 Prompt。→ CH01 第 9 站" },
+    { f: 0.49, label: "工具 · 沙箱执行", sub: "tools → sandboxing", color: "amber",
+      href: "labs/sandbox.html",
+      tip: "<b>工具执行</b> — 命令落在 Seatbelt / Landlock / WFP 之下。现场判定见 CH03" },
+    { f: 0.63, label: "历史写回", sub: "needs_follow_up", color: "amber",
+      href: "labs/loop.html#s=13",
+      tip: "<b>历史写回</b> — 工具输出进历史，这个标记决定要不要再转一圈。→ CH01 第 13 站" },
+    { f: 0.81, label: "App Server 队列", sub: "Op::UserInput", color: "steel",
+      href: "labs/appserver.html",
+      tip: "<b>App Server 队列</b> — 所有客户端共用的入口：Op::UserInput 入队。报文时序见 CH04" },
+    { f: 0.94, label: "TUI 输入", sub: "codex-rs/tui", color: "steel",
+      href: "labs/loop.html#s=1",
+      tip: "<b>TUI 输入</b> — 你敲下的那行字从这里进回路。→ CH01 第 1 站" }
+  ];
+
   LoopScope.mount(document.getElementById("hero-scope"), {
-    width: 760, height: 300, labels: true, speed: 46
+    width: 760, height: 300, labels: true, speed: 46,
+    interactive: true,
+    stations: STATIONS,
+    onHover: function (st) { tip.innerHTML = st.tip + ' <a href="' + st.href + '">前往 →</a>'; },
+    onLeave: function () { tip.innerHTML = IDLE; }
   });
+})();
 </script>
 </body>
 </html>

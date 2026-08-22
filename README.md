@@ -4,11 +4,11 @@
 
 | 频道 | 页面 | 回答什么 |
 |---|---|---|
-| CH01 循环回路 | `labs/loop.html` | 一轮对话从 `codex` 命令到 TurnComplete 的 13 个阶段，单步可停 |
-| CH02 输入组装 | `labs/prompt.html` | 一次 Responses API 请求的七层构成；AGENTS.md 层叠与 32 KiB 上限 |
-| CH03 权限沙箱 | `labs/sandbox.html` | 三种模式 × 三套 OS 机制的判定矩阵与场景裁决器 |
-| CH04 协议线路 | `labs/appserver.html` | App Server 的 JSON-RPC 双向通道；审批请求怎样挂起整轮对话 |
-| CH05 Crate 图谱 | `labs/atlas.html` | 固定提交下 codex-rs 的 135 个成员，九条功能带 + 检索 |
+| CH01 循环回路 | `labs/loop.html` | 一轮对话从 `codex` 命令到 TurnComplete 的 13 个阶段，单步可停；配重采样回路图（随阶段联动）与采样成本对照图 |
+| CH02 输入组装 | `labs/prompt.html` | 一次 Responses API 请求的七层构成；负载构成条、实时负载形状预览、AGENTS.md 层叠与 32 KiB 上限演示 |
+| CH03 权限沙箱 | `labs/sandbox.html` | 三种模式 × 审批策略 × 六动作的判定器与全景矩阵联动；三套 OS 机制对照 |
+| CH04 协议线路 | `labs/appserver.html` | App Server 双生命线时序图 + 报文时间线；第 11 条审批请求怎样挂起整轮对话并分出两条剧情 |
+| CH05 Crate 图谱 | `labs/atlas.html` | 固定提交下 codex-rs 的 135 个成员，九条功能带 + 构成比例带 + 检索高亮 |
 
 ## 运行
 

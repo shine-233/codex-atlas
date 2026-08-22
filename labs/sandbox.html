@@ -76,6 +76,14 @@
 
   table.mx td { text-align: center; }
   table.mx td:first-child { text-align: left; }
+
+  /* 小屏：判定器网格折叠为单列；矩阵可横滚；控制段允许换行 */
+  @media (max-width: 860px) {
+    #verdict-grid { grid-template-columns: 1fr !important; }
+    .ctrl-row .seg { flex-wrap: wrap; }
+    .ctrl-row .seg button { border-bottom: 1px solid var(--line); }
+    table.mx { display: block; overflow-x: auto; }
+  }
   .cell {
     display: inline-block;
     min-width: 58px;
@@ -179,6 +187,16 @@
           </div>
 
           <div class="ctrl-row">
+            <div class="ctrl-label">审批策略（决定要不要先问你）</div>
+            <div class="seg" role="group" aria-label="选择审批策略">
+              <button data-pol="untrusted">untrusted</button>
+              <button data-pol="on-failure">on-failure</button>
+              <button data-pol="on-request" class="on">on-request</button>
+              <button data-pol="never">never</button>
+            </div>
+          </div>
+
+          <div class="ctrl-row">
             <div class="ctrl-label">待判定动作（点一个）</div>
             <div class="acts" id="acts"></div>
           </div>
@@ -196,7 +214,7 @@
 
     <section>
       <h2>全景矩阵</h2>
-      <p class="muted small">六行三列一览全部组合。单元格可直接点选联动上方判定器。</p>
+      <p class="muted small">六行三列一览全部组合，格子随当前审批策略重新着色；点任意格联动上方判定器。</p>
       <table class="rt mx">
         <thead>
           <tr><th style="text-align:left;">动作</th><th>read-only</th><th>workspace-write</th><th>danger-full-access</th></tr>
@@ -222,7 +240,7 @@
 
     <section>
       <h2>另一条轴：审批策略</h2>
-      <p class="muted small">模式管「能不能」，审批管「要不要先问」。两者正交，CLI 上独立配置。</p>
+      <p class="muted small">模式管「能不能」，审批管「要不要先问」。两者正交，CLI 上独立配置——上方判定器已接入这条轴，切换策略看琥珀格怎么变色。</p>
       <table class="rt">
         <thead><tr><th>策略</th><th>行为</th></tr></thead>
         <tbody>
@@ -241,8 +259,8 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）、<code>windows-sandbox-rs/</code>（WFP）。
-      「workspace-write 联网默认关闭、可在 config 显式开启」与四种审批策略取自官方文档口径。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名，但固定提交的 workspace 成员名单中并无此 crate，实现位置随版本演进——以你实际检出的提交为准。具体开关名随版本演进，以固定提交下的 <code>docs/config.md</code> 为准。本页不运行真实命令，所有判定均为教学演示。
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名，但固定提交 @343074d4 的 workspace 成员名单中并无此 crate——换一个提交就得重新查证，这是本站锁定基线的原因。
+      审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
   </main>
@@ -294,6 +312,8 @@
   var curOs = "mac";
   var curMode = "ww";
   var curAct = null;
+  var curPol = "on-request";
+  var POL_LABEL = { "untrusted": "untrusted", "on-failure": "on-failure", "on-request": "on-request", "never": "never" };
 
   var actsBox = document.getElementById("acts");
   var stampWrap = document.getElementById("v-stamp-wrap");
@@ -306,32 +326,56 @@
     return v === "allow" ? ["ALLOW", "allow"] : v === "deny" ? ["DENY", "deny"] : ["条件放行", "cond"];
   }
 
+  /* 审批策略对基础判定的修正（简化模型，见证据边界）：
+     never 把「条件放行」压成拒绝；untrusted 把白名单外动作升级为先问。 */
+  function effVerdict(act, mode) {
+    var base = act.v[mode];
+    if (curPol === "never" && base === "cond") {
+      return { v: "deny", note: "策略 never：不会弹窗征求同意，拿不到的权限直接失败。" };
+    }
+    if (curPol === "untrusted" && base !== "deny" && act.id !== "rw") {
+      return { v: "cond", note: "策略 untrusted：白名单外的动作先弹窗，批准后才执行。" };
+    }
+    return { v: base, note: null };
+  }
+
   function renderVerdict() {
     if (!curAct) {
       stampWrap.innerHTML = '<span class="v-stamp cond">选择一个动作</span>';
       vWhy.textContent = "左边六个动作各对应一条真实场景。选定后这里给出该模式下的判定与理由。";
       renderMech(null);
       comboReadout.innerHTML = "";
+      markMatrixSel();
       return;
     }
-    var st = curAct.v[curMode];
-    var cls = chipCls(st);
-    stampWrap.innerHTML = '<span class="v-stamp ' + cls[1] + '">' + cls[0] + "</span>";
+    var eff = effVerdict(curAct, curMode);
+    var cls = chipCls(eff.v);
+    stampWrap.innerHTML = '<span class="v-stamp ' + cls[1] + ' stamp-in">' + cls[0] + "</span>";
     vWhy.innerHTML = "<b>" + curAct.name + "</b> · " + curAct.why;
-    renderMech(curAct);
+    renderMech(curAct, eff);
     comboReadout.innerHTML =
       "<b>" + OS_MECH[curOs].name.split(" ")[0] + "</b> × <b>" +
-      ({ro:"read-only",ww:"workspace-write",full:"danger-full-access"})[curMode] + "</b>";
-    PanelState.write({ os: curOs, m: curMode, a: curAct.id });
+      ({ro:"read-only",ww:"workspace-write",full:"danger-full-access"})[curMode] + "</b> × <b>" +
+      POL_LABEL[curPol] + "</b>";
+    PanelState.write({ os: curOs, m: curMode, a: curAct.id, p: curPol });
+    markMatrixSel();
   }
 
-  function renderMech(act) {
+  function renderMech(act, eff) {
     var o = OS_MECH[curOs];
     vMech.innerHTML =
       "强制执行机制：<b>" + o.name + "</b>（" + o.lib + "）<br>" +
+      "审批策略：<b>" + POL_LABEL[curPol] + "</b>" +
+      (eff && eff.note ? " —— " + eff.note : "") + "<br>" +
       "相关源码位置：<b>" + o.crates + "</b><br>" +
       (act ? "说明：" + act.mech : "说明：—" ) + "<br>" +
       "<span style='opacity:.75;'>" + o.note + "</span>";
+  }
+
+  function markMatrixSel() {
+    Array.prototype.forEach.call(mxBody.querySelectorAll(".cell"), function (c) {
+      c.classList.toggle("sel", !!curAct && c.getAttribute("data-act") === curAct.id && c.getAttribute("data-mode") === curMode);
+    });
   }
 
   function buildActs() {
@@ -361,10 +405,13 @@
       ["ro","ww","full"].forEach(function (m) {
         var td = document.createElement("td");
         var c = document.createElement("span");
-        var txt_cls = chipCls(a.v[m]);
+        var eff = effVerdict(a, m);
+        var txt_cls = chipCls(eff.v);
         c.className = "cell " + txt_cls[1];
         c.textContent = txt_cls[0];
-        c.title = "点击查看此组合";
+        c.setAttribute("data-act", a.id);
+        c.setAttribute("data-mode", m);
+        c.title = "点击查看此组合" + (eff.note ? " · " + eff.note : "");
         c.addEventListener("click", function () {
           setMode(m);
           curAct = a;
@@ -377,6 +424,7 @@
       });
       mxBody.appendChild(tr);
     });
+    markMatrixSel();
   }
 
   function setMode(m) {
@@ -403,6 +451,17 @@
     });
   });
 
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pol]"), function (b) {
+    b.addEventListener("click", function () {
+      curPol = b.getAttribute("data-pol");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-pol]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      buildMatrix();   /* 矩阵格子随策略重新着色 */
+      renderVerdict();
+    });
+  });
+
   /* URL 状态恢复 */
   var st = PanelState.read();
   if (st.os && OS_MECH[st.os]) {
@@ -412,6 +471,12 @@
     });
   }
   if (st.m && {ro:1,ww:1,full:1}[st.m]) setMode(st.m);
+  if (st.p && POL_LABEL[st.p]) {
+    curPol = st.p;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pol]"), function (x) {
+      x.classList.toggle("on", x.getAttribute("data-pol") === curPol);
+    });
+  }
   buildActs();
   buildMatrix();
   if (st.a) {

@@ -1,6 +1,7 @@
 /* CODEX ATLAS — 信号回路示波器（签名元素）
    在指定容器里渲染一圈 Agent 循环电路：琥珀点顺时针=请求出站，
-   钢青点逆时针=SSE 事件回流。prefers-reduced-motion 时静止显示。 */
+   钢青点逆时针=SSE 事件回流。prefers-reduced-motion 时静止显示。
+   opts.interactive 时站点可悬停/聚焦/点击，配合 onHover / onLeave 回调。 */
 (function () {
   "use strict";
 
@@ -13,7 +14,7 @@
   }
 
   /* 站点沿矩形回路顺时针分布，f 为周长占比 */
-  var STATIONS = [
+  var DEFAULT_STATIONS = [
     { f: 0.13, label: "Responses API", sub: "POST · SSE", color: "steel" },
     { f: 0.31, label: "run_turn 采样", sub: "core/src/session", color: "amber" },
     { f: 0.49, label: "工具 · 沙箱执行", sub: "tools → sandboxing", color: "amber" },
@@ -28,6 +29,7 @@
     var H = opts.height || 300;
     var labeled = !!opts.labels;
     var rx = 34;
+    var stations = opts.stations || DEFAULT_STATIONS;
 
     var svg = el("svg", {
       viewBox: "0 0 " + W + " " + H,
@@ -62,13 +64,15 @@
     });
     svg.appendChild(trace);
     host.appendChild(svg); /* 先挂进 DOM，getTotalLength 才有几何 */
+    host.classList.add("loopscope-wrap");
     var ticks = el("g", {});
+    var L2 = 0;
     try {
-      var L = trace.getTotalLength();
+      L2 = trace.getTotalLength();
       var step = labeled ? 46 : 64;
-      for (var d = 0; d < L; d += step) {
+      for (var d = 0; d < L2; d += step) {
         var p = trace.getPointAtLength(d);
-        var q = trace.getPointAtLength(Math.min(L, d + 3));
+        var q = trace.getPointAtLength(Math.min(L2, d + 3));
         var dx = q.x - p.x, dy = q.y - p.y;
         var len = Math.sqrt(dx * dx + dy * dy) || 1;
         var nx = -dy / len, ny = dx / len;
@@ -86,21 +90,36 @@
     } catch (e) { /* getTotalLength 不可用时静默跳过装饰 */ }
     svg.appendChild(ticks);
 
-    /* 站点 */
-    var L2 = 0;
-    try { L2 = trace.getTotalLength(); } catch (e) {}
-    STATIONS.forEach(function (st) {
+    /* 站点（interactive 时包一层 <a>，可聚焦可点击） */
+    var stationNodes = [];
+    stations.forEach(function (st) {
       if (!L2) return;
       var pt = trace.getPointAtLength(st.f * L2);
       var c = st.color === "amber" ? "#ffb454" : "#8fc7e8";
-      svg.appendChild(el("circle", {
+      var g = el("g", opts.interactive ? { class: "ls-station" } : {});
+      if (opts.interactive) {
+        g.setAttribute("tabindex", "0");
+        g.setAttribute("role", "link");
+      }
+      if (st.href) g.setAttribute("data-href", st.href);
+
+      var ring = el("circle", {
+        class: "ls-ring",
         cx: pt.x, cy: pt.y, r: labeled ? 5 : 4,
-        fill: "#101418", stroke: c, "stroke-width": "1.6"
-      }));
-      svg.appendChild(el("circle", {
+        fill: "#101418", stroke: c, "stroke-width": "1.6",
+        style: "transition:r .15s;"
+      });
+      g.appendChild(ring);
+      g.appendChild(el("circle", {
         cx: pt.x, cy: pt.y, r: labeled ? 1.8 : 1.4, fill: c
       }));
-      if (labeled) {
+      /* 命中区：透明大圆保证手指/鼠标好点 */
+      g.appendChild(el("circle", {
+        cx: pt.x, cy: pt.y, r: labeled ? 26 : 16,
+        fill: "transparent", stroke: "none"
+      }));
+
+      if (labeled && !(opts.interactive && st.tipOnly)) {
         var inward = pt.x > tx + tw / 2 ? -1 : 1;
         var anchor = inward === -1 ? "end" : "start";
         var lx = pt.x + inward * 16;
@@ -118,9 +137,41 @@
           "text-anchor": anchor
         });
         t2.textContent = st.sub;
-        svg.appendChild(t1);
-        svg.appendChild(t2);
+        g.appendChild(t1);
+        g.appendChild(t2);
       }
+
+      if (opts.interactive) {
+        g.addEventListener("mouseenter", function () {
+          ring.setAttribute("r", labeled ? 7 : 6);
+          if (opts.onHover) opts.onHover(st, g);
+        });
+        g.addEventListener("mouseleave", function () {
+          ring.setAttribute("r", labeled ? 5 : 4);
+          if (opts.onLeave) opts.onLeave(st, g);
+        });
+        g.addEventListener("focus", function () {
+          ring.setAttribute("r", labeled ? 7 : 6);
+          if (opts.onHover) opts.onHover(st, g);
+        });
+        g.addEventListener("blur", function () {
+          ring.setAttribute("r", labeled ? 5 : 4);
+          if (opts.onLeave) opts.onLeave(st, g);
+        });
+        g.addEventListener("click", function () {
+          if (st.href) location.href = st.href;
+          if (opts.onStation) opts.onStation(st, g);
+        });
+        g.addEventListener("keydown", function (ev) {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          ev.preventDefault();
+          if (st.href) location.href = st.href;
+          if (opts.onStation) opts.onStation(st, g);
+        });
+      }
+
+      svg.appendChild(g);
+      stationNodes.push({ g: g, ring: ring, st: st });
     });
 
     /* 中心读数 */
@@ -147,8 +198,8 @@
       var speed = opts.speed || 42; /* px per frame-ish */
       var da = 0, db = L2 * 0.5, last = null;
 
-      function place(node, halo, d) {
-        var p = trace.getPointAtLength(((d % L2) + L2) % L2);
+      function place(node, halo, dd) {
+        var p = trace.getPointAtLength(((dd % L2) + L2) % L2);
         node.setAttribute("cx", p.x);
         node.setAttribute("cy", p.y);
         halo.setAttribute("cx", p.x);
@@ -168,6 +219,17 @@
       }
       requestAnimationFrame(frame);
     }
+
+    /* 外部联动：按周长占比高亮某个站点 */
+    function setActiveByFraction(f) {
+      stationNodes.forEach(function (n) {
+        var near = Math.abs(n.st.f - f) < 0.06;
+        n.ring.setAttribute("stroke", near ? "#e7edf3" : (n.st.color === "amber" ? "#ffb454" : "#8fc7e8"));
+        n.ring.setAttribute("stroke-width", near ? "2.4" : "1.6");
+      });
+    }
+
+    return { svg: svg, setActiveByFraction: setActiveByFraction };
   }
 
   window.LoopScope = { mount: mount };
