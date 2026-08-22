@@ -57,6 +57,10 @@
         a.setAttribute("aria-current", "page");
       }
     });
+    /* 编号说明：CH 是 channel 的缩写 */
+    document.querySelectorAll(".ch-no").forEach(function (el) {
+      el.title = "CH = channel（频道）：本站每条线路一个编号；REF = 术语速查";
+    });
   });
 
   /* CHECKPOINT · 出站自检：mount(容器, 题目数组)
