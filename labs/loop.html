@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101418">
 <title>CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS</title>
 <meta name="description" content="从 codex 命令到 TurnComplete：把一轮 Codex 对话拆成 13 个阶段单步走。每一步给出真实文件路径与事件名。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +66,8 @@
 </head>
 <body>
 
+<a class="skip-link" href="#main">跳到主内容</a>
+
 <nav class="rail" aria-label="站点频道">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
@@ -95,7 +98,7 @@
 </div>
 
 <div class="wrap">
-  <main class="container">
+  <main class="container" id="main">
 
     <div class="status-strip">
       <span><i class="dot"></i>教学模型：不发网络请求，不运行真实 Codex</span>
@@ -181,11 +184,11 @@
       <div class="cost-legend">
         <span><i style="background:rgba(255,180,84,.85);"></i>累计计费 · 无缓存</span>
         <span><i style="background:rgba(143,199,232,.75);"></i>累计计费 · 缓存命中</span>
-        <span class="switch-row" style="margin-left:auto;">
+        <span><label class="switch-row" style="margin-left:auto;">
           <input type="checkbox" id="cost-cache" checked>
           <span class="sw" aria-hidden="true"></span>
           假设提示缓存命中（缓存价按一折示意）
-        </span>
+        </label></span>
       </div>
     </section>
 

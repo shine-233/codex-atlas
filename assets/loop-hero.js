@@ -188,6 +188,7 @@
     }
 
     /* 双向脉冲 */
+    var paused = false;
     if (L2 && !window.PrefersReducedMotion) {
       var dotA = el("circle", { r: 3.2, fill: "#ffb454" });   /* 请求：顺时针 */
       var dotB = el("circle", { r: 3.2, fill: "#8fc7e8" });   /* 事件：逆时针 */
@@ -210,10 +211,12 @@
         if (last == null) last = ts;
         var dt = ts - last;
         last = ts;
-        da = (da + speed * dt / 1000) % L2;
-        db = (db - speed * 0.72 * dt / 1000) % L2;
-        place(dotA, haloA, da);
-        place(dotB, haloB, db);
+        if (!paused) {
+          da = (da + speed * dt / 1000) % L2;
+          db = (db - speed * 0.72 * dt / 1000) % L2;
+          place(dotA, haloA, da);
+          place(dotB, haloB, db);
+        }
         if (!document.hidden) requestAnimationFrame(frame);
         else setTimeout(function () { requestAnimationFrame(frame); }, 500);
       }
@@ -229,7 +232,11 @@
       });
     }
 
-    return { svg: svg, setActiveByFraction: setActiveByFraction };
+    return {
+      svg: svg,
+      setActiveByFraction: setActiveByFraction,
+      setPaused: function (v) { paused = !!v; }
+    };
   }
 
   window.LoopScope = { mount: mount };

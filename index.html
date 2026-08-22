@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101418">
 <title>CODEX ATLAS · openai/codex 源码交互图鉴</title>
 <meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、135 个 crate 图谱，全部做成可操作的交互仪器。非官方中文学习站。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +12,8 @@
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
+
+<a class="skip-link" href="#main">跳到主内容</a>
 
 <nav class="rail" aria-label="站点频道">
   <a class="rail-brand" href="index.html">
@@ -44,7 +47,7 @@
 </div>
 
 <div class="wrap">
-  <main class="container">
+  <main class="container" id="main">
 
     <div class="status-strip">
       <span><i class="dot"></i>上游基线 @343074d4（2026-08-22）</span>
@@ -72,6 +75,8 @@
       </div>
       <p class="small muted" style="font-family:var(--mono); font-size:11px; letter-spacing:.08em; margin-top:10px;">
         琥珀点 = 请求出站方向 · 钢青点 = SSE 事件回流 · 示意图，非真实拓扑
+        <button class="btn" id="pulse-toggle" type="button" aria-pressed="false"
+                style="margin-left:12px; padding:3px 10px; font-size:11px;">⏸ 暂停脉冲</button>
       </p>
     </section>
 
@@ -229,12 +234,22 @@
       tip: "<b>TUI 输入</b> — 你敲下的那行字从这里进回路。→ CH01 第 1 站" }
   ];
 
-  LoopScope.mount(document.getElementById("hero-scope"), {
+  var scopeHandle = LoopScope.mount(document.getElementById("hero-scope"), {
     width: 760, height: 300, labels: true, speed: 46,
     interactive: true,
     stations: STATIONS,
     onHover: function (st) { tip.innerHTML = st.tip + ' <a href="' + st.href + '">前往 →</a>'; },
     onLeave: function () { tip.innerHTML = IDLE; }
+  });
+
+  /* 脉冲动画可暂停（>5s 自动播放需提供控制） */
+  var pulseBtn = document.getElementById("pulse-toggle");
+  var pulsePaused = false;
+  pulseBtn.addEventListener("click", function () {
+    pulsePaused = !pulsePaused;
+    scopeHandle.setPaused(pulsePaused);
+    pulseBtn.textContent = pulsePaused ? "▶ 恢复脉冲" : "⏸ 暂停脉冲";
+    pulseBtn.setAttribute("aria-pressed", pulsePaused ? "true" : "false");
   });
 })();
 </script>
