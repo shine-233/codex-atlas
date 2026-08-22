@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#101418">
 <title>CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS</title>
 <meta name="description" content="从 codex 命令到 TurnComplete：把一轮 Codex 对话拆成 13 个阶段单步走。每一步给出真实文件路径与事件名。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CODEX ATLAS">
+<meta property="og:title" content="CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS">
+<meta property="og:description" content="13 站单步播放：npm 启动器 → 队列对 → Prompt 组装 → SSE 采样 → 工具分发 → TurnComplete，每站给出真实文件路径与事件名。">
+<meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/loop.html">
+<meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -157,6 +165,20 @@
       键盘：<span class="kbd">←</span> <span class="kbd">→</span> 切换阶段，<span class="kbd">空格</span> 播放/暂停。当前进度写入地址栏，刷新不丢。
     </p>
 
+    <!-- 会话建立段：与前 8 站联动 -->
+    <section class="panel" id="setup-panel">
+      <div class="panel-title">
+        <h3>SETUP CHAIN · 会话建立段（01–08）</h3>
+        <span class="readout">随上方阶段联动 · 只走一遍，不循环</span>
+      </div>
+      <div class="loopmap" id="setupmap" role="img"
+           aria-label="会话建立段示意图：npm 启动器、Rust CLI、TUI 内嵌 App Server、TurnStart、核心分发、队列对、占用检查、TurnStarted 八站依次相连"></div>
+      <p class="small muted" style="margin:8px 0 0;">
+        前 8 站是一条单向的建立段：<b>进程接力</b>（1–3）→ <b>协议下单</b>（4–5）→
+        <b>队列与占用</b>（6–7）→ 轮次开闸（8）。第 8 站之后，信号才进入下方那个可循环的采样环。
+      </p>
+    </section>
+
     <!-- 采样回路图：与上方单步仪联动 -->
     <section class="panel" id="loopmap-panel">
       <div class="panel-title">
@@ -258,7 +280,7 @@
       next:"沙箱到底拦什么放什么，CH03 权限沙箱可以现场判定。" },
     { n:"写回再采样，或收束", files:["core/src/session（task wrapper）"], ev:["needs_follow_up","EventMsg::TurnComplete"],
       body:"工具输出写进 history，回到第 9 步<b>再次采样</b>——这条回路会转多少圈，取决于任务难度。当模型返回纯 assistant message（没有 tool call），needs_follow_up 为 false，本轮结束。标准的 TurnComplete envelope 由 task wrapper 在任务返回后统一发出，不在 run_turn 内部。",
-      next:"所以「一轮对话」的正确读法是：用户任务的完整生命周期，而不是一次 API 调用。" }
+      next:"收束后这一轮就封账了。转了几圈、每圈重发了多少，下面的成本对照给了一笔账。" }
   ];
 
   var rail = document.getElementById("rail");
@@ -457,6 +479,64 @@
     }
     document.addEventListener("ca:stage", syncMap);
     syncMap({ detail: { stage: cur } });   /* 补齐首次渲染前的状态 */
+  })();
+
+  /* ---------- 会话建立段：01–08 单向链，随阶段联动 ---------- */
+  (function () {
+    var NS = "http://www.w3.org/2000/svg";
+    function E(n, a) { var x = document.createElementNS(NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+    var host = document.getElementById("setupmap");
+    if (!host) return;
+
+    var svg = E("svg", { viewBox: "0 0 760 150", preserveAspectRatio: "xMidYMid meet" });
+    svg.style.width = "100%"; svg.style.height = "auto"; svg.style.display = "block";
+
+    var defs = E("defs", {});
+    var mk = E("marker", { id: "sm-dim", viewBox: "0 0 8 8", refX: "7", refY: "4", markerWidth: "7", markerHeight: "7", orient: "auto" });
+    mk.appendChild(E("path", { d: "M0 0 L8 4 L0 8 z", fill: "#34424f" }));
+    defs.appendChild(mk);
+    svg.appendChild(defs);
+
+    var NAMES = ["npm 交棒", "CLI 分发", "TUI 挂载", "TurnStart", "转核心操作", "队列对", "占用检查", "TurnStarted"];
+    var NW = 80, Y = 42, H = 48;
+    var GAP = (760 - 40 - NAMES.length * NW) / (NAMES.length - 1);
+    var groups = [];
+
+    NAMES.forEach(function (name, i) {
+      var x = 20 + i * (NW + GAP);
+      if (i > 0) {
+        svg.appendChild(E("path", {
+          class: "lm-edge",
+          d: "M " + (x - GAP + 2).toFixed(1) + " " + (Y + H / 2) + " L " + (x - 3) + " " + (Y + H / 2),
+          "marker-end": "url(#sm-dim)", "stroke-width": "1.4"
+        }));
+      }
+      var gE = E("g", { class: "lm-node" });
+      gE.appendChild(E("rect", { x: x.toFixed(1), y: Y, width: NW, height: H, rx: "2" }));
+      var t1 = E("text", { class: "lm-lab", x: (x + NW / 2).toFixed(1), y: Y + 17, "text-anchor": "middle", "font-size": "9" });
+      t1.textContent = "0" + (i + 1);
+      var t2 = E("text", { x: (x + NW / 2).toFixed(1), y: Y + 35, "text-anchor": "middle", "font-size": "11.5" });
+      t2.textContent = name;
+      gE.appendChild(t1); gE.appendChild(t2);
+      svg.appendChild(gE);
+      groups.push(gE);
+    });
+
+    var lab = E("text", { class: "lm-lab", x: "380", y: "128", "font-size": "10.5", "text-anchor": "middle" });
+    lab.textContent = "进程接力 01–03 → 协议下单 04–05 → 队列与占用 06–07 → 轮次开闸 08";
+    svg.appendChild(lab);
+    host.appendChild(svg);
+
+    function sync(ev) {
+      var s = ev.detail.stage;
+      groups.forEach(function (gE, i) {
+        gE.classList.remove("hot", "done");
+        if (s > 8 || i + 1 < s) gE.classList.add("done");
+        else if (i + 1 === s) gE.classList.add("hot");
+      });
+    }
+    document.addEventListener("ca:stage", sync);
+    sync({ detail: { stage: cur } });
   })();
 
   /* ---------- 重采样成本对照（示意刻度） ---------- */

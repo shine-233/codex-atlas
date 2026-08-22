@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#101418">
 <title>CH05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS</title>
 <meta name="description" content="openai/codex 固定提交下 codex-rs 工作区的 135 个成员，按九条功能带分层陈列：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持检索高亮。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CODEX ATLAS">
+<meta property="og:title" content="CH05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS">
+<meta property="og:description" content="135 个工作区成员排成九条功能带，带间动线图标出读源码的先后顺序；支持按名字检索高亮，名单可在固定提交下复核。">
+<meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/atlas.html">
+<meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -142,6 +150,10 @@
       <div class="ribbon-note">PROPORTION · 段宽 = 该带成员数占比（合计 135）· 点段跳转</div>
       <div class="ribbon" id="ribbon" role="img" aria-label="九条功能带的成员数量比例条"></div>
 
+      <div class="ribbon-note">READING PATH · 带间依赖动线（本站归纳）· 实线 = 调用方向 · 虚线 = 挂接 / 支撑 · 点节点跳到对应带</div>
+      <div class="loopmap" id="flowmap" role="img"
+           aria-label="带间依赖动线示意：入口经协议接入进入核心引擎，核心向右调用工具执行与沙箱安全；模型连接与核心双向直连；扩展生态挂接核心，云协作挂在入口旁，基础设施支撑全部"></div>
+
       <div id="bands"></div>
 
       <div class="detail-card" aria-live="polite">
@@ -187,12 +199,14 @@
       desc:"用户与外部程序接触 Codex 的地方。同一个核心，多种打开方式。",
       crates:["cli","tui","exec","app-server","app-server-daemon","arg0","install-context","login"],
       notes:{
+        "cli":"clap 参数解析与 MultitoolCli 定义处——CH01 第 2 站的现场。",
         "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端，走 stdio JSON-RPC（CH04 有它的报文时序）。",
         "exec":"非交互式一次性执行入口：codex exec \"任务\"。CI 与脚本场景的主力形态。",
         "app-server":"JSON-RPC 服务进程。IDE 插件与桌面应用的接入口，见 CH04 报文时间线。",
         "login":"ChatGPT 账号登录流程与凭据状态管理。",
         "arg0":"按 argv[0] 分发行为的机制——一个二进制可以伪装成多个命令。",
-        "app-server-daemon":"App Server 常驻守护形态。"
+        "app-server-daemon":"App Server 常驻守护形态。",
+        "install-context":"识别当前安装形态（npm / brew / 直装）的上下文位。"
       } },
     { no:"B2", name:"核心引擎", en:"CORE ENGINE", count:14,
       desc:"Agent 循环、会话状态、轨迹持久化。CH01 十三站的舞台在这带。",
@@ -240,9 +254,14 @@
       crates:["codex-api","backend-client","http-client","websocket-client","responses-api-proxy","network-proxy","model-provider","model-provider-info","models-manager","lmstudio","ollama","connectors"],
       notes:{
         "codex-api":"Responses API 类型与客户端封装（CH01 第 10 站的 HTTP 层）。",
+        "backend-client":"ChatGPT backend 通道的客户端封装——登录态请求走的另一条路。",
+        "http-client":"全站共用的 HTTP 客户端原语。",
+        "websocket-client":"websocket 传输客户端，远端 App Server 模式用得上。",
         "responses-api-proxy":"请求出站的代理层。",
         "network-proxy":"受控网络代理：workspace-write 默认断网的实现位置之一。",
+        "model-provider":"provider 抽象与注册表；具体字段解析在 model-provider-info。",
         "model-provider-info":"provider 配置解析：wire_api 选择、端点组装。",
+        "models-manager":"模型元信息管理：可用模型列表与能力查询。",
         "ollama":"Ollama 本地模型接入。",
         "lmstudio":"LM Studio 本地模型接入。",
         "connectors":"外部连接器抽象。"
@@ -265,24 +284,36 @@
       crates:["plugin","core-plugins","skills","hooks","memories/read","memories/write","ext/agent","ext/connectors","ext/extension-api","ext/goal","ext/git-attribution","ext/guardian-v2","ext/history-notes","ext/image-generation","ext/items","ext/memories","ext/mcp","ext/queue","ext/skills","ext/web-search"],
       notes:{
         "plugin":"插件系统核心机制。",
-        "core-plugins":"内置插件集。",
+        "core-plugins":"随 CLI 发布的内置插件集。",
         "skills":"技能注入：markdown 指令包按需挂进 prompt——CH02 层叠机制的近亲。",
         "hooks":"生命周期钩子：工具执行前后可插自定义逻辑。",
         "memories/read":"记忆系统读取端。",
-        "memories/write":"记忆系统写入端。",
+        "memories/write":"记忆系统写入端，与 read 成对出现。",
+        "ext/agent":"agent 形态的扩展实验位。",
+        "ext/connectors":"外部连接器的扩展实现位（对应 B5 的 connectors 抽象）。",
+        "ext/extension-api":"面向扩展作者的 API 面。",
+        "ext/goal":"目标（goal）机制实验位。",
+        "ext/git-attribution":"把变更归因到对应 agent 的实验位。",
+        "ext/history-notes":"往对话历史追加注记的实验位。",
         "ext/guardian-v2":"实验性守卫机制第二代。",
         "ext/image-generation":"图像生成实验位。",
+        "ext/items":"扩展条目类型定义。",
+        "ext/mcp":"MCP 能力的扩展包装。",
+        "ext/queue":"任务队列的扩展实现。",
+        "ext/skills":"技能机制的扩展实现位（与 B7 顶层的 skills 是两个 crate）。",
         "ext/web-search":"网页搜索实验位。"
       } },
     { no:"B8", name:"云协作", en:"CLOUD", count:7,
       desc:"Codex Cloud 任务下发、agent 图谱与外部 agent 迁移。",
       crates:["cloud-config","cloud-tasks","cloud-tasks-client","cloud-tasks-mock-client","agent-graph-store","agent-identity","external-agent-migration"],
       notes:{
+        "cloud-config":"云端功能开关与配置读取。",
         "cloud-tasks":"云端任务下发与轮询主逻辑。",
         "cloud-tasks-client":"云任务客户端 API。",
         "cloud-tasks-mock-client":"测试用 mock——名字直白得可爱。",
         "external-agent-migration":"把外部 agent 会话迁移进 Codex。",
-        "agent-graph-store":"agent 关系图谱存储。"
+        "agent-graph-store":"agent 关系图谱存储。",
+        "agent-identity":"agent 身份标识原语。"
       } },
     { no:"B9", name:"基础设施", en:"INFRA", count:40,
       desc:"零业务语义的地基件。数量最多，存在感最低，缺一个都编译不过。",
@@ -293,9 +324,20 @@
         "config":"config.toml 解析与校验（CH02 developer_instructions 一层的读取处）。",
         "codex-home":"~/.codex 目录布局管理。",
         "otel":"OpenTelemetry 观测埋点。",
+        "analytics":"产品分析埋点——与 otel 的可观测性是两码事。",
+        "diagnostics":"诊断信息收集与上报。",
         "terminal-detection":"终端能力探测。",
         "utils/output-truncation":"超长输出截断——保护上下文的隐形闸门。",
-        "utils/redacted-string":"脱敏字符串类型：日志里不漏密钥的类型级保证。"
+        "utils/redacted-string":"脱敏字符串类型：日志里不漏密钥的类型级保证。",
+        "utils/audio":"音频工具位，语音输入相关能力的地基。",
+        "utils/cache":"通用缓存原语。",
+        "utils/image":"图像处理：截图等视觉输入的编解码。",
+        "utils/json-to-toml":"JSON 与 TOML 互转，配置迁移用得上。",
+        "utils/template":"文本模板渲染小件。",
+        "utils/stream-parser":"流式数据的切分与解析原语。",
+        "async-utils":"异步工具集。",
+        "file-system":"文件系统抽象层。",
+        "test-binary-support":"测试专用二进制的支持件。"
       } }
   ];
 
@@ -342,6 +384,95 @@
       });
       ribbonBox.appendChild(seg);
     });
+  })();
+
+  /* ---------- 带间依赖动线：主链 B1→B6→B2→B3→B4，B2↔B5，挂接与支撑 ---------- */
+  (function buildFlow() {
+    var NS = "http://www.w3.org/2000/svg";
+    function E(n, a) { var x = document.createElementNS(NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+    var host = document.getElementById("flowmap");
+    if (!host) return;
+
+    var svg = E("svg", { viewBox: "0 0 760 208", preserveAspectRatio: "xMidYMid meet" });
+    svg.style.width = "100%"; svg.style.height = "auto"; svg.style.display = "block";
+
+    var defs = E("defs", {});
+    var mkA = E("marker", { id: "fp-a", viewBox: "0 0 8 8", refX: "7", refY: "4", markerWidth: "7", markerHeight: "7", orient: "auto" });
+    mkA.appendChild(E("path", { d: "M0 0 L8 4 L0 8 z", fill: "#34424f" }));
+    defs.appendChild(mkA);
+    svg.appendChild(defs);
+
+    var byNo = {};
+    BANDS.forEach(function (b) { byNo[b.no] = b; });
+
+    function jumpTo(b) {
+      var el = bandEls[b.no];
+      if (el) {
+        el.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "nearest" });
+        el.classList.add("flash");
+        setTimeout(function () { el.classList.remove("flash"); }, 950);
+      }
+      showBandInfo(b);
+    }
+
+    function node(x, y, w, b, dimmed) {
+      var gE = E("g", { class: "lm-node fp-node" });
+      gE.style.cursor = "pointer";
+      if (dimmed) gE.setAttribute("opacity", ".75");
+      gE.appendChild(E("rect", { x: x, y: y, width: w, height: 46, rx: "2" }));
+      var t1 = E("text", { class: "lm-lab", x: x + w / 2, y: y + 17, "text-anchor": "middle", "font-size": "9" });
+      t1.textContent = b.no;
+      var t2 = E("text", { x: x + w / 2, y: y + 35, "text-anchor": "middle", "font-size": "12.5" });
+      t2.textContent = b.name;
+      gE.appendChild(t1); gE.appendChild(t2);
+      var ti = E("title", {});
+      ti.textContent = b.no + " " + b.name + "带 · " + b.crates.length + " 个成员";
+      gE.appendChild(ti);
+      gE.addEventListener("click", function () { jumpTo(b); });
+      svg.appendChild(gE);
+      return gE;
+    }
+
+    function edge(x1, y1, x2, y2, dashed, bothEnds) {
+      var p = E("path", { class: "lm-edge", d: "M " + x1 + " " + y1 + " L " + x2 + " " + y2, "stroke-width": "1.3" });
+      if (dashed) p.setAttribute("stroke-dasharray", "5 5");
+      p.setAttribute("marker-end", "url(#fp-a)");
+      if (bothEnds) {
+        var mkStart = E("marker", { id: "fp-a-" + Math.round(x1) + "-" + Math.round(y1), viewBox: "0 0 8 8", refX: "7", refY: "4", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
+        mkStart.appendChild(E("path", { d: "M0 0 L8 4 L0 8 z", fill: "#34424f" }));
+        defs.appendChild(mkStart);
+        p.setAttribute("marker-start", "url(#fp-a-" + Math.round(x1) + "-" + Math.round(y1) + ")");
+      }
+      svg.appendChild(p);
+    }
+
+    /* 主链：入口 → 协议接入 → 核心引擎 → 工具执行 → 沙箱安全 */
+    var MAIN = ["B1", "B6", "B2", "B3", "B4"];
+    var NW = 124, GAP = 26, X0 = 16, Y1 = 22;
+    MAIN.forEach(function (no, i) {
+      var x = X0 + i * (NW + GAP);
+      node(x, Y1, NW, byNo[no]);
+      if (i > 0) edge(x - GAP + 3, Y1 + 23, x - 3, Y1 + 23, false, false);
+    });
+
+    /* 下排：云协作（挂入口）、扩展生态（挂核心）、模型连接（双向直连核心）、基础设施（支撑工具带） */
+    var Y2 = 138;
+    node(16, Y2, NW, byNo["B8"], true);
+    node(174, Y2, NW, byNo["B7"], true);
+    node(X0 + 2 * (NW + GAP), Y2, NW, byNo["B5"]);
+    node(616, Y2, NW, byNo["B9"], true);
+
+    /* 连线 */
+    var coreCx = X0 + 2 * (NW + GAP) + NW / 2;
+    edge(coreCx, Y1 + 49, coreCx, Y2 - 3, false, true);            /* 核心 ↔ 模型连接 */
+    edge(236, Y2 - 3, coreCx - 40, Y1 + 49, true, false);          /* 扩展 → 核心（挂接） */
+    edge(78, Y2 - 3, 78, Y1 + 49, true, false);                    /* 云协作 → 入口 */
+    edge(678, Y2 - 3, 678, Y1 + 49, true, false);                  /* 基础设施支撑 */
+
+    var lab = E("text", { class: "lm-lab", x: "380", y: "202", "font-size": "10.5", "text-anchor": "middle" });
+    lab.textContent = "调用大体自左向右；虚线为挂接 / 支撑关系。方向是本站归纳，精确到 crate 的依赖图请查各 Cargo.toml";
+    svg.appendChild(lab);
+    host.appendChild(svg);
   })();
 
   function showBandInfo(b) {

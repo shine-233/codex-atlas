@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101418">
+<title>404 · 信号丢失 — CODEX ATLAS</title>
+<meta name="description" content="这个地址没有对应的页面。回到总览，或从五个频道里重新选一个入口。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CODEX ATLAS">
+<meta property="og:title" content="404 · 信号丢失 — CODEX ATLAS">
+<meta property="og:description" content="这个地址没有对应的页面。回到总览，或从五个频道里重新选一个入口。">
+<meta property="og:url" content="https://shine-233.github.io/codex-atlas/404.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .nf-wrap { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; padding-top: 30px; }
+  .nf-code {
+    font-family: var(--mono);
+    font-size: clamp(64px, 12vw, 128px);
+    font-weight: 600;
+    letter-spacing: .06em;
+    color: var(--amber);
+    line-height: 1;
+    margin: 0 0 6px;
+    text-shadow: 0 0 24px rgba(255,180,84,.25);
+  }
+  .nf-code i { font-style: normal; color: var(--faint); }
+  .nf-sub { font-size: 17px; color: var(--dim); max-width: 44em; }
+  .nf-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 26px 0 0; }
+  @media (max-width: 1023px) { .nf-wrap { padding-top: 60px; } }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">跳到主内容</a>
+
+<div class="wrap">
+  <main class="container" id="main">
+    <div class="status-strip">
+      <span><i class="dot"></i>HTTP 404 · 路由未命中</span>
+      <span>本站不设重定向，直接选一个入口</span>
+    </div>
+
+    <div class="nf-wrap">
+      <p class="eyebrow"><span class="tick">▮</span>SIGNAL LOST</p>
+      <div class="nf-code">4<i>//</i>04</div>
+      <p class="nf-sub">这个地址在站内没有落点。可能是链接敲错了，也可能是页面还没建。
+        五个频道都在下面，总览里有按问题查路由的表。</p>
+      <div class="nf-links">
+        <a class="btn primary" href="index.html">◀ 回到总览</a>
+        <a class="btn" href="labs/loop.html">CH01 循环回路</a>
+        <a class="btn" href="labs/prompt.html">CH02 输入组装</a>
+        <a class="btn" href="labs/sandbox.html">CH03 权限沙箱</a>
+        <a class="btn" href="labs/appserver.html">CH04 协议线路</a>
+        <a class="btn" href="labs/atlas.html">CH05 Crate 图谱</a>
+      </div>
+      <p class="small muted" style="margin-top:30px;">
+        如果你认为这是一个坏链接，欢迎到仓库提 issue，注明当时的地址。
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var path = location.pathname.replace(/\/$/, "");
+  var m = path.match(/(loop|prompt|sandbox|appserver|atlas)\.html$/);
+  if (!m) return;
+  var map = { loop: "labs/loop.html", prompt: "labs/prompt.html", sandbox: "labs/sandbox.html", appserver: "labs/appserver.html", atlas: "labs/atlas.html" };
+  var target = map[m[1]];
+  if (target && document.querySelector('.nf-links a[href="' + target + '"]')) {
+    location.replace(target);
+  }
+})();
+</script>
+</body>
+</html>

@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#101418">
 <title>CH03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS</title>
 <meta name="description" content="Codex 的 read-only / workspace-write / danger-full-access 三种沙箱模式下，读文件、写路径、联网分别怎么判？macOS Seatbelt、Linux Landlock、Windows WFP 各自怎么强制执行？">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CODEX ATLAS">
+<meta property="og:title" content="CH03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS">
+<meta property="og:description" content="选系统、选模式、选动作，当场给出 ALLOW / DENY / 条件放行和执行机制：Seatbelt、Landlock、WFP 三套实现的判定现场。">
+<meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/sandbox.html">
+<meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -184,7 +192,7 @@
               </button>
               <button class="mode-card" data-mode="full">
                 <div class="mc-name">danger-full-access</div>
-                <div class="mc-desc">全放开：任意读写加网络。名字里的 danger 不是装饰。</div>
+                <div class="mc-desc">全放开：任意读写加网络。danger 这个词是字面意思。</div>
               </button>
             </div>
           </div>
@@ -235,7 +243,7 @@
           官方博客原话：它们「需自行负责执行其防护措施」。
         </p>
         <p class="muted" style="margin-bottom:0;">
-          换句话说：给模型接一个 MCP 文件服务器，它的删除操作不会因为 Codex 处于 read-mode 而被拦截。
+          给模型接一个 MCP 文件服务器，它的删除操作不会因为 Codex 处于 read-only 而被拦截。
           能拦住它的只有两样：MCP 服务器自己的权限设计，和你对审批弹窗的手。
         </p>
       </div>
@@ -262,7 +270,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名，但固定提交 @343074d4 的 workspace 成员名单中并无此 crate——换一个提交就得重新查证，这是本站锁定基线的原因。
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
       审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
@@ -281,7 +289,7 @@
     linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
             note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
     win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
-            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：固定提交 @343074d4 的 workspace 成员名单里没有独立的 Windows 沙箱 crate——早期版本曾见 windows-sandbox-rs 目录名，实现位置随版本演进，这正是固定基线的意义。" }
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：固定提交 @343074d4 的 workspace 成员名单里没有独立的 Windows 沙箱 crate，但 workspace.dependencies 中仍保留指向 windows-sandbox-rs 的路径引用——实现位置随版本演进，这正是固定基线的意义。" }
   };
 
   /* v: ro / ww / full 三模式的判定。cond = 条件放行 */

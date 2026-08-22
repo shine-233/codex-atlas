@@ -48,16 +48,6 @@ a, button, input[type="range"] { touch-action: manipulation; }
   }
 }
 
-body {
-  margin: 0;
-  background: var(--bg0);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 15.5px;
-  line-height: 1.75;
-  -webkit-font-smoothing: antialiased;
-}
-
 ::selection { background: var(--amber); color: #14100a; }
 
 a { color: var(--steel); text-decoration: none; }
