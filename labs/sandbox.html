@@ -144,6 +144,7 @@
     <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -160,6 +161,7 @@
   <a href="appserver.html">04 · 协议线路</a>
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
+  <a href="deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -725,7 +727,7 @@
 
       var readCmd = /(^|[\s;|&])(cat|less|more|head|tail|grep|rg|find|ls|stat|file|wc|awk)\b/.test(s);
       if (readCmd && /(~\/|\$home\b|\/(etc|usr|var|opt)\b)/.test(s))
-        return { id: "ra", rule: "读工作区之外的文件。全盘可读是设计取舍——别指望沙箱替你保密。" };
+        return { id: "ra", rule: "读工作区之外的文件。全盘可读是设计取舍；保密靠磁盘权限与信任边界，不靠这层沙箱。" };
 
       return { id: "rw", rule: "没碰到网络与写入的痕迹，按最普通的「读工作区」处理——任何模式都放行。" };
     }

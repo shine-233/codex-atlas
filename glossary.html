@@ -34,6 +34,32 @@
   table.rt tr.hidden { display: none; }
   .gl-cat h2 { margin-top: 40px; }
   .gl-cat:first-of-type h2 { margin-top: 26px; }
+
+  /* 自测模式：翻卡主动回忆 */
+  .view-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .deck { margin-top: 16px; }
+  .deck-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .deck-bar .match-readout b { color: var(--ok); }
+  .fcard {
+    display: block; width: 100%; min-height: 210px;
+    background: var(--bg1); border: 1px dashed var(--line-strong);
+    cursor: pointer; text-align: center;
+    padding: 30px 22px 22px; position: relative;
+    transition: border-color .15s;
+  }
+  .fcard:hover { border-color: var(--amber); }
+  .fcard:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .fc-term { font-family: var(--mono); font-size: 24px; color: var(--amber); display: block; word-break: break-all; }
+  .fc-hint { position: absolute; left: 0; right: 0; bottom: 12px; font-size: 11px; color: var(--faint); font-family: var(--mono); letter-spacing: .08em; }
+  .fc-back { display: none; text-align: left; }
+  .fc-back p { max-width: 44em; margin: 0 auto; color: var(--ink); font-size: 14.5px; line-height: 1.75; }
+  .fc-back .fc-where { margin-top: 14px !important; font-size: 12.5px; color: var(--dim) !important; text-align: center; }
+  .fcard.flipped .fc-term, .fcard.flipped .fc-hint { display: none; }
+  .fcard.flipped .fc-back { display: block; }
+  .fc-mark { position: absolute; top: 10px; right: 12px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--ok); }
+  .deck-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .deck-actions .grow { flex: 1; }
+  .deck-tip { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -53,6 +79,7 @@
     <a class="rail-ch" href="labs/appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="labs/deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -69,6 +96,7 @@
   <a href="labs/appserver.html">04 · 协议线路</a>
   <a href="labs/atlas.html">05 · Crate 图谱</a>
   <a href="glossary.html">06 · 术语速查</a>
+  <a href="labs/deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -103,6 +131,40 @@
       <p class="small muted" style="margin:10px 0 0;">
         中英文都能搜：试试「缓存」「挂起」「轮次」。
       </p>
+
+      <div class="view-row">
+        <div class="seg" role="group" aria-label="模式切换">
+          <button data-md="look" class="on">速查</button>
+          <button data-md="drill">自测</button>
+        </div>
+        <span class="match-readout" id="drill-out"></span>
+      </div>
+
+      <div class="deck" id="deck" hidden>
+        <div class="deck-bar">
+          <span class="match-readout" id="deck-pos"></span>
+          <span class="grow" style="flex:1;"></span>
+          <button class="btn" id="deck-shuffle" type="button">↻ 重排顺序</button>
+        </div>
+        <button type="button" class="fcard" id="fcard">
+          <span class="fc-mark" id="fc-mark" hidden>已记</span>
+          <span class="fc-term" id="fc-term"></span>
+          <div class="fc-back">
+            <p id="fc-expl"></p>
+            <p class="fc-where small muted" id="fc-where"></p>
+          </div>
+          <span class="fc-hint">点卡片或按空格翻面 · 翻面前先在脑子里答一遍</span>
+        </button>
+        <div class="deck-actions">
+          <button class="btn" id="d-prev" type="button">◀</button>
+          <button class="btn" id="d-known" type="button">✓ 记得</button>
+          <button class="btn" id="d-unknown" type="button">✗ 忘了</button>
+          <button class="btn" id="d-next" type="button">▶</button>
+        </div>
+        <p class="small muted deck-tip">
+          先看术语自己回忆，再翻面对答案。「记得 / 忘了」会记进本机存档——下次打开，先给你推没记牢的那些。键盘：空格翻面，← → 换张。
+        </p>
+      </div>
     </section>
 
     <section class="gl-cat">
@@ -117,7 +179,7 @@
           <tr data-k="op::userinput op eventmsg 操作 事件 类型"><td><code>Op / EventMsg</code></td><td>核心内部指令和事件的类型前缀。<code>Op::UserInput</code> 是「用户说了一句话」，<code>EventMsg::*</code> 是往外广播的各种消息。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
           <tr data-k="needs_follow_up follow up 跟进 标记"><td><code>needs_follow_up</code></td><td>「本轮还没完」的标记。只要这轮出现了工具调用就置 true，历史写回后再采样一圈；纯文本回复时才收束。</td><td><a href="labs/loop.html">01</a> 第11–13站</td></tr>
           <tr data-k="turncomplete 完成 收束 结束"><td><code>TurnComplete</code></td><td>一轮任务正式结束的事件，由 task wrapper 统一发出。看到它，这轮的账就结了。</td><td><a href="labs/loop.html">01</a> 第13站</td></tr>
-          <tr data-k="steer_input steer 打断 并入 插话"><td><code>steer_input</code></td><td>你在一轮跑着的时候又发了句话？这个函数把你这句并入正在运行的轮次，而不是排队等它跑完。打断不是取消。</td><td><a href="labs/loop.html">01</a> 第7站</td></tr>
+          <tr data-k="steer_input steer 打断 并入 插话"><td><code>steer_input</code></td><td>你在一轮跑着的时候又发了句话？这个函数把你这句并入正在运行的轮次，而不是排队等它跑完。排队变成了并线。</td><td><a href="labs/loop.html">01</a> 第7站</td></tr>
         </tbody>
       </table>
     </section>
@@ -132,7 +194,7 @@
           <tr data-k="developer_instructions 开发者指令 config.toml 配置"><td><code>developer_instructions</code></td><td>你在 ~/.codex/config.toml 里写的可选指令层。放长期偏好；项目约定请走下一层的 AGENTS.md。</td><td><a href="labs/prompt.html">02</a> 第4层</td></tr>
           <tr data-k="agents.md 层叠 cascade 项目约定 目录"><td><code>AGENTS.md 层叠</code></td><td>从 ~/.codex 沿目录一路读到当前目录的项目约定文件，越近的越具体、覆盖越通用的。总量受 32 KiB 默认上限约束。</td><td><a href="labs/prompt.html">02</a> 第5层</td></tr>
           <tr data-k="previous_response_id 无状态 零数据保留 stateless"><td><code>previous_response_id</code></td><td>官方 API 用来续接会话的参数。Codex 有意不用它：每次全量重发历史，保持请求无状态，零数据保留部署才能兼容。</td><td><a href="labs/loop.html">01</a> 第10站</td></tr>
-          <tr data-k="提示缓存 prompt caching 缓存命中 cached 计费 一折"><td><code>提示缓存命中</code></td><td>服务端把重复的历史前缀缓存起来，命中部分按约一折计费。全量重发的账单因此从平方增长被压回近似线性。</td><td><a href="labs/loop.html">01</a> 成本对照</td></tr>
+          <tr data-k="提示缓存 prompt caching 缓存命中 cached 计费 一折"><td><code>提示缓存命中</code></td><td>服务端把重复的历史前缀缓存起来，命中部分按约一折计费，全量重发的总账单因此从平方增长退回近似线性。</td><td><a href="labs/loop.html">01</a> 成本对照</td></tr>
           <tr data-k="auto_compact_limit compact 压缩 历史 超长"><td><code>auto_compact_limit</code></td><td>token 总量超过阈值就自动压缩历史的开关，压缩走 /responses/compact，压完带着加密内容继续对话。</td><td><a href="labs/prompt.html">02</a> 答疑表</td></tr>
           <tr data-k="tool spec 工具清单 tools 工具列表"><td><code>tool spec（工具清单）</code></td><td>发给模型的可用工具说明书：名字、参数形状。模型照着它决定调什么。内置、API 侧、MCP 三类合并成一份。</td><td><a href="labs/prompt.html">02</a> 第2层</td></tr>
         </tbody>
@@ -148,9 +210,10 @@
           <tr data-k="seatbelt macos 苹果 profile sandbox-exec"><td><code>Seatbelt</code></td><td>macOS 的沙箱强制机制。Codex 为每条命令生成一份 profile 规则，再用 sandbox-exec 套着启动。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="landlock seccomp linux 内核 bwrap bubblewrap"><td><code>Landlock + seccomp</code></td><td>Linux 内核侧的两道闸：Landlock 过滤文件树访问，seccomp 收窄可用系统调用。另有 bwrap 容器路线作备选。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="wfp windows filtering platform 视窗 网络 过滤"><td><code>WFP</code></td><td>Windows Filtering Platform：Windows 上管网络流量的内核框架，Codex 用它做网络层管控。</td><td><a href="labs/sandbox.html">03</a></td></tr>
-          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头就能升级执行一次。拦住它的不是墙，是你的签名。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头才升级执行一次——放行的开关握在你手里。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="shell-escalation 升级流 审批升级"><td><code>shell-escalation</code></td><td>审批升级流的实现 crate：沙箱内拿不到的权限，经你批准后换一种方式重跑。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
           <tr data-k="execpolicy 执行策略 白名单 免审批"><td><code>execpolicy</code></td><td>执行策略引擎：判定哪些命令属于安全白名单，可以免审批直接跑。</td><td><a href="labs/atlas.html">05</a> B4</td></tr>
+          <tr data-k="trust 项目信任 trusted 目录信任 projects 信任确认"><td><code>项目信任</code></td><td>第一次在某个目录里启动会弹「信任这个目录吗」；点过的目录写进 config 的 projects 表，之后免确认。信任的是「这里的 AGENTS.md 和命令我认」。</td><td><a href="labs/deep.html">07</a> B 房</td></tr>
           <tr data-k="mcp model context protocol 工具服务器 豁免 不受管"><td><code>MCP</code></td><td>Model Context Protocol：给模型接外部工具的标准协议。重点：经 MCP 接的工具不在 Codex 沙箱管辖范围内，防护由提供方自己负责。</td><td><a href="labs/sandbox.html">03</a> 底部</td></tr>
         </tbody>
       </table>
@@ -178,7 +241,10 @@
           <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——135 这个数字的出处。</td><td><a href="labs/atlas.html">05</a></td></tr>
           <tr data-k="codex exec 非交互 ci 脚本 一次性 自动化"><td><code>codex exec</code></td><td>非交互式一次性执行入口：codex exec "任务"。不进终端界面，CI 和脚本场景的主力形态。</td><td><a href="labs/atlas.html">05</a> B1</td></tr>
           <tr data-k="apply_patch apply-patch 补丁 改文件 patch"><td><code>apply_patch</code></td><td>Codex 的特色补丁工具：模型输出的修改以补丁形式描述，由它落成磁盘上的真实变更。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
-          <tr data-k="tui 终端界面 terminal 终端 ui"><td><code>TUI</code></td><td>Terminal UI，终端里的交互界面。正在重构为 App Server 的标准子进程客户端。</td><td><a href="labs/loop.html">01</a> 第3站</td></tr>
+          <tr data-k="tui 终端界面 terminal 终端 ui"><td><code>TUI</code></td><td>Terminal UI，终端里的交互界面。正在重构为 App Server 的标准子进程客户端。</td><td><a href="labs/loop.html">01</a> 第3站；<a href="labs/deep.html">07</a> D 房</td></tr>
+          <tr data-k="auth.json 登录态 令牌 token 凭据 refresh"><td><code>auth.json</code></td><td>~/.codex 下的凭据文件：ChatGPT 路线存 id/access/refresh 三件套，API key 路线存密钥本体。刷新靠它，泄露也是它。</td><td><a href="labs/deep.html">07</a> A 房</td></tr>
+          <tr data-k="profiles 预设 场景包 配置打包 profile"><td><code>profiles（场景包）</code></td><td>config.toml 里把一组键值打包命名的段落，--profile 一键整套切换。优先级高于顶层配置、低于 CLI 覆盖。</td><td><a href="labs/deep.html">07</a> B 房</td></tr>
+          <tr data-k="slash 命令 斜杠 /init /compact 客户端本地"><td><code>斜杠命令</code></td><td>/init、/model、/compact 这类输入。在 TUI 客户端本地处理，不发给模型——更像地址栏协议，不像聊天内容。</td><td><a href="labs/deep.html">07</a> D 房</td></tr>
         </tbody>
       </table>
     </section>
@@ -222,6 +288,127 @@
   });
 
   applyFilter();
+})();
+
+/* ---------- 自测模式：翻卡主动回忆，记忆存档仅在本机 ---------- */
+(function () {
+  "use strict";
+
+  var rows = Array.prototype.slice.call(document.querySelectorAll("tbody tr[data-k]"));
+  var CARDS = rows.map(function (tr) {
+    return {
+      name: (tr.querySelector("td code") || tr.children[0]).textContent.trim(),
+      expl: tr.children[1].textContent.trim(),
+      whereHTML: tr.children[2] ? tr.children[2].innerHTML : ""
+    };
+  });
+
+  var deck = document.getElementById("deck");
+  if (!deck || !CARDS.length) return;
+  var cats = Array.prototype.slice.call(document.querySelectorAll(".gl-cat"));
+  var searchRow = document.querySelector(".search-row");
+
+  var fcard = document.getElementById("fcard");
+  var fcTerm = document.getElementById("fc-term");
+  var fcExpl = document.getElementById("fc-expl");
+  var fcWhere = document.getElementById("fc-where");
+  var fcMark = document.getElementById("fc-mark");
+  var deckPos = document.getElementById("deck-pos");
+  var drillOut = document.getElementById("drill-out");
+
+  var KEY = "ca-flash-glossary";
+  var store = {};
+  try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* 存不上就算了 */ } }
+
+  /* 出队顺序：没记牢的在前，已记的垫后；组内保持页面原顺序 */
+  function rank(name) { return store[name] === true ? 2 : 1; }
+  var order = CARDS.map(function (c, i) { return i; })
+    .sort(function (a, b) { return rank(CARDS[a].name) - rank(CARDS[b].name); });
+  var idx = 0;
+  var flipped = false;
+
+  function counts() {
+    var k = 0, u = 0;
+    CARDS.forEach(function (c) {
+      if (store[c.name] === true) k++;
+      else u++;
+    });
+    return { k: k, u: u };
+  }
+
+  function render() {
+    var c = CARDS[order[idx]];
+    fcTerm.textContent = c.name;
+    fcExpl.textContent = c.expl;
+    fcWhere.innerHTML = c.whereHTML;
+    flipped = false;
+    fcard.classList.remove("flipped");
+    fcMark.hidden = store[c.name] !== true;
+    var n = counts();
+    deckPos.innerHTML = "第 <b>" + (idx + 1) + "</b> / " + order.length + " 张";
+    drillOut.innerHTML = "已记 <b>" + n.k + "</b> · 待巩固 " + n.u + " · 共 " + CARDS.length + " 条";
+  }
+
+  function flip() { flipped = !flipped; fcard.classList.toggle("flipped", flipped); }
+
+  function step(d) { idx = (idx + d + order.length) % order.length; render(); }
+
+  function mark(ok) {
+    var name = CARDS[order[idx]].name;
+    if (ok) { store[name] = true; save(); step(1); return; }
+    delete store[name];
+    save();
+    /* 忘了：当前卡退出队列、沉到队尾再练一遍 */
+    order.push(order.splice(idx, 1)[0]);
+    if (idx >= order.length) idx = 0;
+    render();
+  }
+
+  document.getElementById("deck-shuffle").addEventListener("click", function () {
+    for (var i = order.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = order[i]; order[i] = order[j]; order[j] = t;
+    }
+    idx = 0;
+    render();
+  });
+
+  fcard.addEventListener("click", flip);
+  document.getElementById("d-prev").addEventListener("click", function () { step(-1); });
+  document.getElementById("d-next").addEventListener("click", function () { step(1); });
+  document.getElementById("d-known").addEventListener("click", function () { mark(true); });
+  document.getElementById("d-unknown").addEventListener("click", function () { mark(false); });
+
+  function setMode(m) {
+    var drill = m === "drill";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (x) {
+      x.classList.toggle("on", x.getAttribute("data-md") === m);
+    });
+    deck.hidden = !drill;
+    cats.forEach(function (s) { s.style.display = drill ? "none" : ""; });
+    if (searchRow) searchRow.style.display = drill ? "none" : "";
+    PanelState.write({ md: drill ? "drill" : "" });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (b) {
+    b.addEventListener("click", function () { setMode(b.getAttribute("data-md")); });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (deck.hidden) return;
+    var tag = e.target.tagName;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+    if (e.key === " ") {
+      if (tag === "BUTTON") return; /* 焦点在按钮上时让它自己的空格生效 */
+      e.preventDefault();
+      flip();
+    } else if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  });
+
+  if (PanelState.read().md === "drill") setMode("drill");
+  render();
 })();
 </script>
 </body>

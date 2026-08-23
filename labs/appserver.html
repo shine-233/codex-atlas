@@ -110,6 +110,7 @@
     <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -126,6 +127,7 @@
   <a href="appserver.html">04 · 协议线路</a>
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
+  <a href="deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -274,7 +276,7 @@
       d:"修改落盘，diff 已经在 UI 上展开。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"turn/completed",
       j:'{ "method": "turn/completed",\n  "params": { "usage": { "inputTokens": 48211,\n              "cachedInputTokens": 44120,\n              "outputTokens": 1873 } } }',
-      d:"token 用量回传。缓存命中的那一大块，就是把二次增长压回线性的证据。" }
+      d:"token 用量回传。inputTokens 48211 里 cachedInputTokens 占了 44120——重复的前缀没有按全价再收一遍。" }
   ];
 
   var seqBox = document.getElementById("seq");

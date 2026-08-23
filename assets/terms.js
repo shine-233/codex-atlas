@@ -30,7 +30,7 @@
       d: "核心里负责「向模型要一次回复」的函数；每次被调前重新组装 Prompt、全量重发历史。",
       w: "01 第9站", href: "labs/loop.html" },
     { v: ["steer_input"], name: "steer_input",
-      d: "把新输入并入正在运行的轮次——打断不是取消，是并入。",
+      d: "把新输入汇进正在运行的那一轮：你的插话被并入，而不是排队等它跑完。",
       w: "01 第7站", href: "labs/loop.html" },
     { v: ["队列对"], name: "队列对",
       d: "Codex 核心的骨架：两条异步通道，一边收指令（Submission 进），一边吐事件（Event 出）。",
@@ -103,8 +103,25 @@
       w: "CH02 第2层", href: "labs/prompt.html" },
     { v: ["token"], name: "token",
       d: "模型计费与计量的最小文本单位：一段话会被切成许多 token，输入和输出分开算账。",
-      w: "01 成本对照 · 04 用量回传", href: "labs/loop.html" }
+      w: "01 成本对照 · 04 用量回传", href: "labs/loop.html" },
+    { v: ["auth.json"], name: "auth.json",
+      d: "~/.codex 下的凭据文件：ChatGPT 路线存 id/access/refresh 三件套，API key 路线存密钥本体。",
+      w: "07 A 房", href: "labs/deep.html" },
+    { v: ["profiles", "[profiles"], name: "profiles",
+      d: "config.toml 里把一组键值打包命名的场景包，--profile 一键整套切换。",
+      w: "07 B 房", href: "labs/deep.html" },
+    { v: ["trust_level", "项目信任"], name: "项目信任",
+      d: "第一次在某个目录启动会弹确认；点过的目录进 config 的 projects 表，之后免问。",
+      w: "07 B 房", href: "labs/deep.html" },
+    { v: ["/init", "/compact", "/approvals"], name: "斜杠命令",
+      d: "TUI 客户端本地处理的输入命令（/init、/model、/compact…），根本不会发给模型。",
+      w: "07 D 房", href: "labs/deep.html" }
   ];
+
+  /* 词条里的 href 按根目录书写；在 labs/ 子页里要补一层前缀，
+     否则「详见」和「全部术语」会解析成 labs/labs/... 打不开（历史 bug）。 */
+  var IN_LABS = location.pathname.indexOf("/labs/") !== -1;
+  function P(rel) { return (IN_LABS ? "../" : "") + rel; }
 
   /* 长词优先，避免 TurnComplete 被 Turn/Item 类短词截胡 */
   var ENTRIES = [];
@@ -167,8 +184,8 @@
     tip.innerHTML =
       '<b class="tt-name">' + t.name + "</b>" +
       "<span>" + t.d + "</span>" +
-      '<span class="tt-foot"><a href="' + t.href + '">详见 ' + t.w + "</a>" +
-      ' · <a href="glossary.html">全部术语</a></span>';
+      '<span class="tt-foot"><a href="' + P(t.href) + '">详见 ' + t.w + "</a>" +
+      ' · <a href="' + P("glossary.html") + '">全部术语</a></span>';
     tip.classList.add("show");
     tip.style.left = "-9999px";
     tip.style.top = "-9999px";

@@ -59,7 +59,7 @@
     });
     /* 编号说明：纯数字导航 */
     document.querySelectorAll(".ch-no").forEach(function (el) {
-      el.title = "编号：00 总览 · 01–05 五条线路 · 06 术语速查";
+      el.title = "编号：00 总览 · 01–05 五条线路 · 06 术语速查 · 07 深水区支线";
     });
   });
 
@@ -377,6 +377,13 @@
       showToast("<b>小鳕</b> · ALL CLEAR！这条线路通关了。五条都通的话，源码地图基本就是你的了。");
     });
     if (!reduced) setTimeout(swimOnce, 700);
+  });
+
+  /* 五条线路全部通关（仅首次达成时由首页广播）：双倍游庆祝 */
+  document.addEventListener("ca:grandclear", function () {
+    showToast("<b>小鳕</b> · 五条线路全部通关！从队列对到 WFP，这张地图现在归你了。");
+    swimOnce(function () {});
+    if (!reduced) setTimeout(function () { swimOnce(function () {}); }, 800);
   });
 
   /* 答题反馈：答对原地一蹦，答错往下一沉。不弹提示，别打断做题。 */

@@ -36,6 +36,7 @@
     <a class="rail-ch" href="labs/appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="labs/deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">
     基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关
@@ -54,6 +55,7 @@
   <a href="labs/appserver.html">04 · 协议线路</a>
   <a href="labs/atlas.html">05 · Crate 图谱</a>
   <a href="glossary.html">06 · 术语速查</a>
+  <a href="labs/deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -118,7 +120,7 @@
           </tr>
           <tr>
             <td><b style="color:var(--amber);font-family:var(--mono);">03</b></td>
-            <td>带着具体问题去 <a href="labs/sandbox.html">03 权限沙箱</a>、<a href="labs/appserver.html">04 协议线路</a> 或 <a href="labs/atlas.html">05 Crate 图谱</a>，在下面路由表里找入口。</td>
+            <td>带着具体问题去 <a href="labs/sandbox.html">03 权限沙箱</a>、<a href="labs/appserver.html">04 协议线路</a>、<a href="labs/atlas.html">05 Crate 图谱</a> 或支线 <a href="labs/deep.html">07 深水区</a>，在下面路由表里找入口。</td>
             <td>你的那个问题，答案落在哪个源码目录。</td>
           </tr>
         </tbody>
@@ -221,6 +223,18 @@
         <p class="small muted">成员名单取自固定提交下的 codex-rs/Cargo.toml，可直接复核；分带是本站归纳，不是上游分类。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/atlas.html">进入 05 →</a></p>
       </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3><span style="font-family:var(--mono);color:var(--steel);font-size:13px;margin-right:10px;">07</span>深水区 · 支线</h3>
+          <span class="readout">5 间房 · 凭据 / 配置 / 补丁 / TUI / 扩展<span class="qp-chip" data-qp="deep.html"></span></span>
+        </div>
+        <p style="margin-bottom:12px;">主干之外常被打听的五件事，各配一台能动手的小仪器：
+        登录令牌从哪来到哪去、config.toml 谁覆盖谁、apply_patch 格式现场拆解试错、
+        TUI 每格画面背后是哪条事件、技能记忆钩子挂在系统的哪个位置。</p>
+        <p class="small muted">支线深度不及主线，门槛也更低——每间房独立，按需跳进去。凭据与配置出自官方文档级材料；TUI 与扩展机制就地标注为结构示意。</p>
+        <p style="margin:14px 0 0;"><a class="btn" href="labs/deep.html">进入 07 →</a></p>
+      </div>
     </section>
 
     <hr class="sep">
@@ -251,7 +265,11 @@
           <tr><td>想在 CI 或脚本里跑一次性任务，不进交互界面</td><td><a href="labs/loop.html">01 循环回路</a> · 阶段 1–2；<a href="labs/atlas.html">05</a> B1 <code>exec</code></td></tr>
           <tr><td>ChatGPT 登录态和 API key 有什么区别，请求打到哪个域名</td><td><a href="labs/loop.html">01 循环回路</a> · 第 10 站</td></tr>
           <tr><td>会话能恢复吗？断线重连后时间线还在不在</td><td><a href="labs/appserver.html">04 协议线路</a> · Thread 原语；<a href="labs/atlas.html">05</a> B2 <code>rollout / thread-store</code></td></tr>
-          <tr><td>技能、记忆、钩子这类扩展机制挂在哪一层</td><td><a href="labs/atlas.html">05 Crate 图谱</a> · B7 扩展生态</td></tr>
+          <tr><td>技能、记忆、钩子这类扩展机制挂在哪一层</td><td><a href="labs/atlas.html">05 Crate 图谱</a> · B7 扩展生态；<a href="labs/deep.html">07</a> E 房挂点地图</td></tr>
+          <tr><td>codex login 之后我的令牌存在哪，和 API key 走的是同一个接口吗</td><td><a href="labs/deep.html">07 深水区</a> · A 房凭据流</td></tr>
+          <tr><td>config.toml 里能配什么，CLI 旗标和配置文件谁覆盖谁</td><td><a href="labs/deep.html">07 深水区</a> · B 房组装台与优先级阶梯</td></tr>
+          <tr><td>模型改文件用的 apply_patch 补丁是什么格式，为什么会拒绝</td><td><a href="labs/deep.html">07 深水区</a> · C 房补丁解剖台</td></tr>
+          <tr><td>TUI 里那些界面元素背后是什么事件，斜杠命令有哪些</td><td><a href="labs/deep.html">07 深水区</a> · D 房后台</td></tr>
           <tr><td>看不懂某个英文术语或内部名词</td><td><a href="glossary.html">06 术语速查</a></td></tr>
         </tbody>
       </table>
@@ -286,8 +304,18 @@
   });
   var sum = document.getElementById("qp-sum");
   if (sum) sum.innerHTML = cleared
-    ? "自检通关 <b>" + cleared + "</b> / 5"
+    ? "自检通关 <b>" + cleared + "</b> / 5" +
+      (cleared >= 5 ? ' · <b style="color:var(--amber);">五条全通</b>' : "")
     : "";
+  /* 首次集齐五条线路：广播一次全通关，站宠来庆祝 */
+  if (cleared >= 5) {
+    try {
+      if (localStorage.getItem("ca-grand") !== "1") {
+        localStorage.setItem("ca-grand", "1");
+        document.dispatchEvent(new CustomEvent("ca:grandclear"));
+      }
+    } catch (e) { /* localStorage 不可用就只显示徽章 */ }
+  }
 })();
 </script>
 <script>

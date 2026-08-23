@@ -109,6 +109,7 @@
     <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -125,6 +126,7 @@
   <a href="appserver.html">04 · 协议线路</a>
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
+  <a href="deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -313,7 +315,7 @@
       next:"每一层具体装了什么、顺序如何，02 输入组装逐层拆给你看。" },
     { n:"POST /responses · 读 SSE 流", files:["codex-api（HTTP 客户端）"], ev:["POST responses","SSE"],
       body:"向 Responses API 端点发起 HTTP POST：ChatGPT 登录走 chatgpt.com/backend-api/codex/responses，API key 走 api.openai.com/v1/responses，本地模型走 localhost 端点。然后循环读取 SSE 事件流。<b>每次都发送完整历史</b>，不用 previous_response_id——保持请求无状态以兼容零数据保留配置。",
-      next:"总量二次增长的直觉是对的；靠提示缓存命中把采样成本压回线性。" },
+      next:"发送量确实一圈比一圈大——这笔账怎么算，下面的成本对照现场算给你看。" },
     { n:"ResponseEvent 流水线", files:["core/src（ModelClientSession::stream）"], ev:["OutputItemAdded","OutputTextDelta","OutputItemDone","Completed"],
       body:"core 把服务器 SSE 事件重新发布为内部事件对象：<b>OutputItemAdded</b> 表示条目开始（UI 可立即渲染），OutputTextDelta 支持流式输出，<b>OutputItemDone</b> 可能触发工具分发，Completed 带回 token usage 并给出 needs_follow_up 标记。",
       next:"事件驱动意味着 UI 不需要读 core 内部任务状态，只消费 EventMsg。" },

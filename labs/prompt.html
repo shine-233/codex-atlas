@@ -109,6 +109,7 @@
     <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -125,6 +126,7 @@
   <a href="appserver.html">04 · 协议线路</a>
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
+  <a href="deep.html">07 · 深水区</a>
 </div>
 
 <div class="wrap">
@@ -624,7 +626,7 @@
     { q: "为什么 Codex 每次采样都全量重发对话历史？",
       opts: ["服务端强制要求带 previous_response_id", "为了保持请求无状态，兼容零数据保留部署", "因为历史很小，发了也不心疼"],
       a: 1,
-      why: "第 7 层：不用 previous_response_id 是有意为之——请求完全无状态，零数据保留配置才能成立。二次增长的计费代价靠提示缓存命中摊平。" },
+      why: "第 7 层：不用 previous_response_id 是有意为之——请求完全无状态，零数据保留配置才能成立。成本那头由提示缓存兜着：命中前缀按约一折计费，01 的成本对照画过这条曲线。" },
     { q: "developer_instructions 这一层的内容从哪里来？",
       opts: ["~/.codex/config.toml（可选配置）", "仓库根目录的 AGENTS.md", "随 CLI 打包的 base_instructions"],
       a: 0,

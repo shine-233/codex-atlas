@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101418">
+<title>07 深水区 · 支线五间房 — CODEX ATLAS</title>
+<meta name="description" content="主干之外的五间房：登录态与凭据流、config.toml 组装与优先级、apply_patch 格式解剖与现场试用、TUI 界面背后的协议事件、扩展机制挂点地图。每间配一台可动手的小仪器。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CODEX ATLAS">
+<meta property="og:title" content="07 深水区 · 支线五间房 — CODEX ATLAS">
+<meta property="og:description" content="凭据从哪来到哪去、config 谁覆盖谁、补丁格式现场拆、TUI 单元格背后的事件、扩展机制挂在哪——五台支线仪器。">
+<meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/deep.html">
+<meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  /* 页内跳转 */
+  .room-jumps { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .room-jumps a {
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    border: 1px solid var(--line-strong); background: var(--bg2);
+    padding: 5px 12px; text-decoration: none;
+    transition: color .15s, border-color .15s;
+  }
+  .room-jumps a:hover { color: var(--amber); border-color: var(--amber); }
+
+  /* D 房双栏（本页自持，不依赖别页局部类） */
+  .lab-grid { display: grid; grid-template-columns: 1fr; }
+  @media (min-width: 981px) {
+    .tui-grid { grid-template-columns: 1fr 300px; }
+    .d-left { border-right: 1px solid var(--line) !important; }
+  }
+
+  .room-tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+    color: var(--steel); text-transform: uppercase;
+  }
+
+  /* ---------- A · AUTH ---------- */
+  .auth-flow { position: relative; padding-left: 26px; }
+  .auth-step { position: relative; padding: 10px 0 10px 4px; border-left: 1px dashed transparent; }
+  .auth-step::before {
+    content: ""; position: absolute; left: -26px; top: 16px;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--bg2); border: 2px solid var(--line-strong);
+    transition: background .2s, border-color .2s;
+  }
+  .auth-step.lit::before { background: var(--amber); border-color: var(--amber); }
+  .auth-step .as-k { font-family: var(--mono); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+  .auth-step .as-d { font-size: 13px; color: var(--dim); margin-top: 3px; line-height: 1.65; max-width: 46em; }
+  .auth-json { margin-top: 14px; }
+
+  /* ---------- B · CONFIG ---------- */
+  .cfg-lab { display: grid; grid-template-columns: 320px 1fr; gap: 22px; }
+  @media (max-width: 900px) { .cfg-lab { grid-template-columns: 1fr; } }
+  .key-row { margin-bottom: 9px; }
+  .key-row .switch-row { align-items: baseline; }
+  .key-name { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+  .key-desc { display: block; font-size: 11.5px; color: var(--faint); margin: 2px 0 0 30px; line-height: 1.55; }
+  .ladder { display: flex; flex-direction: column-reverse; gap: 6px; margin-top: 12px; }
+  .rung {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--line-strong); background: var(--bg2);
+    padding: 9px 13px; transition: border-color .18s, background .18s;
+  }
+  .rung .rg-no { font-family: var(--mono); font-size: 10.5px; color: var(--faint); width: 34px; flex-shrink: 0; }
+  .rung .rg-nm { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+  .rung .rg-sub { font-size: 11.5px; color: var(--faint); margin-left: auto; text-align: right; }
+  .rung.win { border-color: var(--amber); background: var(--amber-dim); }
+  .rung.win .rg-nm { color: var(--amber); }
+  .scn-out { margin-top: 12px; min-height: 44px; }
+
+  /* ---------- C · PATCH LAB ---------- */
+  .pl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 960px) { .pl-grid { grid-template-columns: 1fr; } }
+  .pl-pane h4 { margin: 0 0 8px; font-size: 13px; font-family: var(--mono); color: var(--faint); letter-spacing: .1em; text-transform: uppercase; }
+  .pl-file {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+    background: var(--bg0); border: 1px solid var(--line-strong);
+    padding: 13px 15px; overflow-x: auto; white-space: pre; margin: 0; min-height: 250px;
+  }
+  .pl-file .add { color: var(--ok); background: rgba(123,201,139,.12); display: inline-block; width: 100%; }
+  .pl-file .del { color: var(--deny); background: rgba(240,121,106,.10); text-decoration: line-through; opacity: .75; display: inline-block; width: 100%; }
+  .pl-file .ctx { color: var(--ink); }
+  .pl-src {
+    width: 100%; box-sizing: border-box; min-height: 250px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+    background: var(--bg2); border: 1px solid var(--line-strong); color: var(--ink);
+    padding: 13px 15px; resize: vertical;
+  }
+  .pl-src:focus { border-color: var(--amber); outline: none; }
+  .pl-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .pl-stamp {
+    display: inline-block; font-family: var(--mono); font-weight: 600; font-size: 13px;
+    letter-spacing: .1em; padding: 5px 14px; border: 2px solid; margin-right: 4px;
+  }
+  .pl-stamp.ok { color: var(--ok); border-color: var(--ok); background: var(--ok-dim); }
+  .pl-stamp.bad { color: var(--deny); border-color: var(--deny); background: var(--deny-dim); }
+  .fmt-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .fmt-legend .chip { cursor: help; }
+
+  /* ---------- D · TUI ---------- */
+  .tui-shell { border: 1px solid var(--line-strong); background: #0b0e12; }
+  .tui-bar {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+    color: var(--faint); padding: 7px 12px; border-bottom: 1px solid var(--line);
+  }
+  .tui-bar b { color: var(--amber); font-weight: 500; }
+  .tui-cells { padding: 10px 12px; min-height: 300px; }
+  .tcell { margin-bottom: 12px; cursor: pointer; }
+  .tcell:hover { outline: 1px dashed rgba(255,180,84,.4); outline-offset: 3px; }
+  .tc-tag {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em;
+    color: var(--faint); text-transform: uppercase; display: block; margin-bottom: 3px;
+  }
+  .tc-user .tc-body {
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    background: var(--bg2); border-left: 2px solid var(--steel); padding: 7px 11px;
+  }
+  .tc-reason .tc-body { font-size: 12.5px; color: var(--faint); font-style: italic; }
+  .tc-agent .tc-body { font-size: 13.5px; color: var(--ink); line-height: 1.7; }
+  .tc-exec .tc-body {
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    background: var(--bg0); border: 1px solid var(--line); padding: 8px 11px; white-space: pre-wrap;
+  }
+  .tc-exec .cmd { color: var(--amber); }
+  .tc-patch .tc-body { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+  .tc-patch .p-add { color: var(--ok); }
+  .tc-patch .p-del { color: var(--deny); }
+  .tui-cursor { display: inline-block; width: 7px; height: 14px; background: var(--amber); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tui-side { border-left: 1px solid var(--line); padding: 14px 16px; }
+  @media (max-width: 900px) { .tui-side { border-left: none; border-top: 1px solid var(--line); } }
+  .tui-side h4 { margin: 0 0 6px; font-size: 12px; font-family: var(--mono); color: var(--faint); letter-spacing: .12em; text-transform: uppercase; }
+  .tui-side p { font-size: 13px; color: var(--dim); line-height: 1.7; margin: 0; }
+  .tui-side p b { color: var(--ink); font-weight: 500; }
+
+  /* 斜杠命令面板 */
+  .slash-demo { margin-top: 16px; border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+  .slash-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg0); border: 1px solid var(--line-strong); color: var(--ink);
+    font-family: var(--mono); font-size: 13px; padding: 9px 12px;
+  }
+  .slash-input:focus { border-color: var(--amber); outline: none; }
+  .slash-list { margin-top: 8px; display: none; flex-direction: column; }
+  .slash-list.open { display: flex; }
+  .slash-item {
+    display: flex; gap: 12px; align-items: baseline; text-align: left;
+    background: none; border: none; border-bottom: 1px solid var(--line);
+    color: var(--dim); padding: 7px 6px; cursor: pointer; font-family: var(--sans);
+  }
+  .slash-item:hover, .slash-item.hot { background: var(--bg2); color: var(--ink); }
+  .slash-item code { font-family: var(--mono); font-size: 12.5px; color: var(--amber); min-width: 96px; }
+  .slash-item span { font-size: 12.5px; }
+
+  /* ---------- E · EXT MAP ---------- */
+  .ext-wrap { margin-top: 6px; }
+  .ext-pipe { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ext-stage {
+    font-family: var(--mono); font-size: 11.5px; color: var(--dim);
+    border: 1px solid var(--line-strong); background: var(--bg2); padding: 7px 10px;
+  }
+  .ext-arrow { color: var(--faint); font-family: var(--mono); }
+  .ext-hooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 14px; }
+  .ext-card-btn {
+    text-align: left; cursor: pointer;
+    border: 1px solid var(--line-strong); background: var(--bg1);
+    padding: 11px 13px; color: var(--ink); font-family: var(--sans);
+    transition: border-color .15s, background .15s;
+  }
+  .ext-card-btn:hover { border-color: var(--dim); }
+  .ext-card-btn.on { border-color: var(--amber); background: var(--amber-dim); }
+  .ext-card-btn .xn { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--amber); }
+  .ext-card-btn .xw { display: block; font-size: 11.5px; color: var(--faint); margin-top: 4px; line-height: 1.5; }
+  .ext-detail { margin-top: 14px; border: 1px dashed var(--line-strong); padding: 15px 17px; min-height: 88px; }
+  .ext-detail h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 14px; }
+  .ext-detail p { color: var(--dim); font-size: 13px; line-height: 1.7; margin: 0 0 6px; max-width: 52em; }
+  .ext-detail .gap { color: var(--faint); font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">跳到主内容</a>
+
+<nav class="rail" aria-label="站点线路">
+  <a class="rail-brand" href="../index.html">
+    <span class="sig">CODEX<b>//</b>ATLAS</span>
+    <span class="sub">源码交互图鉴</span>
+  </a>
+  <div class="rail-chs">
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
+    <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+  </div>
+  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+</nav>
+
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
+  <a href="deep.html">07 · 深水区</a>
+</div>
+
+<div class="wrap">
+  <main class="container" id="main">
+
+    <div class="status-strip">
+      <span><i class="dot"></i>支线深度不及主干，门槛也低：每间房独立，随便进</span>
+      <span>凭据流与 config 出自官方文档级材料</span>
+      <span>TUI 与扩展机制为结构示意，就地标注</span>
+    </div>
+
+    <header style="padding-top:16px;">
+      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span>07 深水区 · 支线</p>
+      <h1>主干讲完之后，<br>还有五间没开门的房间。</h1>
+      <p class="lede">
+        01–05 是主干道，真用起来时问题多半落在支线上：
+        登录令牌存在哪、config.toml 里谁覆盖谁、apply_patch 的补丁到底长什么样、
+        TUI 里每一格画面背后是哪条事件、技能记忆这些新词挂在系统的哪个位置。
+        这一页把五扇门各推开一条缝，每间房放一台能动手的小仪器。
+      </p>
+      <div class="room-jumps">
+        <a href="#mod-a">A · 凭据流</a>
+        <a href="#mod-b">B · 配置系统</a>
+        <a href="#mod-c">C · 补丁格式</a>
+        <a href="#mod-d">D · TUI 后台</a>
+        <a href="#mod-e">E · 扩展机制</a>
+      </div>
+    </header>
+
+    <!-- ================ A · AUTH ================ -->
+    <section class="panel" id="mod-a" style="margin-top:34px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">A · AUTH LANE</span>　凭据从哪来，到哪去</h3>
+        <span class="readout">两条路线 · 逐步点亮</span>
+      </div>
+      <p class="muted small" style="margin-bottom:14px;">
+        先选你用的认证方式，然后按「下一步」走完整个流程。两条线在第 5 步之后分岔：
+        一个续命靠刷新，一个压根不需要续。
+      </p>
+      <div class="lab-grid" style="grid-template-columns:1fr;">
+        <div style="padding:0 24px 6px;">
+          <div class="seg" role="group" aria-label="选择认证方式">
+            <button data-auth="chatgpt" class="on">ChatGPT 登录</button>
+            <button data-auth="apikey">API key</button>
+          </div>
+          <div class="controls" style="border:none;padding:12px 0 0;">
+            <button class="btn primary" id="au-next">下一步 ▶</button>
+            <button class="btn" id="au-reset">↺ 从头走</button>
+            <span class="pos" id="au-pos" style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:8px;"></span>
+          </div>
+          <div class="auth-flow" id="au-flow"></div>
+          <div class="payload-view auth-json">
+            <details open>
+              <summary>AUTH.JSON · 令牌落盘位置与形状（示意字段）</summary>
+              <pre id="au-json" aria-live="polite"></pre>
+            </details>
+          </div>
+          <p class="small muted" style="margin:10px 0 0;" id="au-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ B · CONFIG ================ -->
+    <section class="panel" id="mod-b" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">B · CONFIG WORKBENCH</span>　配置系统全貌</h3>
+        <span class="readout">拨开关 · TOML 实时生成 · 优先级现场演示</span>
+      </div>
+      <div class="cfg-lab" style="padding:20px 24px;">
+        <div>
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:10px;">常用键位开关</div>
+          <div id="ck-keys"></div>
+          <p class="small muted" style="margin:10px 0 0;">
+            这里只收最常被打听的一批键。完整名单以固定提交下的
+            <code>docs/config.md</code> 为准——那才是正典，这页是导览手册。
+          </p>
+        </div>
+        <div>
+          <pre class="cfg-pre" id="ck-toml" aria-live="polite" style="background:var(--bg0);border:1px solid var(--line-strong);padding:14px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;margin:0 0 12px;"></pre>
+
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">优先级阶梯 · 谁覆盖谁</div>
+          <div class="ladder" id="ck-ladder">
+            <div class="rung" data-layer="def"><span class="rg-no">L0</span><span class="rg-nm">内置默认值</span><span class="rg-sub">编译进去的兜底</span></div>
+            <div class="rung" data-layer="toml"><span class="rg-no">L1</span><span class="rg-nm">~/.codex/config.toml</span><span class="rg-sub">你的长期偏好</span></div>
+            <div class="rung" data-layer="prof"><span class="rg-no">L2</span><span class="rg-nm">[profiles.xxx]</span><span class="rg-sub">--profile 激活的场景包</span></div>
+            <div class="rung" data-layer="cli"><span class="rg-no">L3</span><span class="rg-nm">CLI 旗标与 -c 覆盖</span><span class="rg-sub">一次性的当场指令</span></div>
+          </div>
+          <p class="small muted" style="margin:8px 0 10px;">规则只有一句：<b style="color:var(--ink);">越靠上的来路越临时，越临时的话越算数。</b></p>
+
+          <div class="seg" role="group" aria-label="选一个场景看优先级生效" style="flex-wrap:wrap;">
+            <button data-scn="try" class="on">临时换个模型试试</button>
+            <button data-scn="team">团队统一沙箱档</button>
+            <button data-scn="ci">CI 无人值守</button>
+          </div>
+          <p class="small muted scn-out" id="scn-out" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ C · PATCH LAB ================ -->
+    <section class="panel" id="mod-c" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">C · PATCH LAB</span>　apply_patch 格式解剖台</h3>
+        <span class="readout">改补丁文本 · 现场应用 · 弄坏了也算学到了</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
+        Codex 不让模型输出普通 diff——没有行号、靠上下文锚定的自有格式更好改也更好校验。
+        右边的补丁文本可以直接编辑；点「应用补丁」，左边这份示例文件会被真的改掉，
+        或者被拒绝，两种结果都有教学价值。
+      </p>
+      <div style="padding:0 24px 20px;">
+        <div class="pl-grid">
+          <div class="pl-pane">
+            <h4>目标文件 · src/task_runner.rs（示例）</h4>
+            <pre class="pl-file" id="pl-file"></pre>
+          </div>
+          <div class="pl-pane">
+            <h4>补丁文本 · 可直接编辑</h4>
+            <textarea class="pl-src" id="pl-src" spellcheck="false" aria-label="apply_patch 格式的补丁文本"></textarea>
+            <div class="pl-actions">
+              <button class="btn primary" id="pl-apply">▶ 应用补丁</button>
+              <button class="btn" id="pl-reset">↺ 还原示例</button>
+              <span class="pos" style="font-family:var(--mono);font-size:11px;color:var(--faint);">预设：</span>
+              <button class="btn" data-pl="good" style="padding:3px 10px;font-size:11px;">正常改动</button>
+              <button class="btn" data-pl="badanchor" style="padding:3px 10px;font-size:11px;">锚点打偏</button>
+              <button class="btn" data-pl="noend" style="padding:3px 10px;font-size:11px;">缺收尾行</button>
+            </div>
+            <p class="small" id="pl-out" style="margin:12px 0 0;" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="fmt-legend" aria-label="格式速记">
+          <span class="chip steel" title="补丁从这里开始，缺了它后面全部无效">*** Begin Patch</span>
+          <span class="chip" title="新建文件，后续 + 行全部写入">*** Add File:</span>
+          <span class="chip" title="修改已有文件，下面跟 @@ 锚点和增删行">*** Update File:</span>
+          <span class="chip" title="删除整个文件，后面什么都不用跟">*** Delete File:</span>
+          <span class="chip amber" title="定位提示：先找有这段代码的地方，再在附近对上下文">@@ 上下文锚</span>
+          <span class="chip" title="删掉的行">− 开头 = 删</span>
+          <span class="chip" title="新增的行">＋ 开头 = 增</span>
+          <span class="chip" title="原样保留的行，用于校验位置">空格开头 = 上下文</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ D · TUI ================ -->
+    <section class="panel" id="mod-d" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">D · BEHIND THE TUI</span>　终端画面的后台</h3>
+        <span class="readout">播放一段对话 · 点任何一格看驱动它的事件</span>
+      </div>
+      <div class="lab-grid tui-grid">
+        <div class="d-left" style="border-right:1px solid var(--line);">
+          <div class="tui-shell" style="margin:0 24px;">
+            <div class="tui-bar">
+              <span>模型 <b>gpt-5-codex</b></span>
+              <span>审批 <b>on-request</b></span>
+              <span>沙箱 <b>workspace-write</b></span>
+              <span id="tui-tokens">tokens 0</span>
+              <span>~/proj/api (main)</span>
+            </div>
+            <div class="tui-cells" id="tui-cells" aria-live="polite"></div>
+          </div>
+          <div class="controls" style="border:none;">
+            <button class="btn primary" id="tu-toggle">▶ 播放全程</button>
+            <button class="btn" id="tu-prev" aria-label="上一格">◀</button>
+            <button class="btn" id="tu-next" aria-label="下一格">▶</button>
+            <button class="btn" id="tu-restart">↺ 重播</button>
+          </div>
+
+          <div class="slash-demo" style="margin:0 24px 20px;">
+            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">斜杠命令面板 · 在输入框里敲一个 / 试试</div>
+            <input type="text" class="slash-input" id="sl-in" placeholder="/"
+                   aria-label="输入斜杠命令，自动过滤" autocomplete="off">
+            <div class="slash-list" id="sl-list" role="listbox" aria-label="可选命令"></div>
+            <p class="small muted" id="sl-out" style="margin:8px 0 0;" aria-live="polite">
+              这些命令是 TUI 在客户端本地处理的，根本不会发给模型——它们更像浏览器的地址栏协议，不像聊天内容。
+            </p>
+          </div>
+        </div>
+        <div class="tui-side">
+          <h4>这一格是谁画的</h4>
+          <p id="tu-why">点左边任何一格：这里给出渲染它的协议事件或核心机制，以及它在 01 / 04 里的对应站点。</p>
+          <hr class="sep" style="margin:14px 0;">
+          <h4>顺手记住的两个键</h4>
+          <p><span class="kbd">Esc</span>　打断正在跑的轮次——对应 01 第 7 站的并入逻辑。<br>
+             <span class="kbd">Ctrl+C</span>　两连退出 TUI。<br>
+             <span class="small muted">界面细节与按键随版本变得快，此页给的是结构，不是截图。</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ E · EXT ================ -->
+    <section class="panel" id="mod-e" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">E · EXTENSION MAP</span>　技能 / 记忆 / 钩子挂在哪里</h3>
+        <span class="readout">地图，不是解剖 · 点击每个挂点看已知与未知</span>
+      </div>
+      <div class="ext-wrap" style="padding:18px 24px 22px;">
+        <p class="muted small" style="margin:0 0 14px;">
+          这批名词出现在各种发布说明里，但接口还没定型。与其猜实现，不如先记位置——
+          下排四个挂点各自接进主干流程的哪一段，现在就能说清：
+        </p>
+        <div class="ext-pipe" role="img" aria-label="主干流程六段：Prompt 组装、采样、工具执行前、工具执行后、历史写回、收束">
+          <span class="ext-stage">Prompt 组装 <a href="prompt.html" style="color:var(--steel);">02</a></span>
+          <span class="ext-arrow">→</span>
+          <span class="ext-stage">采样 <a href="loop.html#s=9" style="color:var(--steel);">01·9</a></span>
+          <span class="ext-arrow">→</span>
+          <span class="ext-stage">工具执行前</span>
+          <span class="ext-arrow">→</span>
+          <span class="ext-stage">工具执行后</span>
+          <span class="ext-arrow">→</span>
+          <span class="ext-stage">历史写回</span>
+          <span class="ext-arrow">→</span>
+          <span class="ext-stage">收束 <a href="loop.html#s=13" style="color:var(--steel);">01·13</a></span>
+        </div>
+        <div class="ext-hooks" id="ext-hooks"></div>
+        <div class="ext-detail" aria-live="polite">
+          <h4 id="xd-name">点上方任意挂点</h4>
+          <p id="xd-known">已知部分来自固定提交下实测的 crate 名单；未知部分也会明说。</p>
+          <p class="gap" id="xd-gap"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:26px;">
+      <div id="quiz"></div>
+    </section>
+
+    <aside class="evidence">
+      <div class="ev-h">证据边界</div>
+      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 <code>docs/config.md</code> 的常用子集，完整键位以该文档为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名，接口形态未定——地图有效，解剖无效。基线 openai/codex@343074d4。
+    </aside>
+
+  </main>
+</div>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ================= A · AUTH ================= */
+  (function () {
+    var FLOWS = {
+      chatgpt: [
+        { k: "codex login", d: "你在终端敲下这条命令。CLI 在本地起一个一次性的回调服务，盯着 <b>localhost:1455</b>。" },
+        { k: "浏览器打开授权页", d: "默认浏览器跳到 auth.openai.com。URL 里带着一个 PKCE 挑战码——之后换令牌时要对上暗号，防的就是回调被劫。" },
+        { k: "你完成登录并同意", d: "这一步发生在网页上，用的是你的 ChatGPT 账号。CLI 全程拿不到你的密码。" },
+        { k: "授权码换令牌", d: "重定向回到 localhost:1455，CLI 拿授权码换出三件套：<b>id_token / access_token / refresh_token</b>，外加 account_id。" },
+        { k: "落盘 ~/.codex/auth.json", d: "三件套写进下面那个文件的形状里。此后每次出站自动携带；过期就拿 refresh_token 静默续期，你无感。" },
+        { k: "出站端点切换", d: "请求从此打向 <b>chatgpt.com/backend-api/codex/responses</b>（01 第 10 站提过）。计费走套餐额度，不按 token 收钱。" }
+      ],
+      apikey: [
+        { k: "拿到密钥", d: "platform 网站上生成一个 sk- 开头的 key。" },
+        { k: "交给 CLI", d: "<b>codex login --api-key</b> 写入 auth.json；或者只 export OPENAI_API_KEY，不落盘。" },
+        { k: "出站端点不同", d: "请求打向 <b>api.openai.com/v1/responses</b>。同一套 Responses API，另一扇门。" },
+        { k: "按 token 计费", d: "没有套餐额度这回事，花多少付多少。结合 01 成本对照里的全量重发曲线，你就知道为什么缓存命中那么值钱。" },
+        { k: "没有续命机制", d: "密钥是长期凭证：不过期、不刷新。泄露即事故，权限直接到账户级。" }
+      ]
+    };
+    var NOTES = {
+      chatgpt: "字段名取自仓库 authentication.md 的公开转述，形状示意。想核对就开自己机器上的 ~/.codex/auth.json。",
+      apikey: "两种凭据都在手时听谁的？显式 --api-key > 环境变量 > auth.json 里已存的登录态；config.toml 的 preferred_auth_method 负责裁决定性——这是简化模型，组合细节以 docs/config.md 为准。"
+    };
+    var JSONS = {
+      chatgpt: '{\n  "OPENAI_API_KEY": null,\n  "tokens": {\n    "id_token": "«JWT · 三段式»",\n    "access_token": "«每次出站都带着»",\n    "refresh_token": "«静默续期的命根»",\n    "account_id": "«…»"\n  },\n  "last_refresh": "2026-08-22T09:41:00Z"\n}',
+      apikey: '{\n  "OPENAI_API_KEY": "sk-«……»",\n  "tokens": null\n}'
+    };
+    var curAuth = "chatgpt";
+    var lit = 0;
+    var flowBox = document.getElementById("au-flow");
+    var posOut = document.getElementById("au-pos");
+    var jsonPre = document.getElementById("au-json");
+    var noteOut = document.getElementById("au-note");
+
+    function paint() {
+      var steps = FLOWS[curAuth];
+      var html = "";
+      steps.forEach(function (s, i) {
+        html += '<div class="auth-step' + (i < lit ? " lit" : "") + '">' +
+          '<div class="as-k">' + (i + 1) + " · " + s.k + "</div>" +
+          '<div class="as-d">' + s.d + "</div></div>";
+      });
+      flowBox.innerHTML = html;
+      posOut.textContent = lit + " / " + steps.length;
+      jsonPre.textContent = JSONS[curAuth];
+      noteOut.innerHTML = NOTES[curAuth];
+      Array.prototype.forEach.call(document.querySelectorAll("[data-auth]"), function (b) {
+        b.classList.toggle("on", b.getAttribute("data-auth") === curAuth);
+      });
+      if (window.PrefersReducedMotion !== true && lit > 0 && flowBox.lastElementChild) {
+        flowBox.lastElementChild.classList.add("ca-rise");
+      }
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-auth]"), function (b) {
+      b.addEventListener("click", function () {
+        if (curAuth === b.getAttribute("data-auth")) return;
+        curAuth = b.getAttribute("data-auth");
+        lit = 0;
+        paint();
+      });
+    });
+    document.getElementById("au-next").addEventListener("click", function () {
+      if (lit < FLOWS[curAuth].length) lit++;
+      else lit = 0;
+      paint();
+    });
+    document.getElementById("au-reset").addEventListener("click", function () { lit = 0; paint(); });
+    paint();
+  })();
+
+  /* ================= B · CONFIG ================= */
+  (function () {
+    var KEYS = [
+      { k: 'model = "gpt-5-codex"', on: true, d: "默认模型档位。换模型最常动的就是它。" },
+      { k: 'model_reasoning_effort = "medium"', on: false, d: "推理力度四档：minimal / low / medium / high。越高越慢越贵，难题才升。" },
+      { k: "approval_policy = \"on-request\"", on: true, d: "03 判定器的那条审批轴。这里只是提醒：它住在 config 里。" },
+      { k: 'sandbox_mode = "workspace-write"', on: true, d: "同上，沙箱轴。两轴正交，别在一个键里找另一个。" },
+      { k: "disable_response_storage = true", on: false, d: "零数据保留兼容开关。开着它，01 讲的「无状态全量重发」就从设计变成硬约束。" },
+      { k: 'history.persistence = "none"', on: false, d: "会话历史存不存盘。none 之后 rollout 落盘停摆，断线恢复也就没了。" },
+      { k: 'notify = ["notify.sh"]', on: false, d: "回合结束等事件发生时，唤起的一个本地脚本。通知党的入口。" },
+      { k: "[mcp_servers.docs]", on: false, d: "经 stdio 接入的外部 MCP 工具服务器表。注意 03 底部的提醒：它们不在沙箱管辖内。" },
+      { k: '[projects."~/work/api"] trust_level = "trusted"', on: true, d: "目录信任名单。加进来之后，每次 cd 进这个目录不再弹信任确认。" },
+      { k: "[profiles.fast]", on: false, d: "把上面这些键打包成场景预设，--profile fast 一键整套切换。" }
+    ];
+    var keysBox = document.getElementById("ck-keys");
+    var tomlPre = document.getElementById("ck-toml");
+    if (!keysBox || !tomlPre) return;
+
+    KEYS.forEach(function (K) {
+      var lab = document.createElement("label");
+      lab.className = "switch-row key-row";
+      var inp = document.createElement("input");
+      inp.type = "checkbox";
+      inp.checked = K.on;
+      inp.addEventListener("change", function () { K.on = inp.checked; render(); });
+      var sw = document.createElement("span");
+      sw.className = "sw";
+      var nm = document.createElement("span");
+      nm.className = "key-name";
+      nm.textContent = K.k.split("\n")[0];
+      var ds = document.createElement("span");
+      ds.className = "key-desc";
+      ds.textContent = K.d;
+      lab.appendChild(inp); lab.appendChild(sw); lab.appendChild(nm);
+      lab.appendChild(ds);
+      keysBox.appendChild(lab);
+    });
+
+    function render() {
+      var L = ["# ~/.codex/config.toml"];
+      KEYS.forEach(function (K) { if (K.on) L.push(K.k); });
+      tomlPre.textContent = L.join("\n");
+    }
+    render();
+
+    /* 优先级阶梯：场景按钮点亮涉及的层 */
+    var SCN = {
+      try_: { hit: ["cli", "toml"],
+        why: "临时试模型不动配置文件：<code>codex -c model=\"gpt-5\" \"任务\"</code> 或 --model 旗标，L3 当场压过 L1。试完不加旗标，一切照旧。" },
+      team: { hit: ["toml"],
+        why: "团队统一沙箱档写进仓库约定或各自的 config.toml（L1）。没人加旗标时它就是最终答案；谁加了 CLI 覆盖，谁的例外谁负责。" },
+      ci: { hit: ["cli", "def"],
+        why: "无人值守跑批：<code>codex exec --ask-for-approval never --sandbox workspace-write \"任务\"</code>。审批轴用 L3 旗标钉死成 never（对照 03：条件放行全部压成拒绝）；其余参数落到 L0 默认。" }
+    };
+    Array.prototype.forEach.call(document.querySelectorAll("[data-scn]"), function (b) {
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(document.querySelectorAll("[data-scn]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        var scn = SCN[b.getAttribute("data-scn")];
+        Array.prototype.forEach.call(document.querySelectorAll("#ck-ladder .rung"), function (r) {
+          r.classList.toggle("win", scn.hit.indexOf(r.getAttribute("data-layer")) !== -1);
+        });
+        document.getElementById("scn-out").innerHTML = scn.why;
+      });
+    });
+    document.querySelector('[data-scn="try"]').click();
+  })();
+
+  /* ================= C · PATCH LAB ================= */
+  (function () {
+    var FILE0 =
+"// src/task_runner.rs —— 示例文件\n" +
+"pub fn retry(task: Task) -> Result {\n" +
+"    let max = 3;\n" +
+"    for attempt in 1..=max {\n" +
+"        if task.run().is_ok() {\n" +
+"            return Ok(());\n" +
+"        }\n" +
+"        sleep(backoff(attempt));\n" +
+"    }\n" +
+"    Err(Error::GaveUp)\n" +
+"}\n";
+
+    var PATCH_GOOD =
+"*** Begin Patch\n" +
+"*** Update File: src/task_runner.rs\n" +
+"@@ pub fn retry\n" +
+"     pub fn retry(task: Task) -> Result {\n" +
+"-    let max = 3;\n" +
+"+    let max = task.max_retries.unwrap_or(3);\n" +
+"+    log::debug!(\"retry budget: {max}\");\n" +
+"     for attempt in 1..=max {\n" +
+"*** End Patch\n";
+
+    var PATCH_BADANCHOR =
+"*** Begin Patch\n" +
+"*** Update File: src/task_runner.rs\n" +
+"@@ fn shutdown\n" +
+"     pub fn retry(task: Task) -> Result {\n" +
+"-    let max = 3;\n" +
+"+    let max = task.max_retries.unwrap_or(3);\n" +
+"*** End Patch\n";
+
+    var PATCH_NOEND =
+"*** Begin Patch\n" +
+"*** Update File: src/task_runner.rs\n" +
+"@@ pub fn retry\n" +
+"     pub fn retry(task: Task) -> Result {\n" +
+"-    let max = 3;\n" +
+"+    let max = task.max_retries.unwrap_or(3);\n";
+
+    var fileBox = document.getElementById("pl-file");
+    var srcBox = document.getElementById("pl-src");
+    var outBox = document.getElementById("pl-out");
+    if (!fileBox || !srcBox || !outBox) return;
+
+    var fileLines = FILE0.split("\n");
+
+    function renderFile(changes) {
+      var html = "";
+      fileLines.forEach(function (ln, i) {
+        var cls = "ctx";
+        if (changes) {
+          if (changes.del.indexOf(i) !== -1) cls = "del";
+          else if (changes.add.indexOf(i) !== -1) cls = "add";
+        }
+        var safe = ln.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        html += '<span class="' + cls + '">' + (safe || " ") + "</span>\n";
+      });
+      fileBox.innerHTML = html;
+    }
+
+    /* trim 后比较：模拟真实实现的容错 */
+    function eq(a, b) { return a.trim() === b.trim() && a.trim() !== ""; }
+
+    /* 返回 {ok, msg, changes:{add:[],del:[]}, file:string[]} */
+    function applyPatch(text) {
+      var lines = text.split("\n");
+      var i = 0;
+      while (i < lines.length && lines[i].trim() === "") i++;
+      if (lines[i] === undefined || lines[i].indexOf("*** Begin Patch") !== 0)
+        return { ok: false, msg: "第 " + (i + 1) + " 行就该是 <code>*** Begin Patch</code>——没有开场白，后面的一切都不会被读。" };
+
+      var work = fileLines.slice();
+      var addIdx = [], delIdx = [];
+      var hunks = 0;
+      var sawSection = false;
+
+      i++;
+      for (; i < lines.length; i++) {
+        var ln = lines[i];
+        if (ln.indexOf("*** End Patch") === 0) {
+          return finish();
+        }
+        if (ln.indexOf("*** Add File:") === 0) {
+          sawSection = true; hunks++;
+          var path = ln.slice(13).trim();
+          var body = [];
+          i++;
+          while (i < lines.length && lines[i].indexOf("+") === 0) { body.push(lines[i].slice(1)); i++; }
+          i--;
+          work.push("// ---- 新文件：" + path + " ----");
+          body.forEach(function (bl) {
+            work.push(bl);
+            addIdx.push(work.length - 1);
+          });
+          continue;
+        }
+        if (ln.indexOf("*** Delete File:") === 0) {
+          sawSection = true; hunks++;
+          return { ok: false, msg: "Delete File 是合法段落，但对示例文件下手太狠了——换个温和点的预设吧。（教学实现不支持删除展示目标自身。）" };
+        }
+        if (ln.indexOf("*** Update File:") === 0) {
+          sawSection = true; hunks++;
+          var target = ln.slice(15).trim();
+          if (target !== "src/task_runner.rs")
+            return { ok: false, msg: "Update File 指向 <code>" + target.replace(/</g, "&lt;") + "</code>，但工作台上只有 src/task_runner.rs。真实实现对不上路径同样会拒。" };
+          i++;
+
+          /* @@ 锚点（可选） */
+          var anchor = "";
+          if (i < lines.length && lines[i].indexOf("@@") === 0) { anchor = lines[i].slice(2).trim(); i++; }
+
+          /* 收集 hunk 行：空格=上下文 -删 +增 */
+          var hunk = [];
+          while (i < lines.length &&
+                 lines[i].indexOf("*") !== 0 &&
+                 (/^ /.test(lines[i]) || /^[-+]/.test(lines[i]))) {
+            hunk.push(lines[i]);
+            i++;
+          }
+          i--;
+
+          if (!hunk.length)
+            return { ok: false, msg: "Update File " + (hunks) + " 下面一行 hunk 都没有。空段落也是错误。" };
+
+          /* 先整体校验再动手：找出上下文+删除序列在文件里的落点 */
+          var need = [];
+          hunk.forEach(function (hl) {
+            if (hl.indexOf("+") !== 0) need.push({ raw: hl, txt: hl.slice(1) });
+          });
+          var start = 0;
+          if (anchor) {
+            var foundAnchor = -1;
+            for (var s = 0; s < work.length; s++) {
+              if (work[s].indexOf(anchor) !== -1) { foundAnchor = s; break; }
+            }
+            if (foundAnchor === -1)
+              return { ok: false, msg: "锚点 <code>@@" + anchor.replace(/</g, "&lt;") + "</code> 在文件里找不到落点——这就是「锚点打偏」。真实实现同样先死在这一步，整张补丁作废。" };
+            start = foundAnchor;
+          }
+          var pos = start;
+          var pairs = [];
+          for (var n = 0; n < need.length; n++) {
+            var at = -1;
+            for (var s2 = pos; s2 < work.length; s2++) {
+              if (eq(work[s2], need[n].txt)) { at = s2; break; }
+            }
+            if (at === -1) {
+              var miss = need[n].txt.trim().replace(/</g, "&lt;");
+              return { ok: false, msg: "上下文对不齐：找不到一行「<code>" + miss + "</code>」。hunk 第 " + (n + 1) + " 条校验失败，整张补丁拒绝。" };
+            }
+            pairs.push({ raw: need[n].raw, at: at });
+            pos = at + 1;
+          }
+          /* 校验通过才动手：按 hunk 行序重建——＋行落进对应缝隙，−行不复制 */
+          var delCount = pairs.filter(function (pr) { return pr.raw.indexOf("-") === 0; }).length;
+          var outLines = [];
+          var srcIdx = 0;
+          var pIdx = 0;
+          var pend = [];
+          function drainSrc(upTo) {
+            while (srcIdx < upTo) { outLines.push(work[srcIdx]); srcIdx++; }
+          }
+          hunk.forEach(function (hl) {
+            if (hl.indexOf("+") === 0) { pend.push(hl.slice(1)); return; }
+            var pr = pairs[pIdx++];
+            drainSrc(pr.at);
+            pend.forEach(function (pl) { addIdx.push(outLines.length); outLines.push(pl); });
+            pend = [];
+            if (hl.indexOf("-") !== 0) outLines.push(work[pr.at]);
+            srcIdx = pr.at + 1;
+          });
+          /* hunk 以 ＋ 行收尾时，别把挂起的插入丢了 */
+          pend.forEach(function (pl2) { addIdx.push(outLines.length); outLines.push(pl2); });
+          drainSrc(work.length);
+          work = outLines;
+          continue;
+        }
+        if (ln.trim() === "") continue;
+        return { ok: false, msg: "读不懂第 " + (i + 1) + " 行：<code>" + ln.replace(/</g, "&lt;") + "</code>。不属于任何已知段落。" };
+      }
+
+      if (!sawSection) return { ok: false, msg: "Begin 之后什么都没有，也没有 End。空补丁不算补丁。" };
+      return { ok: false, msg: "读到文件末尾也没等到 <code>*** End Patch</code>——收尾行缺失，解析器不会替你脑补。这就是第三个预设演示的事故。" };
+
+      function finish() {
+        if (!hunks) return { ok: false, msg: "一张没有任何段落的空补丁。" };
+        return {
+          ok: true,
+          msg: hunks + " 个段落全部通过校验，改动已应用到左边的文件。" +
+            (delCount ? " 删 " + delCount + " 行" : "") +
+            (addIdx.length ? " · 增 " + addIdx.length + " 行" : "") +
+            "。注意顺序：解析器先把整张补丁读完验完，才动第一行文件——先全量校验、后应用，失败了就不该留半张脸。",
+          changes: { add: addIdx, del: delIdx },
+          file: work
+        };
+      }
+    }
+
+    function setPreset(kind) {
+      if (kind === "good") srcBox.value = PATCH_GOOD;
+      else if (kind === "badanchor") srcBox.value = PATCH_BADANCHOR;
+      else if (kind === "noend") srcBox.value = PATCH_NOEND;
+    }
+
+    document.getElementById("pl-apply").addEventListener("click", function () {
+      fileLines = FILE0.split("\n");
+      var res = applyPatch(srcBox.value);
+      if (res.ok) {
+        fileLines = res.file;
+        renderFile(res.changes);
+        outBox.innerHTML = '<span class="pl-stamp ok">APPLIED</span>' + res.msg;
+      } else {
+        renderFile(null);
+        outBox.innerHTML = '<span class="pl-stamp bad">REJECTED</span>' + res.msg;
+      }
+      if (window.CAFlash) CAFlash(fileBox.parentElement);
+    });
+    document.getElementById("pl-reset").addEventListener("click", function () {
+      fileLines = FILE0.split("\n");
+      setPreset("good");
+      renderFile(null);
+      outBox.textContent = "已还原。补丁文本也换回了「正常改动」预设。";
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pl]"), function (b) {
+      b.addEventListener("click", function () {
+        setPreset(b.getAttribute("data-pl"));
+        if (b.getAttribute("data-pl") !== "good") {
+          fileLines = FILE0.split("\n");
+          renderFile(null);
+        }
+      });
+    });
+
+    setPreset("good");
+    renderFile(null);
+  })();
+
+  /* ================= D · TUI ================= */
+  (function () {
+    var CELLS = [
+      { kind: "user", tag: "你输入", stream: false,
+        text: "把重试次数改成可配置的，然后跑一遍测试",
+        why: "<b>输入框（composer）</b>：多行文本区，粘贴多行会被识别成代码块而不是一堆回车。回车后走 TurnStart 报文——04 时间线第 5 条就是它。" },
+      { kind: "reason", tag: "reasoning · 流式灰字", stream: true,
+        text: "用户要的是把硬编码的重试上限挪出去。先找 retry 的实现位置，加一个配置读取，再跑测试验证……",
+        why: "<b>AgentReasoning 流</b>：核心把模型的 reasoning delta 逐字转发过来，TUI 用暗色斜体渲染。嫌吵可以在 config 里关显示，但它一直在跑。" },
+      { kind: "agent", tag: "assistant · 流式正文", stream: true,
+        text: "好。我会把上限挪进配置读取，默认仍是 3，然后在任务对象上留覆盖口子，最后跑测试确认。",
+        why: "<b>AgentMessage delta</b>：打字机效果的本体，协议基础是 04 讲过的 item started → delta → completed 三段生命周期。" },
+      { kind: "exec", tag: "exec · 命令与输出", stream: false,
+        text: "$ cargo test -p task-runner\n   Compiling task-runner v0.1.0\n    Finished test [unoptimized] target(s)\n     Running unittests src/lib.rs\n test retry_uses_configured_max ... ok\n test retry_gives_up_eventually ... ok\n test result: ok. 12 passed; 0 failed",
+        why: "<b>ExecCommandBegin / End</b>：命令先亮出来给你看（04 第 10 条），跑在 03 讲的沙箱之下，输出折叠进这一格。点击展开是 TUI 的基本礼仪。" },
+      { kind: "patch", tag: "apply_patch · 文件变更", stream: false,
+        text: "*** Update File: src/task_runner.rs\n  @@ pub fn retry\n-    let max = 3;\n+    let max = task.max_retries.unwrap_or(3);\n  (1 个文件 · +1 −1)",
+        why: "<b>ApplyPatchApprovalRequest → TurnDiff</b>：补丁先过 C 房那种解析器，再经审批闸口（04 第 11 条的反向请求），落盘后以红绿行呈现。上一格刚跑通的格式，这里是它的正式登场。" },
+      { kind: "status", tag: "状态栏 · 回合收尾", stream: false,
+        text: "tokens 48,211 · cached 44,120 · turn 完成",
+        why: "<b>TurnComplete 的 usage 回传</b>（04 最后一条）：cached 占比高，正是 01 成本对照讲的缓存命中在干活。状态栏还常驻模型、审批档、沙箱档、git 分支——一眼确认自己在什么权限下干活。" }
+    ];
+
+    var cellsBox = document.getElementById("tui-cells");
+    var whyBox = document.getElementById("tu-why");
+    var tokOut = document.getElementById("tui-tokens");
+    var cur = 0;
+    var playing = false;
+    var timer = null;
+    var typeTimer = null;
+
+    function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+    function bodyHtml(cell, upto) {
+      var t = upto == null ? cell.text : cell.text.slice(0, upto);
+      var e = esc(t);
+      if (cell.kind === "exec") e = e.replace(/^(\$\s[^\n]+)/, '<span class="cmd">$1</span>');
+      if (cell.kind === "patch") {
+        e = e.split("\n").map(function (ln) {
+          var raw = ln.replace(/&amp;/g, "&").replace(/&lt;/g, "<");
+          if (raw.indexOf("+") === 0) return '<span class="p-add">' + ln + "</span>";
+          if (raw.indexOf("-") === 0) return '<span class="p-del">' + ln + "</span>";
+          return ln;
+        }).join("\n");
+      }
+      return e;
+    }
+
+    function buildCell(cell) {
+      var d = document.createElement("div");
+      d.className = "tcell tc-" + cell.kind;
+      d.innerHTML = '<span class="tc-tag">' + cell.tag + '</span><div class="tc-body"></div>';
+      d.querySelector(".tc-body").innerHTML = bodyHtml(cell);
+      d.addEventListener("click", function () { whyBox.innerHTML = cell.why; });
+      return d;
+    }
+
+    function stopTypewriter() {
+      if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+    }
+
+    function renderTo(n, instant) {
+      stopTypewriter();
+      cellsBox.innerHTML = "";
+      for (var i = 0; i < n; i++) {
+        var el = buildCell(CELLS[i]);
+        if (instant !== true && CELLS[i].stream && i === n - 1) {
+          var body = el.querySelector(".tc-body");
+          var cur2 = document.createElement("span");
+          cur2.className = "tui-cursor";
+          body.appendChild(cur2);
+          var p = 0;
+          typeTimer = setInterval(function () {
+            p += 3;
+            if (p >= CELLS[i].text.length) {
+              stopTypewriter();
+              body.innerHTML = bodyHtml(CELLS[i]) ;
+              body.appendChild(cur2);
+              setTimeout(function(){ cur2.remove(); }, 600);
+              return;
+            }
+            body.innerHTML = bodyHtml(CELLS[i], p);
+            body.appendChild(cur2);
+          }, 24);
+        } else {
+          cellsBox.appendChild(el);
+        }
+      }
+      tokOut.innerHTML = n >= CELLS.length ? "tokens <b>48,211</b> · cached 44,120" : "tokens 0";
+    }
+
+    function stop() {
+      playing = false;
+      if (timer) { clearInterval(timer); timer = null; }
+      document.getElementById("tu-toggle").textContent = "▶ 播放全程";
+    }
+    function advance(instant) {
+      if (cur >= CELLS.length) { stop(); return; }
+      cur++;
+      renderTo(cur, instant);
+    }
+    document.getElementById("tu-toggle").addEventListener("click", function () {
+      if (playing) { stop(); return; }
+      playing = true;
+      this.textContent = "❚❚ 暂停";
+      if (cur >= CELLS.length) cur = 0;
+      timer = setInterval(function () {
+        if (cur >= CELLS.length) { stop(); return; }
+        advance(false);
+      }, 1900);
+    });
+    document.getElementById("tu-prev").addEventListener("click", function () { stop(); cur = Math.max(0, cur - 1); renderTo(cur, true); });
+    document.getElementById("tu-next").addEventListener("click", function () { stop(); advance(true); });
+    document.getElementById("tu-restart").addEventListener("click", function () {
+      stop(); cur = 0;
+      timer = setInterval(function () {
+        if (cur >= CELLS.length) { stop(); return; }
+        advance(false);
+      }, 1400);
+      playing = true;
+      document.getElementById("tu-toggle").textContent = "❚❚ 暂停";
+    });
+
+    /* 斜杠命令面板 */
+    var CMDS = [
+      { c: "/init", d: "扫一遍仓库，生成或更新 AGENTS.md 骨架——02 第 5 层的素材就是它管的。" },
+      { c: "/model", d: "弹出模型选择器，等效于临时改 config 的 model 键。" },
+      { c: "/approvals", d: "运行中切换审批策略，不用重启会话。03 的那条轴，随手拨。" },
+      { c: "/compact", d: "手动压缩历史。02 提过 auto_compact_limit 会自动做，这条是手动挡。" },
+      { c: "/diff", d: "看本轮会话在工作区留下的 git 改动。配合 03 想清楚：改动只能落在可信范围里。" },
+      { c: "/status", d: "当前会话信息一览：模型、审批、沙箱、cwd、凭据形态。" },
+      { c: "/new", d: "开新线程，旧时间线归档。对应 04 里 Thread 原语的生命周期。" }
+    ];
+    var slIn = document.getElementById("sl-in");
+    var slList = document.getElementById("sl-list");
+    var slOut = document.getElementById("sl-out");
+
+    function renderSlash(q) {
+      slList.innerHTML = "";
+      var kw = q.replace(/^\//, "").trim().toLowerCase();
+      var hits = CMDS.filter(function (c) { return !kw || c.c.indexOf(kw) !== -1 || c.d.toLowerCase().indexOf(kw) !== -1; });
+      hits.forEach(function (c) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "slash-item";
+        b.setAttribute("role", "option");
+        b.innerHTML = "<code>" + c.c + "</code><span>" + c.d + "</span>";
+        b.addEventListener("click", function () {
+          slOut.innerHTML = "<b>" + c.c + "</b> — " + c.d;
+          slIn.value = "";
+          slList.classList.remove("open");
+        });
+        slList.appendChild(b);
+      });
+      slList.classList.toggle("open", q.charAt(0) === "/");
+    }
+    slIn.addEventListener("input", function () { renderSlash(slIn.value); });
+    slIn.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        var first = slList.querySelector(".slash-item");
+        if (first && slList.classList.contains("open")) first.click();
+      } else if (e.key === "Escape") {
+        slIn.value = "";
+        slList.classList.remove("open");
+      }
+    });
+
+    renderTo(0, true);
+  })();
+
+  /* ================= E · EXT ================= */
+  (function () {
+    var HOOKS = [
+      { n: "skills · 技能", w: "挂在 Prompt 组装（02 第 5 层近亲）",
+        known: "markdown 指令包，按需挂进 prompt。crate 名单里有顶层 <code>skills</code> 和 <code>ext/skills</code> 两个——同名不同物，前者是机制本体，后者是扩展包装位。",
+        gap: "触发语法、作用域规则未定型；等它稳定，02 的层叠图上会多出专门一层。" },
+      { n: "plugin / MCP 工具", w: "挂在工具清单（02 第 2 层）",
+        known: "外部能力以工具身份进 tools 字段：<code>plugin</code>、<code>core-plugins</code> 是内置体系，MCP 服务器经 <code>mcp_servers</code> 表接入。别忘了 03 的红线：MCP 工具不在沙箱管辖内。",
+        gap: "插件分发与签名机制尚无公开定论；装第三方插件目前等于信任作者。" },
+      { n: "hooks · 钩子", w: "挂在工具执行的前与后",
+        known: "生命周期钩子：在工具执行前后插自定义逻辑。crate 就叫 <code>hooks</code>，位置对应主干 01 第 12 站的两侧。",
+        gap: "可挂事件的完整清单、配置格式未定型；本页只保证「它在这两个位置存在」。" },
+      { n: "memories · 记忆", w: "挂在历史与上下文（历史写回一段）",
+        known: "读取与写入拆成两个 crate：<code>memories/read</code> 与 <code>memories/write</code>，成对出现；另有扩展包装位 <code>ext/memories</code>。方向上是给上下文加一层跨会话的记忆检索。",
+        gap: "存储格式、遗忘策略、与 rollout 落盘的边界都还是进行时。" },
+      { n: "ext/* · 实验族", w: "散布在各段的试验田",
+        known: "B7 带 20 个成员里一半以上挂着 ext/ 前缀：goal、queue、image-generation、web-search、guardian-v2……命名本身就是公告栏：「这里在做实验」。",
+        gap: "任何一个都可能改名、合并或消失。盯名单比盯文档靠谱——名单在 05 可以逐项复核。" }
+    ];
+    var hooksBox = document.getElementById("ext-hooks");
+    var xdName = document.getElementById("xd-name");
+    var xdKnown = document.getElementById("xd-known");
+    var xdGap = document.getElementById("xd-gap");
+    if (!hooksBox) return;
+
+    HOOKS.forEach(function (H) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ext-card-btn";
+      b.innerHTML = '<span class="xn">' + H.n + '</span><span class="xw">' + H.w + "</span>";
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(hooksBox.children, function (x) { x.classList.toggle("on", x === b); });
+        xdName.textContent = H.n + " · " + H.w;
+        xdKnown.innerHTML = "<b>已知：</b>" + H.known;
+        xdGap.innerHTML = "<b>未定：</b>" + H.gap;
+        if (window.CAFlash) CAFlash(document.querySelector(".ext-detail"));
+      });
+      hooksBox.appendChild(b);
+    });
+  })();
+
+  LoopScope.mount(document.getElementById("miniscope"), {
+    width: 132, height: 78, labels: false, plain: true, speed: 22
+  });
+
+  CAQuiz.mount(document.getElementById("quiz"), [
+    { q: "ChatGPT 登录态出站时，请求打到哪个域名？",
+      opts: ["api.openai.com/v1/responses", "chatgpt.com/backend-api/codex/responses", "localhost:1455"],
+      a: 1,
+      why: "localhost:1455 只是登录时的本地回调端口。登录态出站走 chatgpt.com/backend-api/codex/responses，计费挂套餐；API key 才走 api.openai.com/v1/responses。" },
+    { q: "apply_patch 的 Update 段里，@@ 开头那一行起什么作用？",
+      opts: ["标记精确行号，错一位就应用失败", "只是定位提示——真正校验靠整块上下文对齐", "纯注释，解析器直接忽略"],
+      a: 1,
+      why: "格式刻意不带行号：@@ 锚点帮解析器缩小搜索范围，随后用上下文行做容错对齐（行首尾空白差异可容忍）。锚点本身对不上才会导致拒绝——C 房的「锚点打偏」预设演的就是这个。" },
+    { q: "四层配置里，最终谁说了算？",
+      opts: ["config.toml——文件里写的最稳", "[profiles]——场景包优先", "CLI 旗标与 -c——越临时的越算数"],
+      a: 2,
+      why: "优先级阶梯从下往上：内置默认 < config.toml < profile < CLI。规则一句话：越临时的来路越算数。所以 CI 里钉死审批策略用的是旗标，不是配置文件。" }
+  ]);
+})();
+</script>
+<script src="../assets/terms.js"></script>
+</body>
+</html>
