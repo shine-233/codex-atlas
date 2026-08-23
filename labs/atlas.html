@@ -191,11 +191,15 @@
         <div class="seg" role="group" aria-label="视图切换">
           <button data-vw="list" class="on">列表视图</button>
           <button data-vw="tree">面积树图</button>
+          <button data-vw="galaxy">3D 星系</button>
         </div>
-        <span class="view-note" id="vw-note">树图模式：格子面积 = 该带成员数占比 · 悬停看全名 · 点击选中</span>
+        <span class="view-note" id="vw-note">列表模式：九条带分组 · 点击成员看注解</span>
       </div>
 
       <div id="treemap" class="tm-wrap" hidden></div>
+
+      <div id="galaxy" class="tm-wrap" hidden></div>
+      <p class="galaxy-cap" id="galaxy-cap" hidden>135 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮或双指缩放；闲置时自转。</p>
 
       <div id="bands"></div>
 
