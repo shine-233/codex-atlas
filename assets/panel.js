@@ -63,6 +63,27 @@
     });
   });
 
+  /* 已读进度：访问过的线路在 rail 里点亮小点（localStorage，仅本机） */
+  ready(function () {
+    try {
+      var path = location.pathname.split("/").pop() || "index.html";
+      if (path.indexOf(".html") !== -1) {
+        var seen = JSON.parse(localStorage.getItem("ca-seen") || "{}");
+        if (!seen[path]) {
+          seen[path] = 1;
+          localStorage.setItem("ca-seen", JSON.stringify(seen));
+        }
+        document.querySelectorAll(".rail-ch").forEach(function (a) {
+          var target = a.getAttribute("href").split("/").pop();
+          if (seen[target] && !a.hasAttribute("aria-current")) {
+            a.classList.add("seen");
+            a.title = "读过这条线路";
+          }
+        });
+      }
+    } catch (e) { /* localStorage 不可用时静默跳过 */ }
+  });
+
   /* CHECKPOINT · 出站自检：mount(容器, 题目数组)
      题目格式：{ q: 问题, opts: [选项…], a: 正确下标, why: 解析 } */
   window.CAQuiz = {
@@ -93,6 +114,17 @@
       list.className = "cq-list";
 
       var correct = 0;
+      var allClearShown = false;
+
+      function maybeAllClear() {
+        if (allClearShown || correct < questions.length) return;
+        allClearShown = true;
+        var badge = document.createElement("p");
+        badge.className = "cq-allclear";
+        badge.setAttribute("role", "status");
+        badge.innerHTML = "<span>ALL CLEAR</span>全部答对——这条线路的关卡你已通关，可以出站了。";
+        host.appendChild(badge);
+      }
 
       questions.forEach(function (item, qi) {
         var li = document.createElement("li");
@@ -122,6 +154,7 @@
             if (oi === item.a) correct++;
             updateScore();
             ex.innerHTML = "<b>" + (oi === item.a ? "答对了。" : "差一点。") + "</b> " + item.why;
+            maybeAllClear();
           });
           opts.appendChild(b);
         });

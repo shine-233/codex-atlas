@@ -228,7 +228,11 @@
         "prompts":"随 CLI 打包的基础指令文本一族——02 输入组装第 1 层的出处。",
         "history":"对话历史的存取。",
         "codex-client":"面向核心的客户端封装。",
-        "features":"特性开关。"
+        "features":"特性开关。",
+        "core-api":"core 对外暴露的 API 面——比 protocol 更贴近调用方的一层封装。",
+        "collaboration-mode-templates":"协作模式模板：多人 / 多 agent 协同行为的预置定义。",
+        "context-fragments":"上下文片段管理：可复用内容切块后按需取用的原语。",
+        "codex-experimental-api-macros":"实验性 API 的过程宏集，名字里的 macros 是字面意思。"
       } },
     { no:"B3", name:"工具执行", en:"TOOLING", count:15,
       desc:"模型能调用的每个动作，在这里落地成受控的系统操作。",
@@ -242,7 +246,13 @@
         "git-utils":"git 操作辅助。",
         "code-mode":"Code Mode 主 crate：V8 里跑模型生成代码的实验模式。",
         "v8-poc":"V8 集成的概念验证。名字里的 poc 就是字面意思。",
-        "exec-server":"命令执行服务化拆分。"
+        "exec-server":"命令执行服务化拆分。",
+        "exec-server-protocol":"exec-server 对外的协议类型定义，与主 crate 成对出现。",
+        "code-mode-host":"Code Mode 的宿主侧：V8 运行环境由它承载。",
+        "code-mode-protocol":"Code Mode 内部通信的协议定义。",
+        "code-mode-runtime":"Code Mode 的运行时实现——模型生成的代码在这里真正跑起来。",
+        "file-watcher":"文件变更监听：工作区文件被外部改动时通知核心。",
+        "exec-server/tests/support":"测试支撑件：给 exec-server 的测试当脚手架，不参与发布产物。"
       } },
     { no:"B4", name:"沙箱安全", en:"SANDBOX & SECURITY", count:9,
       desc:"强制执行机制与凭据保管。03 判定器的物理基础。固定提交名单里没有独立的 Windows 沙箱 crate——实现位置随版本演进，这正是固定基线的意义。",
@@ -254,7 +264,9 @@
         "execpolicy":"执行策略引擎：判定哪些命令免审批直接跑。",
         "secrets":"凭据引用能力。",
         "keyring-store":"系统钥匙串接入。",
-        "process-hardening":"进程加固原语。"
+        "process-hardening":"进程加固原语。",
+        "workload-identity":"工作负载身份：进程「我是谁」的可验证标识。",
+        "aws-auth":"AWS 凭证链路支持——云端运行时的身份来源之一。"
       } },
     { no:"B5", name:"模型连接", en:"MODEL LINKS", count:12,
       desc:"Responses API 客户端、代理与本地模型接入。请求从这里出站。",
@@ -284,13 +296,16 @@
         "app-server-transport":"stdio JSONL / streaming HTTP 传输实现。",
         "app-server-client":"客户端侧绑定。",
         "uds":"Unix domain socket 支持。",
-        "stdio-to-uds":"桥接转换层。"
+        "stdio-to-uds":"桥接转换层。",
+        "app-server-protocol-noop-macros":"协议宏的空实现变体：生成占位实现，测试与工具链用。",
+        "app-server-test-client":"协议测试客户端：模拟一个客户端去戳 App Server。"
       } },
     { no:"B7", name:"扩展生态", en:"EXTENSIONS", count:20,
       desc:"插件系统与 ext/* 实验族：记忆、技能、钩子、图像生成。带内一半以上还在快速变化。",
       crates:["plugin","core-plugins","skills","hooks","memories/read","memories/write","ext/agent","ext/connectors","ext/extension-api","ext/goal","ext/git-attribution","ext/guardian-v2","ext/history-notes","ext/image-generation","ext/items","ext/memories","ext/mcp","ext/queue","ext/skills","ext/web-search"],
       notes:{
         "plugin":"插件系统核心机制。",
+        "ext/memories":"记忆能力的扩展包装位（与 memories/read、memories/write 是不同的 crate）。",
         "core-plugins":"随 CLI 发布的内置插件集。",
         "skills":"技能注入：markdown 指令包按需挂进 prompt——02 层叠机制的近亲。",
         "hooks":"生命周期钩子：工具执行前后可插自定义逻辑。",
@@ -344,7 +359,28 @@
         "utils/stream-parser":"流式数据的切分与解析原语。",
         "async-utils":"异步工具集。",
         "file-system":"文件系统抽象层。",
-        "test-binary-support":"测试专用二进制的支持件。"
+        "test-binary-support":"测试专用二进制的支持件。",
+        "utils/absolute-path":"绝对路径类型：把「必须是绝对路径」写进类型，编译期挡住相对路径混入。",
+        "utils/path-uri":"路径与 file:// URI 互转的小件。",
+        "utils/cargo-bin":"定位 cargo 可执行文件。",
+        "utils/home-dir":"跨平台取用户主目录，~ 展开的出处。",
+        "utils/readiness":"就绪状态探测原语。",
+        "utils/rustls-provider":"rustls TLS 后端的装配件——出站 HTTPS 的加密底座。",
+        "utils/string":"字符串处理小工具集。",
+        "utils/cli":"CLI 辅助原语：输出样式、参数处理一类的小件。",
+        "utils/elapsed":"耗时计量与格式化。",
+        "utils/sandbox-summary":"沙箱配置摘要的结构化展示——审批弹窗里「当前沙箱」的数据来源之一。",
+        "utils/sleep-inhibitor":"阻止系统休眠：长任务跑着的时候别让机器睡过去。",
+        "utils/approval-presets":"审批策略预设的定义与解析。",
+        "utils/oss":"按命名推断与对象存储相关的小件；细节以仓库内注释为准。",
+        "utils/path-utils":"路径操作通用函数族，与 absolute-path 的类型化路线互补。",
+        "utils/plugins":"插件机制的底层辅助件（与 B7 顶层的 plugin 体系配合）。",
+        "ansi-escape":"ANSI 转义序列的处理——终端输出清洗的地基件。",
+        "build-info":"编译期信息注入：版本号、构建时间从这里进二进制。",
+        "feedback":"用户反馈收集通道。",
+        "thread-manager-sample":"线程管理的示例实现，sample 就是字面意思。",
+        "codex-backend-openapi-models":"ChatGPT backend OpenAPI 模型的生成代码。",
+        "response-debug-context":"响应调试上下文：排查模型返回问题时多留一点现场。"
       } }
   ];
 

@@ -1,14 +1,15 @@
 # CODEX ATLAS · openai/codex 源码交互图鉴
 
-把开源的 Codex CLI 拆到事件级的中文交互学习站。五个频道，五台仪器：
+把开源的 Codex CLI 拆到事件级的中文交互学习站。编号 00 是总览，01–05 是五条线路，06 是术语速查：
 
-| 频道 | 页面 | 回答什么 |
+| 线路 | 页面 | 回答什么 |
 |---|---|---|
-| CH01 循环回路 | `labs/loop.html` | 一轮对话从 `codex` 命令到 TurnComplete 的 13 个阶段，单步可停；配重采样回路图（随阶段联动）与采样成本对照图 |
-| CH02 输入组装 | `labs/prompt.html` | 一次 Responses API 请求的七层构成；负载构成条、实时负载形状预览、AGENTS.md 层叠与 32 KiB 上限演示 |
-| CH03 权限沙箱 | `labs/sandbox.html` | 三种模式 × 审批策略 × 六动作的判定器与全景矩阵联动；三套 OS 机制对照 |
-| CH04 协议线路 | `labs/appserver.html` | App Server 双生命线时序图 + 报文时间线；第 11 条审批请求怎样挂起整轮对话并分出两条剧情 |
-| CH05 Crate 图谱 | `labs/atlas.html` | 固定提交下 codex-rs 的 135 个成员，九条功能带 + 构成比例带 + 检索高亮 |
+| 01 循环回路 | `labs/loop.html` | 一轮对话从 `codex` 命令到 TurnComplete 的 13 个阶段，单步可停；配会话建立段、重采样回路图（随阶段联动）与采样次数可调的成本对照 |
+| 02 输入组装 | `labs/prompt.html` | 一次 Responses API 请求的七层构成；负载构成条、实时负载形状预览、AGENTS.md 层叠与 32 KiB 上限演示 |
+| 03 权限沙箱 | `labs/sandbox.html` | 三种模式 × 审批策略 × 六动作的判定器、联动全景矩阵与判定管线；三套 OS 机制对照 |
+| 04 协议线路 | `labs/appserver.html` | App Server 双生命线时序图 + 报文时间线；审批请求怎样挂起整轮对话并分出批准 / 拒绝两条剧情 |
+| 05 Crate 图谱 | `labs/atlas.html` | 固定提交下 codex-rs 的 135 个成员逐条注解，九条功能带 + 构成比例带 + 带间动线 + 检索高亮 |
+| 06 术语速查 | `glossary.html` | 全站术语的一句话人话解释，可检索；正文里的虚线下划线词悬停即出卡片 |
 
 ## 运行
 
@@ -28,7 +29,7 @@ python -m http.server 8080
 - 内容来源分三类并在页内就地标注：① 仓库文件（可复核）；② OpenAI 官方博客《Unrolling the Codex agent loop》《Unlocking the Codex harness》；③ 社区源码研究，仅作交叉参考。
 - 凡属推断或示意（报文形状、体积刻度），页面内均明确标注。本站不运行模型，不发起网络请求。
 
-本站为非官方学习项目，与 Open AI 无隶属关系。发现事实错误请提 issue，注明具体页面与依据。
+本站为非官方学习项目，与 OpenAI 无隶属关系。发现事实错误请提 issue，注明具体页面与依据。
 
 ## 部署
 

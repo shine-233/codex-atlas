@@ -201,8 +201,13 @@
       <p class="muted small">
         环每转一圈，历史就更长一点，而下一次采样<b>仍然全量重发</b>（02 第 7 层）。
         不做优化的话，累计发送量按采样次数平方增长；Codex 靠提示缓存命中把重复历史的计费打成约一折，
-        累计成本被压回近似线性。下面是两种情形的对比：
+        累计成本被压回近似线性。拖动下面的滑杆，自己把环多转几圈看看：
       </p>
+      <div class="cost-slider">
+        <input type="range" id="cost-laps" min="1" max="10" step="1" value="5"
+               aria-label="采样次数（环转几圈）">
+        <span class="cost-laps-readout">采样 <b id="laps-n">5</b> 次 · 每次带一次工具调用</span>
+      </div>
       <div class="cost-bars" id="cost-bars"></div>
       <div class="cost-x" id="cost-x"></div>
       <div class="cost-legend">
@@ -545,51 +550,60 @@
     sync({ detail: { stage: cur } });
   })();
 
-  /* ---------- 重采样成本对照（示意刻度） ---------- */
+  /* ---------- 重采样成本对照（示意刻度 · 采样次数可调） ---------- */
   (function () {
     var barsBox = document.getElementById("cost-bars");
     var xBox = document.getElementById("cost-x");
     var cacheToggle = document.getElementById("cost-cache");
-    if (!barsBox || !xBox || !cacheToggle) return;
+    var lapsInput = document.getElementById("cost-laps");
+    var lapsN = document.getElementById("laps-n");
+    if (!barsBox || !xBox || !cacheToggle || !lapsInput) return;
 
-    var N = 5;
     var DELTA = 10;               /* 每圈新增历史，示意单位 */
-    var cumNoCache = [], cumCache = [];
-    var sumN = 0, sumC = 0;
-    for (var i = 1; i <= N; i++) {
-      var send = DELTA * i;                    /* 第 i 次全量重发量 */
-      sumN += send;
-      sumC += (i === 1) ? send : DELTA + send * 0.1 - DELTA * 0.1; /* 缓存部分按一折 */
-      cumNoCache.push(sumN);
-      cumCache.push(sumC);
-    }
-    var MAXV = cumNoCache[N - 1];
-    var groups = [], amberBars = [], steelBars = [];
 
-    for (var j = 0; j < N; j++) {
-      var g = document.createElement("div"); g.className = "cost-group";
-      var a = document.createElement("div"); a.className = "cost-bar amber";
-      var s2 = document.createElement("div"); s2.className = "cost-bar steel";
-      g.appendChild(a); g.appendChild(s2);
-      barsBox.appendChild(g);
-      groups.push(g); amberBars.push(a); steelBars.push(s2);
+    /* 第 i 次采样的发送量：完整历史 = 前 i-1 圈的累积 + 本圈新增。
+       无缓存：全部按全价计。缓存命中：旧前缀按一折，新增部分全价。 */
+    function sendOf(i) { return DELTA * i; }
+    function costNoCache(i) { return sendOf(i); }
+    function costCache(i) { return DELTA + (i - 1) * DELTA * 0.1; }
 
-      var xl = document.createElement("span");
-      xl.textContent = "第 " + (j + 1) + " 次采样";
-      xBox.appendChild(xl);
+    function cumulate(costFn, n) {
+      var out = [], sum = 0;
+      for (var i = 1; i <= n; i++) { sum += costFn(i); out.push(sum); }
+      return out;
     }
 
     function render() {
+      var laps = parseInt(lapsInput.value, 10);
+      if (isNaN(laps) || laps < 1) return;
+      lapsN.textContent = laps;
       var useCache = cacheToggle.checked;
-      for (var k = 0; k < N; k++) {
-        var va = cumNoCache[k];
-        var vc = useCache ? cumCache[k] : va;
-        amberBars[k].style.height = Math.round(va / MAXV * 100) + "%";
-        steelBars[k].style.height = Math.round(vc / MAXV * 100) + "%";
-        amberBars[k].title = "第 " + (k + 1) + " 次采样 · 无缓存累计 ≈ " + va + " 单位";
-        steelBars[k].title = "第 " + (k + 1) + " 次采样 · 缓存命中累计 ≈ " + Math.round(vc) + " 单位";
+      var cumNoCache = cumulate(costNoCache, laps);
+      var cumCache = cumulate(costCache, laps);
+      var MAXV = cumNoCache[laps - 1];
+
+      barsBox.innerHTML = "";
+      xBox.innerHTML = "";
+      for (var j = 0; j < laps; j++) {
+        var g = document.createElement("div"); g.className = "cost-group";
+        var a = document.createElement("div"); a.className = "cost-bar amber";
+        var s2 = document.createElement("div"); s2.className = "cost-bar steel";
+        g.appendChild(a); g.appendChild(s2);
+        barsBox.appendChild(g);
+
+        a.style.height = Math.round(cumNoCache[j] / MAXV * 100) + "%";
+        s2.style.height = Math.round((useCache ? cumCache[j] : cumNoCache[j]) / MAXV * 100) + "%";
+        a.title = "第 " + (j + 1) + " 次采样 · 无缓存累计 ≈ " + cumNoCache[j] + " 单位";
+        s2.title = "第 " + (j + 1) + " 次采样 · " +
+          (useCache ? "缓存命中累计 ≈ " + Math.round(cumCache[j]) : "无缓存累计 ≈ " + cumNoCache[j]) + " 单位";
+
+        var xl = document.createElement("span");
+        xl.textContent = "第 " + (j + 1) + " 次";
+        xBox.appendChild(xl);
       }
     }
+
+    lapsInput.addEventListener("input", render);
     cacheToggle.addEventListener("change", render);
     render();
   })();
