@@ -64,13 +64,14 @@
     <div class="status-strip">
       <span><i class="dot"></i>上游基线 @343074d4（2026-08-22）</span>
       <span>Apache-2.0 开源</span>
-      <span>★ 111,904</span>
-      <span>codex-rs 工作区实测 135 crate</span>
+      <span>★ <b data-count="111904">111,904</b></span>
+      <span>codex-rs 工作区实测 <b data-count="135">135</b> crate</span>
     </div>
 
     <!-- 主视觉 -->
     <section class="hero" style="padding-top:26px;">
-      <p class="eyebrow"><span class="tick">▮</span>OPENAI / CODEX 源码交互图鉴</p>
+      <div id="hero-field" aria-hidden="true"></div>
+      <p class="eyebrow"><span class="tick">▮</span><span data-decode>OPENAI / CODEX 源码交互图鉴</span></p>
       <h1>把 Codex CLI 拆到事件级，<br>再看着它装回去。<span class="cursor-blink" aria-hidden="true">▌</span></h1>
       <p class="lede">
         Codex CLI 的核心代码是开源的，但一万多个提交不会自己解释自己。这个站把五条主干线路
@@ -282,7 +283,11 @@
 </div>
 
 <script src="assets/panel.js"></script>
+<script src="assets/fx.js"></script>
 <script src="assets/loop-hero.js"></script>
+<script>
+if (window.CATilt) CATilt(document.querySelectorAll(".panel"));
+</script>
 <script>
 /* 自检通关徽章：读取各页 CHECKPOINT 的最好成绩（只统计五条主线，支线单独显示） */
 (function () {

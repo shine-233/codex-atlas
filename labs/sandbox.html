@@ -1008,6 +1008,8 @@
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
 
+  if (window.CATilt) CATilt(document.querySelectorAll(".mode-card"));
+
   CAQuiz.mount(document.getElementById("quiz"), [
     { q: "workspace-write 模式下，模型默认能访问网络吗？",
       opts: ["默认断网，可在 config 里显式打开 network_access", "默认放行", "只有 danger-full-access 才谈网络"],

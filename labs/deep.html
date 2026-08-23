@@ -166,7 +166,12 @@
   .ext-stage {
     font-family: var(--mono); font-size: 11.5px; color: var(--dim);
     border: 1px solid var(--line-strong); background: var(--bg2); padding: 7px 10px;
+    transition: border-color .15s, background .15s, color .15s;
+    cursor: pointer;
   }
+  .ext-stage:hover { border-color: var(--dim); }
+  .ext-stage.hot { border-color: var(--amber); background: var(--amber-dim); color: var(--ink); }
+  .ext-stage.hot .st-no { color: var(--amber); }
   .ext-arrow { color: var(--faint); font-family: var(--mono); }
   .ext-hooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-top: 14px; }
   .ext-card-btn {
@@ -177,6 +182,7 @@
   }
   .ext-card-btn:hover { border-color: var(--dim); }
   .ext-card-btn.on { border-color: var(--amber); background: var(--amber-dim); }
+  .ext-card-btn.hl { border-color: var(--steel); box-shadow: inset 2px 0 0 var(--steel); }
   .ext-card-btn .xn { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--amber); }
   .ext-card-btn .xw { display: block; font-size: 11.5px; color: var(--faint); margin-top: 4px; line-height: 1.5; }
   .ext-detail { margin-top: 14px; border: 1px dashed var(--line-strong); padding: 15px 17px; min-height: 88px; }
@@ -279,6 +285,18 @@
             </details>
           </div>
           <p class="small muted" style="margin:10px 0 0;" id="au-note"></p>
+
+          <!-- 续期时序：401 之后发生了什么 -->
+          <div class="refresh-lab">
+            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--steel);text-transform:uppercase;margin:22px 0 2px;">续期时序 · 401 之后发生了什么（ChatGPT 路线专属）</div>
+            <div class="controls" style="border:none;padding:8px 0 0;">
+              <button class="btn primary" id="rf-next" type="button">下一步 ▶</button>
+              <button class="btn" id="rf-play" type="button">▶ 播放全程</button>
+              <span class="pos" id="rf-pos" style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:8px;"></span>
+            </div>
+            <div class="auth-flow" id="rf-flow"></div>
+            <p class="small muted" style="margin:8px 0 0;" id="rf-note">走到第 3 步时，留意上面 auth.json 的 last_refresh——它会当场刷新。</p>
+          </div>
         </div>
       </div>
     </section>
@@ -420,20 +438,20 @@
       <div class="ext-wrap" style="padding:18px 24px 22px;">
         <p class="muted small" style="margin:0 0 14px;">
           这批名词出现在各种发布说明里，但接口还没定型。与其猜实现，不如先记位置——
-          下排四个挂点各自接进主干流程的哪一段，现在就能说清：
+          下排挂点各自接进主干流程的哪一段，现在就能说清：<b style="color:var(--ink);">点挂点亮管线落点，点管线段亮挂点</b>，两边互相指。
         </p>
-        <div class="ext-pipe" role="img" aria-label="主干流程六段：Prompt 组装、采样、工具执行前、工具执行后、历史写回、收束">
-          <span class="ext-stage">Prompt 组装 <a href="prompt.html" style="color:var(--steel);">02</a></span>
-          <span class="ext-arrow">→</span>
-          <span class="ext-stage">采样 <a href="loop.html#s=9" style="color:var(--steel);">01·9</a></span>
-          <span class="ext-arrow">→</span>
-          <span class="ext-stage">工具执行前</span>
-          <span class="ext-arrow">→</span>
-          <span class="ext-stage">工具执行后</span>
-          <span class="ext-arrow">→</span>
-          <span class="ext-stage">历史写回</span>
-          <span class="ext-arrow">→</span>
-          <span class="ext-stage">收束 <a href="loop.html#s=13" style="color:var(--steel);">01·13</a></span>
+        <div class="ext-pipe" role="group" aria-label="主干流程六段：Prompt 组装、采样、工具执行前、工具执行后、历史写回、收束。点击任意一段，会点亮挂在那段上的机制">
+          <span class="ext-stage" data-st="0" tabindex="0" role="button" aria-label="Prompt 组装段：查看挂在这段的机制">Prompt 组装 <a href="prompt.html" style="color:var(--steel);">02</a></span>
+          <span class="ext-arrow" aria-hidden="true">→</span>
+          <span class="ext-stage" data-st="1" tabindex="0" role="button" aria-label="采样段：查看挂在这段的机制">采样 <a href="loop.html#s=9" style="color:var(--steel);">01·9</a></span>
+          <span class="ext-arrow" aria-hidden="true">→</span>
+          <span class="ext-stage" data-st="2" tabindex="0" role="button" aria-label="工具执行前段：查看挂在这段的机制">工具执行前</span>
+          <span class="ext-arrow" aria-hidden="true">→</span>
+          <span class="ext-stage" data-st="3" tabindex="0" role="button" aria-label="工具执行后段：查看挂在这段的机制">工具执行后</span>
+          <span class="ext-arrow" aria-hidden="true">→</span>
+          <span class="ext-stage" data-st="4" tabindex="0" role="button" aria-label="历史写回段：查看挂在这段的机制">历史写回</span>
+          <span class="ext-arrow" aria-hidden="true">→</span>
+          <span class="ext-stage" data-st="5" tabindex="0" role="button" aria-label="收束段：查看挂在这段的机制">收束 <a href="loop.html#s=13" style="color:var(--steel);">01·13</a></span>
         </div>
         <div class="ext-hooks" id="ext-hooks"></div>
         <div class="ext-detail" aria-live="polite">
@@ -531,6 +549,56 @@
     });
     document.getElementById("au-reset").addEventListener("click", function () { lit = 0; paint(); });
     paint();
+  })();
+
+  /* ---------- A 房续期时序：401 → refresh → 重放（ChatGPT 路线的后半段故事） ---------- */
+  (function () {
+    var RF = [
+      { k: "出站 · 带 access_token", d: "每次调模型都带着它。寿命是分钟级——短命是刻意设计：泄露窗口小。" },
+      { k: "401 · 过期", d: "服务端拒绝这次请求。被拒的是 token，不是会话——现场还在，历史还在。" },
+      { k: "refresh_token 换新", d: "core 拿长期凭证向登录端点换一对新 token，写回 auth.json。上面的文件里 last_refresh 当场刷新。" },
+      { k: "原请求重放", d: "刚才失败的那次调用带着新 token 原样再发。对上层调用方完全透明——模型客户端不知道发生过 401。" },
+      { k: "200 · 继续", d: "全程无人工。refresh_token 也失效（长期不用、密码改动、手动登出）才需要重新 codex login。API key 路线没有这出戏——密钥压根不过期。" }
+    ];
+    var flow = document.getElementById("rf-flow");
+    var pos = document.getElementById("rf-pos");
+    var playBtn = document.getElementById("rf-play");
+    if (!flow) return;
+    var lit = 0, timer = null;
+
+    function paint(flashJson) {
+      var html = "";
+      RF.forEach(function (s, i) {
+        html += '<div class="auth-step' + (i < lit ? " lit" : "") + '">' +
+          '<div class="as-k">' + (i + 1) + " · " + s.k + "</div>" +
+          '<div class="as-d">' + s.d + "</div></div>";
+      });
+      flow.innerHTML = html;
+      pos.textContent = lit + " / " + RF.length;
+      if (window.PrefersReducedMotion !== true && lit > 0 && flow.lastElementChild) {
+        flow.lastElementChild.classList.add("ca-rise");
+      }
+      if (flashJson && window.CAFlash) CAFlash(document.getElementById("au-json"));
+    }
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; playBtn.textContent = "▶ 播放全程"; }
+    }
+    document.getElementById("rf-next").addEventListener("click", function () {
+      stop();
+      lit = lit < RF.length ? lit + 1 : 0;
+      paint(lit === 3);
+    });
+    playBtn.addEventListener("click", function () {
+      if (timer) { stop(); return; }
+      if (lit >= RF.length) lit = 0;
+      playBtn.textContent = "❚❚ 暂停";
+      timer = setInterval(function () {
+        if (lit >= RF.length) { stop(); return; }
+        lit++;
+        paint(lit === 3);
+      }, 1400);
+    });
+    paint(false);
   })();
 
   /* ================= B · CONFIG ================= */
@@ -1044,13 +1112,61 @@
     var xdGap = document.getElementById("xd-gap");
     if (!hooksBox) return;
 
-    HOOKS.forEach(function (H) {
+    /* 挂点 → 主干管线段（下标对应 .ext-stage[data-st]）：点挂点亮落点，点段落亮挂点 */
+    var STAGE_MAP = [
+      [0],        /* skills → Prompt 组装 */
+      [0],        /* plugin / MCP → 工具清单在 Prompt 组装 */
+      [2, 3],     /* hooks → 工具执行前 + 后 */
+      [0, 4],     /* memories → 读在组装、写在历史 */
+      [0, 1, 2, 3, 4, 5] /* ext/* → 散布各段 */
+    ];
+    var stages = Array.prototype.slice.call(document.querySelectorAll(".ext-stage"));
+
+    function lightStages(idxs) {
+      stages.forEach(function (s, i) {
+        s.classList.toggle("hot", idxs.indexOf(i) !== -1);
+      });
+    }
+    function lightHooks(idxs) {
+      Array.prototype.forEach.call(hooksBox.children, function (c, i) {
+        c.classList.toggle("hl", idxs.indexOf(i) !== -1);
+      });
+    }
+
+    var STAGE_NAMES = ["Prompt 组装", "采样", "工具执行前", "工具执行后", "历史写回", "收束"];
+    stages.forEach(function (s) {
+      function pick() {
+        var si = parseInt(s.getAttribute("data-st"), 10);
+        var hits = [];
+        STAGE_MAP.forEach(function (map, hi) { if (map.indexOf(si) !== -1) hits.push(hi); });
+        lightStages(hits.length ? [si] : []);
+        lightHooks(hits);
+        if (hits.length) {
+          var names = hits.map(function (h) { return HOOKS[h].n; });
+          xdName.textContent = "挂在「" + STAGE_NAMES[si] + "」的机制";
+          xdKnown.innerHTML = "<b>已知：</b>这一段上有 " + hits.length + " 个挂点：" + names.join("、") + "。点上方卡片看各自详情。";
+          xdGap.innerHTML = "";
+        }
+        if (window.CAFlash) CAFlash(document.querySelector(".ext-detail"));
+      }
+      s.addEventListener("click", function (e) {
+        if (e.target.tagName === "A") return; /* 链接照常跳转 */
+        pick();
+      });
+      s.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
+      });
+    });
+
+    HOOKS.forEach(function (H, hi) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "ext-card-btn";
       b.innerHTML = '<span class="xn">' + H.n + '</span><span class="xw">' + H.w + "</span>";
       b.addEventListener("click", function () {
         Array.prototype.forEach.call(hooksBox.children, function (x) { x.classList.toggle("on", x === b); });
+        lightStages(STAGE_MAP[hi]);
+        lightHooks([]);
         xdName.textContent = H.n + " · " + H.w;
         xdKnown.innerHTML = "<b>已知：</b>" + H.known;
         xdGap.innerHTML = "<b>未定：</b>" + H.gap;

@@ -293,6 +293,15 @@ p { margin: 0 0 14px; }
 .panel.hot::before { border-color: var(--amber); }
 .panel.hot::after { border-color: var(--amber); }
 
+/* 聚光层：CATilt 挂载的卡片在指针悬停时显示随光标移动的琥珀微光 */
+.ca-spot {
+  background-image: radial-gradient(
+    460px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 180, 84, 0.055),
+    transparent 62%
+  );
+}
+
 .panel-title {
   display: flex;
   align-items: baseline;
@@ -1336,3 +1345,54 @@ body::after {
   border-bottom: 1px solid var(--line-strong);
   transform: rotate(-45deg);
 }
+
+/* ---------- 首页动效层（fx.js）· 学自 GitHub 头部仓库的公开范式 ---------- */
+
+/* 粒子场容器：铺在 hero 底层，不拦截指针 */
+#hero-field {
+  position: absolute;
+  inset: -8px -20px -18px;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 3D 倾斜：外层平面负责接收指针（永不变形，防边缘 hover 抖动），
+   内层 .panel 只吃 CSS 变量；进快（is-tilting 跟手）出弹（回位用缓出）。 */
+/* 外层平面接管外边距（面板原 margin 在 wrapper 内不再与相邻块折叠，
+   9px × 相邻两侧 ≈ 原折叠后的 18px 视觉间距） */
+.fx-tilt-wrap { margin: 9px 0; }
+.fx-tilt-wrap > .panel { margin: 0; will-change: transform; }
+@media (prefers-reduced-motion: no-preference) {
+  .fx-tilt-wrap > .panel {
+    transform:
+      perspective(1100px)
+      rotateX(var(--tilt-rx, 0deg))
+      rotateY(var(--tilt-ry, 0deg));
+    transition: transform 0.9s var(--ease), box-shadow 0.3s var(--ease);
+  }
+  .fx-tilt-wrap > .panel.is-tilting {
+    transition: transform 0.12s linear, box-shadow 0.3s var(--ease);
+  }
+  .fx-tilt-wrap > .panel.is-hover {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04),
+                0 14px 34px rgba(0, 0, 0, 0.38);
+  }
+}
+
+/* 指针聚光灯：位置由 --spot-x/--spot-y 驱动，CSS 负责绘制（留在合成器上） */
+.fx-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgba(231, 237, 243, 0.075), transparent 62%);
+  transition: opacity 0.35s var(--ease);
+}
+.fx-tilt-wrap > .panel.is-hover .fx-glare { opacity: 1; }
+
+/* 解码 churn 与数字滚动：等宽 + tabular 已由全局 mono/readout 保证 */
+[data-decode] { white-space: nowrap; }

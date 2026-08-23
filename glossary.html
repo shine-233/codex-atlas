@@ -362,6 +362,7 @@
     fcard.classList.toggle("flipped", flipped);
     fcard.setAttribute("aria-expanded", flipped ? "true" : "false");
   }
+  if (window.CATilt) CATilt([fcard]);
 
   function step(d) { idx = (idx + d + order.length) % order.length; render(); }
 

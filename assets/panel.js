@@ -213,6 +213,34 @@
     el.classList.add("fx-flash");
   };
 
+  /* 聚光倾斜卡：指针进入时轻微 3D 倾斜，高光跟随光标（零依赖微交互）。
+     触屏与 reduced-motion 环境自动跳过；配合 styles.css 的 ::after 高光层使用。 */
+  window.CATilt = function (els) {
+    try {
+      if (reduced) return;
+      if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return;
+      Array.prototype.forEach.call(els, function (el) {
+        if (el.__caTilt) return;
+        el.__caTilt = true;
+        el.addEventListener("pointermove", function (e) {
+          var r = el.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          var x = (e.clientX - r.left) / r.width;
+          var y = (e.clientY - r.top) / r.height;
+          el.style.transform = "perspective(900px) rotateX(" + ((0.5 - y) * 2.2).toFixed(2) +
+            "deg) rotateY(" + ((x - 0.5) * 3).toFixed(2) + "deg)";
+          el.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+          el.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+          el.classList.add("ca-spot");
+        });
+        el.addEventListener("pointerleave", function () {
+          el.style.transform = "";
+          el.classList.remove("ca-spot");
+        });
+      });
+    } catch (e) { /* 老浏览器跳过 */ }
+  };
+
   /* 阅读进度：顶部 2px 琥珀条 */
   var bar = document.createElement("div");
   bar.id = "ca-progress";

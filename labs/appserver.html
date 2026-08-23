@@ -188,6 +188,34 @@
       </div>
     </section>
 
+    <!-- 第二幕：断线之后 -->
+    <section class="panel" id="act2-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>ACT II · 断线之后：resume / fork / interrupt</h3>
+        <span class="readout">三原语表里提了、上面没演的三条支线</span>
+      </div>
+      <p class="small muted" style="margin:0 0 14px;padding:0 24px;">
+        Thread 行明说「可创建、恢复、分叉、归档」，第一幕时间线却一条没演。这里补上——同一条双向通道，换三个剧本：
+      </p>
+      <div style="padding:0 24px 20px;">
+        <div class="seg" role="group" aria-label="选择第二幕场景">
+          <button data-a2="resume" class="on">断线重连 resume</button>
+          <button data-a2="fork">分叉 fork</button>
+          <button data-a2="interrupt">打断 interrupt</button>
+        </div>
+        <div class="controls" style="border-top:none;padding:12px 0 0;margin-top:10px;">
+          <button class="btn primary" id="a2-play" type="button">▶ 播放</button>
+          <button class="btn" id="a2-reset" type="button">↺ 重置</button>
+          <span class="match-readout" id="a2-count" aria-live="polite"></span>
+        </div>
+        <div id="a2-seq" aria-live="polite" style="margin-top:8px;"></div>
+        <p class="small muted" style="margin:14px 0 0;">
+          方法名与字段为<b>示意形状</b>；resume / fork 能力出自官方博客《Unlocking the Codex harness》。
+          点任意已送达的行，结构显示在上方「报文形状」面板。
+        </p>
+      </div>
+    </section>
+
     <section class="panel detail-json">
       <div class="panel-title" style="margin-bottom:6px;">
         <h3>报文形状</h3>
@@ -614,6 +642,145 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  /* ---------- ACT II：resume / fork / interrupt 三条支线 ---------- */
+  (function () {
+    var A2 = {
+      resume: [
+        { dir:"c2s", who:"CLIENT", k:"request", m:"thread/resume",
+          j:'{ "id": 40, "method": "thread/resume",\n  "params": { "threadId": "t_9f3a…" } }',
+          d:"客户端重启或断线后，拿旧句柄要回现场。线程容器持久化在磁盘上，一直都在。" },
+        { dir:"s2c", who:"SERVER", k:"response", m:"thread/resume 返回",
+          j:'{ "result": { "thread": { "id": "t_9f3a…",\n    "turns": 3,\n    "items": "«17 条历史条目，按原序»" } } }',
+          d:"服务端从持久化的事件历史重建时间线，一次性交还。UI 据此画出断线前的全部对话。" },
+        { dir:"c2s", who:"CLIENT", k:"request", m:"turn/start（接着干）",
+          j:"/* 与第一幕第 5 条同形 */\n{ \"id\": 41, \"method\": \"turn/start\", … }",
+          d:"带着恢复的现场继续下单。对核心来说，这就是一轮新的 Turn——旧的条目原封不动。" },
+        { dir:"s2c", who:"SERVER", k:"notification", m:"item/started",
+          j:'{ "method": "item/started",\n  "params": { "type": "agent_message", "itemId": "i_18…" } }',
+          d:"新一轮从旧现场里长出来。断线前后对用户呈现为一条连续的对话。" }
+      ],
+      fork: [
+        { dir:"c2s", who:"CLIENT", k:"request", m:"thread/fork",
+          j:'{ "id": 42, "method": "thread/fork",\n  "params": { "threadId": "t_9f3a…",\n    "position": "i_07…" } }',
+          d:"从指定条目处分出一条新线程：历史复制到 position 为止，原线程一个字节不动。" },
+        { dir:"s2c", who:"SERVER", k:"response", m:"thread/fork 返回",
+          j:'{ "result": { "threadId": "t_77c0…" } }',
+          d:"新句柄到手。之后所有写入都落在分身上，正身保持干净。" },
+        { dir:"c2s", who:"CLIENT", k:"request", m:"turn/start（新线程）",
+          j:"/* threadId 换成 t_77c0… */\n{ \"id\": 43, \"method\": \"turn/start\", … }",
+          d:"在新线程上下第一单。想试另一种方案又不想弄脏原现场，就是这么用。" },
+        { dir:"s2c", who:"SERVER", k:"notification", m:"item/started",
+          j:'{ "method": "item/started",\n  "params": { "type": "agent_message", "itemId": "i_01…" } }',
+          d:"两条线程从此各走各路。A/B 对照两种做法的协议基础就是这一步。" }
+      ],
+      interrupt: [
+        { dir:"c2s", who:"CLIENT", k:"request", m:"turn/interrupt",
+          j:'{ "id": 44, "method": "turn/interrupt",\n  "params": { "threadId": "t_9f3a…" } }',
+          d:"用户按了 Esc。打断请求和普通请求走同一个方向：客户端 → 服务端。" },
+        { dir:"int", who:"CORE", k:"internal", m:"Op::Interrupt 入队",
+          j:"", d:"和 Op::UserInput 走同一条队列对（01 第 6 站）。正在跑的 RegularTask 在下一个检查点停下。" },
+        { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed (interrupted)",
+          j:'{ "method": "item/completed",\n  "params": { "type": "command_execution",\n              "status": "interrupted" } }',
+          d:"没跑完的命令以 interrupted 落定，不是凭空消失——UI 可以如实画出「到这里被打断」。" },
+        { dir:"s2c", who:"SERVER", k:"notification", m:"turn/completed (interrupted)",
+          j:'{ "method": "turn/completed",\n  "params": { "status": "interrupted",\n              "usage": { … } } }',
+          d:"轮次带着 interrupted 状态收尾。已产生的条目全部保留在历史里——打断是收束的一种，不是删除。" }
+      ]
+    };
+
+    var seq2 = document.getElementById("a2-seq");
+    var playBtn2 = document.getElementById("a2-play");
+    var resetBtn2 = document.getElementById("a2-reset");
+    var count2 = document.getElementById("a2-count");
+    if (!seq2) return;
+
+    var scene = "resume";
+    var cur2 = 0;
+    var timer2 = null;
+
+    var st0 = PanelState.read();
+    if (st0.a2 && A2[st0.a2]) scene = st0.a2;
+    if (!isNaN(parseInt(st0.n2, 10))) cur2 = Math.max(0, Math.min(A2[scene].length, parseInt(st0.n2, 10)));
+
+    function kindChip2(k) {
+      var cls = { request:"steel", response:"steel", notification:"amber", internal:"" }[k] || "";
+      return '<span class="chip kk ' + cls + '">' + k + "</span>";
+    }
+
+    function row2(msg, i) {
+      var d = document.createElement("div");
+      d.className = "msg dir-" + msg.dir + (i === cur2 - 1 ? " cur ca-rise" : "") + (msg.dir === "int" ? " int-row" : "");
+      var arrow = msg.dir === "c2s" ? "→" : msg.dir === "int" ? "⟳" : "←";
+      d.innerHTML =
+        '<div class="m-top">' +
+        '<span class="who ' + (msg.dir === "c2s" ? "c" : "s") + '">' + msg.who + "</span>" +
+        '<span class="arr">' + arrow + "</span>" +
+        '<span class="mm">' + msg.m + "</span>" +
+        kindChip2(msg.k) + "</div>" +
+        '<div class="mdesc">' + msg.d + "</div>";
+      d.setAttribute("tabindex", "0");
+      d.setAttribute("role", "button");
+      d.setAttribute("aria-label", "查看 " + msg.m + " 的报文结构");
+      function open() {
+        djMethod.textContent = msg.m + " · " + msg.k + " · 第二幕";
+        if (msg.j) { djPre.style.display = ""; djPre.innerHTML = hlJson(msg.j); }
+        else djPre.style.display = "none";
+        djDesc.innerHTML = msg.d;
+        if (window.CAFlash) CAFlash(document.querySelector(".detail-json"));
+      }
+      d.addEventListener("click", open);
+      d.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+      });
+      return d;
+    }
+
+    function render2() {
+      seq2.innerHTML = "";
+      A2[scene].forEach(function (m, i) {
+        if (i >= cur2) return;
+        seq2.appendChild(row2(m, i));
+      });
+      count2.textContent = "已送达 " + cur2 + " / " + A2[scene].length;
+      PanelState.write({ a2: scene, n2: cur2 });
+    }
+
+    function stop2() {
+      if (timer2) { clearInterval(timer2); timer2 = null; }
+      playBtn2.textContent = "▶ 播放";
+    }
+
+    playBtn2.addEventListener("click", function () {
+      if (timer2) { stop2(); return; }
+      if (cur2 >= A2[scene].length) cur2 = 0;
+      playBtn2.textContent = "❚❚ 暂停";
+      timer2 = setInterval(function () {
+        if (cur2 >= A2[scene].length) { stop2(); return; }
+        cur2++;
+        render2();
+      }, 1100);
+    });
+    resetBtn2.addEventListener("click", function () { stop2(); cur2 = 0; render2(); });
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-a2]"), function (b) {
+      b.addEventListener("click", function () {
+        scene = b.getAttribute("data-a2");
+        Array.prototype.forEach.call(document.querySelectorAll("[data-a2]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        stop2();
+        cur2 = 0;
+        render2();
+      });
+    });
+
+    /* 恢复场景高亮 */
+    Array.prototype.forEach.call(document.querySelectorAll("[data-a2]"), function (x) {
+      x.classList.toggle("on", x.getAttribute("data-a2") === scene);
+    });
+    render2();
+  })();
 
   CAQuiz.mount(document.getElementById("quiz"), [
     { q: "commandExecution/approval 这种审批请求，是从哪边发往哪边的？",
