@@ -77,6 +77,20 @@
   .detail-json { margin-top: 0; }
   .detail-json pre { margin: 10px 0 0; }
   .dj-tag { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .08em; }
+
+  /* 控制行与报文进度滑杆（对齐 01 单步仪的控件排布） */
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 24px;
+  }
+  .scrub-wrap {
+    flex: 1; min-width: 170px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .scrub-wrap input[type="range"] { flex: 1; }
 </style>
 </head>
 <body>
@@ -158,6 +172,10 @@
           <button data-sp="0.6">慢</button>
           <button data-sp="1" class="on">常速</button>
           <button data-sp="1.9">快</button>
+        </div>
+        <div class="scrub-wrap">
+          <input type="range" id="msg-seek" min="0" max="15" step="1" value="0"
+                 aria-label="跳转到第几条报文" title="拖动跳到任意一条报文">
         </div>
       </div>
     </section>
@@ -244,7 +262,7 @@
       d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等的是客户端，也就是你。" },
     { dir:"c2s", who:"CLIENT", k:"decision", m:"approval 应答", br:true,
       j:'/* 批准 */\n{ "id": 77, "result": { "decision": "approved" } }\n\n/* 拒绝同样是有效应答 */\n{ "id": 77, "result": { "decision": "denied" } }',
-      d:"由你在下面决定。拒绝不是报错：模型会收到反馈并调整方案。" },
+      d:"由你在下面决定。批准和拒绝都是有效应答，区别只是模型接下来是执行还是改道。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed (command)", branch:"approved",
       j:'{ "method": "item/completed",\n  "params": { "type": "command_execution", "exitCode": 0 } }',
       d:"命令在沙箱内跑完了。管着它的可能是 Seatbelt、Landlock 或 WFP——取决于你在哪台机器上（见 03）。" },
@@ -264,6 +282,7 @@
   var posNum = document.getElementById("pos-num");
   var posTotal = document.getElementById("pos-total");
   var toggleBtn = document.getElementById("toggle");
+  var msgSeek = document.getElementById("msg-seek");
   var djMethod = document.getElementById("dj-method");
   var djPre = document.getElementById("dj-pre");
   var djDesc = document.getElementById("dj-desc");
@@ -305,7 +324,7 @@
       "</div>" +
       '<div class="mdesc">' + msg.d + "</div>";
     if (state !== "ghost") {
-      d.addEventListener("click", function () { showDetail(msg); });
+      d.addEventListener("click", function () { showDetail(msg); if (window.CAFlash) CAFlash(document.querySelector(".detail-json")); });
     }
     return d;
   }
@@ -336,6 +355,10 @@
     var list = visible();
     posTotal.textContent = pad(list.length);
     posNum.textContent = pad(cur);
+    if (msgSeek) {
+      msgSeek.max = list.length;
+      msgSeek.value = cur;
+    }
     seqBox.innerHTML = "";
     list.forEach(function (m, i) {
       var state = i < cur ? (i === cur - 1 ? "cur" : "past") : "ghost";
@@ -407,7 +430,13 @@
         var lineAttr = { x1: x1, y1: y, x2: x2, y2: y, stroke: col, "stroke-width": state === "cur" ? "2" : "1.3" };
         if (m.gate) lineAttr["stroke-dasharray"] = "6 4";
         lineAttr["marker-end"] = "url(#sg-" + (m.k === "decision" ? (branch === "denied" ? "deny" : "ok") : m.gate ? "deny" : toServer ? "steel" : "amber") + ")";
-        g.appendChild(sgEl("line", lineAttr));
+        var ln = sgEl("line", lineAttr);
+        /* 刚送达的报文：箭头从起点画向终点（pathLength 归一化成 0→1） */
+        if (state === "cur" && !m.gate) {
+          ln.setAttribute("pathLength", "1");
+          ln.classList.add("sg-draw");
+        }
+        g.appendChild(ln);
 
         var lt = sgEl("text", {
           x: (x1 + x2) / 2, y: y - 6, "text-anchor": "middle",
@@ -506,6 +535,14 @@
     stop(); if (cur > 0) { cur--; render(); }
   });
   document.getElementById("next").addEventListener("click", function () { advance(); });
+  if (msgSeek) {
+    msgSeek.addEventListener("input", function () {
+      stop();
+      var n = parseInt(msgSeek.value, 10);
+      cur = Math.max(0, Math.min(visible().length, isNaN(n) ? 0 : n));
+      render();
+    });
+  }
   document.getElementById("restart").addEventListener("click", function () {
     stop(); cur = 0; branch = null; wasPlayingAtGate = false;
     PanelState.write({ n: "", d: "" });
@@ -556,7 +593,7 @@
     { q: "拒绝审批之后，这轮对话会怎样？",
       opts: ["立即终止并报错", "永久挂起直到批准", "继续推进——模型收到反馈并调整方案"],
       a: 2,
-      why: "时间线的 denied 分支：拒绝被当成正常反馈消化掉，agent_message 换个思路接着来。拒绝不是报错。" }
+      why: "时间线的 denied 分支：agent_message 换个思路接着来，轮次一路推进到 turn/completed。拒绝是正常应答，协议层面连「失败」都算不上。" }
   ]);
 })();
 </script>

@@ -22,6 +22,10 @@
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --sans: "IBM Plex Sans", "Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", sans-serif;
   --rail-w: 216px;
+  /* 动效 token：微反馈 150ms · 状态切换 280ms，统一缓动 */
+  --t-fast: 0.15s;
+  --t-med: 0.28s;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 * { box-sizing: border-box; }
@@ -49,6 +53,17 @@ a, button, input[type="range"] { touch-action: manipulation; }
 }
 
 ::selection { background: var(--amber); color: #14100a; }
+
+/* 深色主题滚动条（Firefox 用 scrollbar-color，WebKit 用伪元素） */
+html { scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg0);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
 a { color: var(--steel); text-decoration: none; }
 a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -582,7 +597,7 @@ button.ribbon-seg { appearance: none; border-width: 0 1px 0 0; padding: 0; }
 .budget { margin-bottom: 16px; }
 .budget-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 7px; }
 .budget-track { display: flex; height: 12px; background: var(--bg0); border: 1px solid var(--line); overflow: hidden; }
-.budget-seg { height: 100%; min-width: 2px; transition: width 0.3s ease, opacity 0.3s ease; cursor: pointer; }
+.budget-seg { height: 100%; min-width: 2px; transform-origin: bottom; transition: width 0.3s ease, opacity 0.3s ease, transform var(--t-fast) var(--ease); cursor: pointer; }
 .budget-seg:hover { filter: brightness(1.35); }
 .budget-seg.over {
   background: repeating-linear-gradient(45deg, rgba(240,121,106,.8) 0 4px, rgba(240,121,106,.4) 4px 8px) !important;
@@ -1018,6 +1033,20 @@ table.rt tr.hidden { display: none; }
   0%, 91%, 100% { transform: scaleY(1); }
   94% { transform: scaleY(0.08); }
 }
+/* 答题反应：答对蹦一下、尾巴快摇；答错往下一沉 */
+.cod-pet.pet-happy svg { animation: pet-hop .6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cod-pet.pet-happy .cod-tail { animation-duration: .3s; }
+.cod-pet.pet-ouch svg { animation: pet-dip .55s ease-out; }
+@keyframes pet-hop {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-7px) rotate(-4deg); }
+  65% { transform: translateY(0); }
+  82% { transform: translateY(-3px); }
+}
+@keyframes pet-dip {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(3px) rotate(7deg); }
+}
 .cod-swim {
   position: fixed;
   z-index: 86;
@@ -1107,3 +1136,53 @@ table.rt tr.hidden { display: none; }
   letter-spacing: 0.12em;
   color: var(--faint);
 }
+
+/* ---------- 动效升级：按压反馈 / 内容闪示 / 选中脉冲 ---------- */
+
+/* 按压反馈：所有可点元素按下时轻微下沉，150ms 内回弹 */
+.btn:active:not(:disabled),
+.seg button:active,
+.cell:active,
+.cr:active:not(.dimmed),
+.cq-opt:active:not(:disabled),
+.mode-card:active,
+.act:active,
+.ribbon-seg:active { transform: translateY(1px); }
+.btn, .seg button, .cell, .cr, .cq-opt, .mode-card, .act, .ribbon-seg {
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast),
+              filter var(--t-fast), transform var(--t-fast) var(--ease), opacity var(--t-fast);
+}
+.budget-seg:active { transform: scaleY(0.92); }
+.budget-seg { transform-origin: bottom; }
+
+/* 内容闪示：选中/切换后给目标卡一次琥珀底光，标出"刚才那一下改了这里" */
+@keyframes ca-flash {
+  0% { background-color: rgba(255, 180, 84, 0.12); }
+  100% { background-color: transparent; }
+}
+.fx-flash { animation: ca-flash 0.6s ease-out; }
+
+/* 矩阵选中格：一圈向外扩散的选中脉冲 */
+@keyframes ca-sel-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 180, 84, 0.45); }
+  100% { box-shadow: 0 0 0 7px rgba(255, 180, 84, 0); }
+}
+.cell.sel { animation: ca-sel-pulse 0.45s ease-out; }
+
+/* 04 时序图：当前报文的箭头从起点画向终点（pathLength=1 归一化） */
+.seqscroll line.sg-draw {
+  stroke-dasharray: 1;
+  animation: sg-draw 0.4s ease-out both;
+}
+@keyframes sg-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* 05 检索命中芯片：轻微上浮入场，前几枚带阶梯延迟 */
+.cr.hit { animation: ca-rise 0.25s ease-out both; }
+.cr.hit:nth-child(2) { animation-delay: 0.02s; }
+.cr.hit:nth-child(3) { animation-delay: 0.04s; }
+.cr.hit:nth-child(4) { animation-delay: 0.06s; }
+.cr.hit:nth-child(5) { animation-delay: 0.08s; }
+.cr.hit:nth-child(n + 6) { animation-delay: 0.1s; }
+
+/* 移动端抽屉导航展开 */
+.mobile-nav.open { animation: ca-rise 0.18s ease-out; }

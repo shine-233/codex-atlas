@@ -48,7 +48,7 @@
   }
   .act:hover { border-color: var(--dim); color: var(--ink); }
   .act.on { border-color: var(--amber); color: var(--ink); background: var(--amber-dim); }
-  .act .glyph { font-family: var(--mono); color: var(--faint); width: 20px; flex-shrink: 0; }
+  .act .glyph { font-family: var(--mono); color: var(--faint); min-width: 20px; flex-shrink: 0; white-space: pre; }
   .act.on .glyph { color: var(--amber); }
 
   .verdict {
@@ -106,6 +106,25 @@
   .cell.allow { color: var(--ok); border-color: rgba(123,201,139,.45); background: var(--ok-dim); }
   .cell.deny { color: var(--deny); border-color: rgba(240,121,106,.45); background: var(--deny-dim); }
   .cell.cond { color: var(--amber); border-color: rgba(255,180,84,.45); background: var(--amber-dim); }
+
+  /* 自由命令判定台 */
+  .cmd-block { margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--line-strong); }
+  .cmd-line { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+  .cmd-input {
+    flex: 1; min-width: 220px;
+    background: var(--bg2); border: 1px solid var(--line-strong); color: var(--ink);
+    font-family: var(--mono); font-size: 13px; padding: 9px 12px;
+  }
+  .cmd-input:focus { border-color: var(--amber); outline: none; }
+  .cmd-input::placeholder { color: var(--faint); }
+  .cmd-ex { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+  .cmd-ex button {
+    font-family: var(--mono); font-size: 11px; color: var(--dim);
+    background: var(--bg2); border: 1px solid var(--line-strong);
+    padding: 3px 9px; cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .cmd-ex button:hover { color: var(--amber); border-color: var(--amber); }
 </style>
 </head>
 <body>
@@ -221,6 +240,22 @@
           <div class="v-mech" id="v-mech">
             强制执行机制：<b>—</b><br>相关源码位置：<b>—</b>
           </div>
+        </div>
+      </div>
+
+      <div class="cmd-block">
+        <div class="ctrl-row" style="margin-bottom:0;">
+          <div class="ctrl-label">FREE CONSOLE · 敲一条你自己的命令试试</div>
+          <div class="cmd-line">
+            <input type="text" id="cmd-in" class="cmd-input" spellcheck="false"
+                   placeholder="如 rm ~/notes.txt · curl https://api.openai.com · cargo test（Enter 判定）"
+                   aria-label="输入命令，归类到左侧六种场景做判定">
+          </div>
+          <div class="cmd-ex" id="cmd-ex" aria-label="示例命令，点击即判定"></div>
+          <p class="small muted" id="cmd-out" style="margin:10px 0 0;" aria-live="polite">
+            归类按关键词启发式完成：出网的先看网络闸口，写文件的看目标路径落在哪个区，
+            其余按普通读取处理。选中的场景会同步点亮左边那台判定器。
+          </p>
         </div>
       </div>
 
@@ -514,6 +549,14 @@
     });
   }
 
+  function chooseAct(a) {
+    curAct = a;
+    Array.prototype.forEach.call(actsBox.children, function (c, i) {
+      c.classList.toggle("on", !!ACTS[i] && ACTS[i].id === a.id);
+    });
+    renderVerdict();
+  }
+
   function buildActs() {
     actsBox.innerHTML = "";
     ACTS.forEach(function (a) {
@@ -521,12 +564,7 @@
       b.className = "act" + (curAct && curAct.id === a.id ? " on" : "");
       b.type = "button";
       b.innerHTML = '<span class="glyph">$ ' + a.glyph + '</span><span>' + a.name + "</span>";
-      b.addEventListener("click", function () {
-        curAct = a;
-        Array.prototype.forEach.call(actsBox.children, function (c) { c.classList.remove("on"); });
-        b.classList.add("on");
-        renderVerdict();
-      });
+      b.addEventListener("click", function () { chooseAct(a); });
       actsBox.appendChild(b);
     });
   }
@@ -628,6 +666,88 @@
   renderVerdict();
 
   window.addEventListener("hashchange", function () { location.reload(); });
+
+  /* ---------- FREE CONSOLE：任意命令 → 六类场景之一，复用整台判定器 ---------- */
+  (function () {
+    var input = document.getElementById("cmd-in");
+    var out = document.getElementById("cmd-out");
+    var exBox = document.getElementById("cmd-ex");
+    if (!input || !out || !exBox) return;
+
+    var EXAMPLES = [
+      "cat ~/.ssh/config",
+      "edit src/main.rs",
+      "rm ~/notes.txt",
+      "echo log > /tmp/build.log",
+      "curl https://api.openai.com/v1/models",
+      "cargo test"
+    ];
+    EXAMPLES.forEach(function (cmd) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = cmd;
+      b.addEventListener("click", function () {
+        input.value = cmd;
+        judge();
+        input.focus();
+      });
+      exBox.appendChild(b);
+    });
+
+    /* 启发式归类：出网 > 写入（按目标分区）> 工作区外读取 > 普通读取。
+       不是 shell 解析器；引号嵌套、变量展开这些一概不认。 */
+    function classify(raw) {
+      var s = raw.trim().toLowerCase();
+      if (!s) return null;
+
+      var net =
+        /(^|[\s;|&])(curl|wget|ping\d?|dig|nslookup|ssh|scp|sftp|telnet|nc)\b/.test(s) ||
+        /https?:\/\/|ftp:\/\//.test(s) ||
+        /(^|[\s;|&])(npm|pnpm|yarn)\s+(i\b|install|add|update)/.test(s) ||
+        /(^|[\s;|&])pip3?\s+install/.test(s) ||
+        /(^|[\s;|&])(cargo|brew)\s+(install|add|publish|upgrade)/.test(s) ||
+        /(^|[\s;|&])apt(-get)?\s+install/.test(s) ||
+        /(^|[\s;|&])git\s+(clone|push|pull|fetch)\b/.test(s);
+      if (net) return { id: "net",
+        rule: "要出网（下载依赖、推送、调远程接口）。workspace-write 默认断网——琥珀色那格就是它。" };
+
+      var write =
+        /(^|[\s;|&])(touch|mkdir|rmdir|rm|mv|cp|dd|truncate|chmod|chown|ln|patch|apply_patch|sed)\b/.test(s) ||
+        /(^|[^&>])[>]{1,2}/.test(s) ||
+        /\btee\b/.test(s);
+      if (write) {
+        if (/(^|[\s"'=])(\/tmp\/|\/var\/tmp|\$tmpdir|%temp%)/.test(s))
+          return { id: "wt", rule: "写系统临时目录。临时目录与工作目录同级放行（DiskWriteTempOnly 的语义）。" };
+        if (/(^|[\s"'=~])(~\/|\$home\/?|\/(etc|usr|opt|bin|sbin)\b)/.test(s))
+          return { id: "wo", rule: "写入目标在工作目录之外：先被沙箱墙挡住，能不能过看你的审批签名。" };
+        return { id: "ww", rule: "改动落在工作目录内——workspace-write 白名单的日常领地。" };
+      }
+
+      var readCmd = /(^|[\s;|&])(cat|less|more|head|tail|grep|rg|find|ls|stat|file|wc|awk)\b/.test(s);
+      if (readCmd && /(~\/|\$home\b|\/(etc|usr|var|opt)\b)/.test(s))
+        return { id: "ra", rule: "读工作区之外的文件。全盘可读是设计取舍——别指望沙箱替你保密。" };
+
+      return { id: "rw", rule: "没碰到网络与写入的痕迹，按最普通的「读工作区」处理——任何模式都放行。" };
+    }
+
+    function escapeHtml(t) {
+      return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function judge() {
+      var hit = classify(input.value);
+      if (!hit) return;
+      var act = ACTS.filter(function (a) { return a.id === hit.id; })[0];
+      chooseAct(act);
+      out.innerHTML = '<b style="font-family:var(--mono);">$ ' + escapeHtml(input.value.trim()) +
+        "</b><br>归入「" + act.name + "」· " + hit.rule;
+      if (window.CAFlash) CAFlash(document.querySelector(".verdict"));
+    }
+
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); judge(); }
+    });
+  })();
 
   /* ---------- CONFIG BRIDGE：把当前组合写成配置片段 ---------- */
   (function () {

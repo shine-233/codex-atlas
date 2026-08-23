@@ -67,7 +67,15 @@
       svg.appendChild(grid);
     }
 
-    /* 主回路走线 */
+    /* 主回路走线（非 plain 模式加一道极淡的琥珀底光，让电路有通电感） */
+    if (!opts.plain) {
+      svg.appendChild(el("rect", {
+        x: tx, y: ty, width: tw, height: th, rx: rx, ry: rx,
+        fill: "none",
+        stroke: "rgba(255,180,84,.07)",
+        "stroke-width": "6"
+      }));
+    }
     var trace = el("rect", {
       x: tx, y: ty, width: tw, height: th, rx: rx, ry: rx,
       fill: "none",
@@ -229,6 +237,29 @@
     /* 双向脉冲 */
     var paused = false;
     if (L2 && !window.PrefersReducedMotion) {
+      /* 拖尾：每个信号点带三枚渐隐残影，读出运动方向 */
+      function mkTrail(color) {
+        var arr = [];
+        [{ r: 2.3, o: 0.32 }, { r: 1.8, o: 0.18 }, { r: 1.4, o: 0.09 }].forEach(function (t) {
+          var c = el("circle", { r: t.r, fill: color, "fill-opacity": t.o });
+          arr.push(c); svg.appendChild(c);
+        });
+        return arr;
+      }
+      var trailA = mkTrail("#ffb454");
+      var trailB = mkTrail("#8fc7e8");
+      var histA = [], histB = [];
+      function pushHist(hist, p) {
+        hist.unshift(p);
+        if (hist.length > 16) hist.pop();
+      }
+      function placeTrail(trail, hist) {
+        for (var k = 0; k < trail.length; k++) {
+          var p = hist[Math.min(hist.length - 1, (k + 1) * 4)];
+          if (p) { trail[k].setAttribute("cx", p.x); trail[k].setAttribute("cy", p.y); }
+        }
+      }
+
       var dotA = el("circle", { r: 3.2, fill: "#ffb454" }); /* 请求：顺时针 */
       var dotB = el("circle", { r: 3.2, fill: "#8fc7e8" }); /* 事件：逆时针 */
       var haloA = el("circle", { r: 7, fill: "none", stroke: "#ffb454", "stroke-opacity": 0.35, "stroke-width": 1 });
@@ -244,6 +275,7 @@
         node.setAttribute("cy", p.y);
         halo.setAttribute("cx", p.x);
         halo.setAttribute("cy", p.y);
+        return p;
       }
 
       function frame(ts) {
@@ -253,8 +285,10 @@
         if (!paused) {
           da = (da + speed * dt / 1000) % L2;
           db = (db - speed * 0.72 * dt / 1000) % L2;
-          place(dotA, haloA, da);
-          place(dotB, haloB, db);
+          pushHist(histA, place(dotA, haloA, da));
+          pushHist(histB, place(dotB, haloB, db));
+          placeTrail(trailA, histA);
+          placeTrail(trailB, histB);
         }
         if (!document.hidden) requestAnimationFrame(frame);
         else setTimeout(function () { requestAnimationFrame(frame); }, 500);

@@ -70,6 +70,26 @@
   .controls .pos { font-family: var(--mono); font-size: 11px; color: var(--faint); white-space: nowrap; }
   .tick-ruler { display: flex; justify-content: space-between; padding: 0 2px; margin-top: -4px; }
   .tick-ruler i { width: 1px; height: 5px; background: var(--line-strong); }
+
+  /* 再采样圈数 · 历史增长条（与上方单步仪、下方成本对照同一套刻度） */
+  .lap-meter { padding: 14px 24px 4px; border-top: 1px dashed var(--line); margin-top: 18px; }
+  .lap-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 7px;
+  }
+  .lap-tag {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    letter-spacing: .08em;
+  }
+  .lap-track {
+    height: 12px; background: var(--bg0);
+    border: 1px solid var(--line-strong); overflow: hidden;
+  }
+  .lap-track i {
+    display: block; height: 100%; width: 10%;
+    background: linear-gradient(90deg, rgba(255,180,84,.45), rgba(255,180,84,.85));
+    transition: width .45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
 </style>
 </head>
 <body>
@@ -194,7 +214,16 @@
         第 9–12 步是一个可能转多圈的环：<b>只要有工具调用</b>，输出写回历史、Prompt 重新组装、再来一次采样；
         模型返回纯文本时环才断开，落到 TurnComplete。播放或单步上面的仪器，看信号在这个环上怎么走——
         或者反过来，直接点环上的方框，让仪器停在那一步。
+        停在第 13 站时再按一次「下一步」或 <span class="kbd">→</span>：这就是一次重采样，
+        环转回第 9 站，下面的历史条长一格。
       </p>
+      <div class="lap-meter">
+        <div class="lap-head">
+          <span class="lap-tag">HISTORY · 下一次采样要携带的历史（示意刻度 · 每转一圈 +10 单位）</span>
+          <span class="match-readout">已转 <b id="lap-n">0</b> 圈 · ≈ <b id="hist-n">10</b> 单位</span>
+        </div>
+        <div class="lap-track"><i id="lap-fill"></i></div>
+      </div>
     </section>
 
     <!-- 重采样成本对照 -->
@@ -313,6 +342,19 @@
   var playing = false;
   var timer = null;
   var speed = 1;
+  var laps = 0;   /* 环转过的圈数：第 13 站再「下一步」时 +1，回到第 9 站 */
+
+  var lapN = document.getElementById("lap-n");
+  var histN = document.getElementById("hist-n");
+  var lapFill = document.getElementById("lap-fill");
+
+  function renderLaps(flash) {
+    if (!lapN) return;
+    lapN.textContent = laps;
+    histN.textContent = 10 * (laps + 1);
+    lapFill.style.width = Math.min(100, (laps + 1) * 10) + "%";
+    if (flash) CAFlash(lapFill.parentElement);
+  }
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -346,10 +388,19 @@
     posNow.textContent = pad(i);
     posNum.textContent = pad(i);
     seek.value = i;
+    /* 内容切换时轻推一次，让眼睛跟上换了哪站 */
+    var det = dTitle.parentElement;
+    if (det && window.PrefersReducedMotion !== true) {
+      det.classList.remove("ca-rise");
+      void det.offsetWidth;
+      det.classList.add("ca-rise");
+    }
   }
 
   function setStage(i, keepPlaying) {
     cur = Math.max(1, Math.min(STAGES.length, i));
+    /* 导航回会话建立段：环演示归零 */
+    if (cur <= 8 && laps) { laps = 0; renderLaps(false); }
     renderDetail(cur);
     Array.prototype.forEach.call(rail.children, function (li, idx) {
       li.classList.toggle("on", idx === cur - 1);
@@ -391,9 +442,21 @@
     }, Math.round(2600 / speed));
   }
 
+  /* 下一步：在第 13 站再按一次，就是工具调用后的重采样——环转回第 9 站 */
+  function goNext() {
+    stop();
+    if (cur >= STAGES.length) {
+      laps++;
+      setStage(9);
+      renderLaps(true);
+    } else {
+      setStage(cur + 1);
+    }
+  }
+
   toggleBtn.addEventListener("click", function () { playing ? stop() : start(); });
   document.getElementById("prev").addEventListener("click", function () { stop(); setStage(cur - 1); });
-  document.getElementById("next").addEventListener("click", function () { stop(); setStage(cur + 1); });
+  document.getElementById("next").addEventListener("click", goNext);
   seek.addEventListener("input", function () { stop(); setStage(parseInt(seek.value, 10)); });
 
   Array.prototype.forEach.call(document.querySelectorAll(".seg [data-sp]"), function (b) {
@@ -408,7 +471,7 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-    if (e.key === "ArrowRight") { e.preventDefault(); stop(); setStage(cur + 1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); goNext(); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); setStage(cur - 1); }
     else if (e.key === " " ) {
       var tag = e.target.tagName;
@@ -421,6 +484,7 @@
   /* URL 状态恢复 */
   var saved = parseInt(PanelState.read().s, 10);
   setStage(isNaN(saved) ? 1 : saved);
+  renderLaps(false);
 
   window.addEventListener("hashchange", function () { location.reload(); });
 
@@ -592,7 +656,28 @@
       return out;
     }
 
-    function render() {
+    /* 柱子复用 DOM：拖滑杆时高度走 CSS 过渡，而不是整块重建 */
+    var builtGroups = 0;
+    function ensureGroups(n) {
+      while (builtGroups < n) {
+        var g = document.createElement("div"); g.className = "cost-group";
+        var a = document.createElement("div"); a.className = "cost-bar amber";
+        var s2 = document.createElement("div"); s2.className = "cost-bar steel";
+        g.appendChild(a); g.appendChild(s2);
+        barsBox.appendChild(g);
+        var xl = document.createElement("span");
+        xl.textContent = "第 " + (builtGroups + 1) + " 次";
+        xBox.appendChild(xl);
+        builtGroups++;
+      }
+      while (builtGroups > n) {
+        barsBox.lastChild.remove();
+        xBox.lastChild.remove();
+        builtGroups--;
+      }
+    }
+
+    function render(growIn) {
       var laps = parseInt(lapsInput.value, 10);
       if (isNaN(laps) || laps < 1) return;
       lapsN.textContent = laps;
@@ -600,31 +685,43 @@
       var cumNoCache = cumulate(costNoCache, laps);
       var cumCache = cumulate(costCache, laps);
       var MAXV = cumNoCache[laps - 1];
+      ensureGroups(laps);
 
-      barsBox.innerHTML = "";
-      xBox.innerHTML = "";
       for (var j = 0; j < laps; j++) {
-        var g = document.createElement("div"); g.className = "cost-group";
-        var a = document.createElement("div"); a.className = "cost-bar amber";
-        var s2 = document.createElement("div"); s2.className = "cost-bar steel";
-        g.appendChild(a); g.appendChild(s2);
-        barsBox.appendChild(g);
-
-        a.style.height = Math.round(cumNoCache[j] / MAXV * 100) + "%";
-        s2.style.height = Math.round((useCache ? cumCache[j] : cumNoCache[j]) / MAXV * 100) + "%";
+        var grp = barsBox.children[j];
+        var a = grp.children[0], s2 = grp.children[1];
+        var ha = Math.round(cumNoCache[j] / MAXV * 100) + "%";
+        var hs = Math.round((useCache ? cumCache[j] : cumNoCache[j]) / MAXV * 100) + "%";
+        if (growIn && window.PrefersReducedMotion !== true) {
+          /* 先归零，下一帧再给目标值，让过渡从 0 长出来 */
+          a.style.height = "0%"; s2.style.height = "0%";
+          (function (a, s2, ha, hs) {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () { a.style.height = ha; s2.style.height = hs; });
+            });
+          })(a, s2, ha, hs);
+        } else {
+          a.style.height = ha; s2.style.height = hs;
+        }
         a.title = "第 " + (j + 1) + " 次采样 · 无缓存累计 ≈ " + cumNoCache[j] + " 单位";
         s2.title = "第 " + (j + 1) + " 次采样 · " +
           (useCache ? "缓存命中累计 ≈ " + Math.round(cumCache[j]) : "无缓存累计 ≈ " + cumNoCache[j]) + " 单位";
-
-        var xl = document.createElement("span");
-        xl.textContent = "第 " + (j + 1) + " 次";
-        xBox.appendChild(xl);
       }
     }
 
-    lapsInput.addEventListener("input", render);
-    cacheToggle.addEventListener("change", render);
-    render();
+    lapsInput.addEventListener("input", function () { render(false); });
+    cacheToggle.addEventListener("change", function () { render(false); });
+
+    /* 进入视口时柱子从零长一次；之前先按终值渲染兜底 */
+    render(false);
+    if (!window.PrefersReducedMotion && "IntersectionObserver" in window) {
+      var grown = false;
+      new IntersectionObserver(function (ents, obs) {
+        ents.forEach(function (en) {
+          if (en.isIntersecting && !grown) { grown = true; render(true); obs.disconnect(); }
+        });
+      }, { rootMargin: "0px 0px -8% 0px" }).observe(barsBox);
+    }
   })();
 
   LoopScope.mount(document.getElementById("miniscope"), {

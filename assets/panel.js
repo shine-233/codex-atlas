@@ -178,6 +178,9 @@
             } catch (e) { /* 存不上就算了 */ }
             ex.innerHTML = "<b>" + (oi === item.a ? "答对了。" : "差一点。") + "</b> " + item.why;
             maybeAllClear();
+            try {
+              document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: oi === item.a } }));
+            } catch (e) { /* 老浏览器就跳过 */ }
           });
           opts.appendChild(b);
         });
@@ -201,6 +204,14 @@
 (function () {
   "use strict";
   var reduced = window.PrefersReducedMotion === true;
+
+  /* 内容闪示：目标元素重放一次琥珀底光，标出"刚才的操作改了这里" */
+  window.CAFlash = function (el) {
+    if (!el || reduced) return;
+    el.classList.remove("fx-flash");
+    void el.offsetWidth;
+    el.classList.add("fx-flash");
+  };
 
   /* 阅读进度：顶部 2px 琥珀条 */
   var bar = document.createElement("div");
@@ -367,4 +378,34 @@
     });
     if (!reduced) setTimeout(swimOnce, 700);
   });
+
+  /* 答题反馈：答对原地一蹦，答错往下一沉。不弹提示，别打断做题。 */
+  var reactTimer = null;
+  document.addEventListener("ca:quiz", function (ev) {
+    if (reduced) return;
+    var ok = !!(ev.detail && ev.detail.ok);
+    pet.classList.remove("pet-happy", "pet-ouch");
+    void pet.offsetWidth;
+    pet.classList.add(ok ? "pet-happy" : "pet-ouch");
+    if (reactTimer) clearTimeout(reactTimer);
+    reactTimer = setTimeout(function () {
+      pet.classList.remove("pet-happy", "pet-ouch");
+    }, 900);
+  });
+
+  /* Web 字体就绪后重排一遍 SVG 文本：个别在回退字体下完成首排的节点，
+     字体交换后不重新量宽，拉丁词会以零宽度消失（Chromium 实测）。 */
+  function resvgTexts() {
+    document.querySelectorAll("svg text").forEach(function (t) {
+      var s = t.textContent;
+      if (!s) return;
+      t.textContent = "";
+      t.textContent = s;
+    });
+  }
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(resvgTexts);
+  } else {
+    window.addEventListener("load", resvgTexts);
+  }
 })();

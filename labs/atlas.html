@@ -396,6 +396,30 @@
   var bandEls = {};
   var RIBBON_ALPHA = [0.92, 0.8, 0.68, 0.58, 0.48, 0.4, 0.32, 0.24, 0.18];
 
+  /* 成员名索引：注解里点到的名字可以一键跳过去 */
+  var CRATE_INDEX = {};
+  BANDS.forEach(function (bb) {
+    bb.crates.forEach(function (n) { if (!CRATE_INDEX[n]) CRATE_INDEX[n] = bb; });
+  });
+  var ALL_NAMES = Object.keys(CRATE_INDEX).sort(function (a, c) { return c.length - a.length; });
+  function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  var NAME_RE = new RegExp("(" + ALL_NAMES.map(escapeRe).join("|") + ")", "g");
+  function isWordCh(ch) { return /[A-Za-z0-9_$\-./]/.test(ch); }
+
+  /* 注解文本里的成员名 → 可点击交叉引用（单趟替换，最多 8 处） */
+  function linkifyNote(text, selfName) {
+    var esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    var made = 0;
+    return esc.replace(NAME_RE, function (m, p1, off) {
+      if (made >= 8 || m === selfName) return m;
+      var before = off > 0 ? esc.charAt(off - 1) : "";
+      var after = esc.charAt(off + m.length) || "";
+      if (isWordCh(before) || isWordCh(after)) return m;
+      made++;
+      return '<button type="button" class="cr xref" data-x="' + m + '">' + m + "</button>";
+    });
+  }
+
   function total() {
     return BANDS.reduce(function (n, b) { return n + b.crates.length; }, 0);
   }
@@ -524,6 +548,39 @@
     dcBody.textContent = b.desc;
   }
 
+  function selectCrate(band, name, chipEl) {
+    selCrate = name;
+    dcBand.textContent = band.no + " · " + band.en;
+    dcName.textContent = name;
+    var note = (band.notes && band.notes[name]) ||
+      "属于「" + band.name + "」带。要定位它的角色：从所在带入手，回到仓库看这个 crate 的 lib.rs 头部注释与依赖方向。";
+    dcBody.innerHTML = linkifyNote(note, name);
+    if (window.CAFlash) {
+      CAFlash(chipEl
+        ? chipEl.closest(".panel").querySelector(".detail-card")
+        : document.querySelector(".detail-card"));
+    }
+    Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
+      c.classList.toggle("sel", c === chipEl);
+    });
+  }
+
+  /* 点交叉引用：滚到目标成员并选中它 */
+  dcBody.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t.classList || !t.classList.contains("xref")) return;
+    var nm = t.getAttribute("data-x");
+    var band = CRATE_INDEX[nm];
+    if (!band) return;
+    var target = null;
+    Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
+      if (!target && c.textContent === nm) target = c;
+    });
+    if (!target) return;
+    target.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "nearest" });
+    selectCrate(band, nm, target);
+  });
+
   function build() {
     bandsBox.innerHTML = "";
     BANDS.forEach(function (b) {
@@ -562,14 +619,7 @@
         chip.textContent = name;
         chip.dataset.band = b.no;
         chip.addEventListener("click", function () {
-          selCrate = name;
-          dcBand.textContent = b.no + " · " + b.en;
-          dcName.textContent = name;
-          dcBody.textContent = (b.notes && b.notes[name]) ||
-            "属于「" + b.name + "」带。要定位它的角色：从所在带入手，回到仓库看这个 crate 的 lib.rs 头部注释与依赖方向。";
-          Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
-            c.classList.toggle("sel", c === chip);
-          });
+          selectCrate(b, name, chip);
         });
         wrap.appendChild(chip);
       });
