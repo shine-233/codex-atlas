@@ -87,6 +87,11 @@
   }
   .view-note { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .06em; }
   .tm-wrap { position: relative; margin-top: 12px; border: 1px solid var(--line-strong); background: var(--bg0); overflow: hidden; }
+  /* 3D 星系视图 */
+  #galaxy { height: 440px; }
+  #galaxy canvas { display: block; }
+  @media (max-width: 720px) { #galaxy { height: 340px; } }
+  .galaxy-cap { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .05em; margin: 8px 0 0; line-height: 1.7; }
   .tm-band-tag {
     position: absolute; z-index: 3; pointer-events: none;
     font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
@@ -438,6 +443,7 @@
   var ribbonBox = document.getElementById("ribbon");
 
   var selCrate = null;
+  var FILTER_Q = "";   /* 当前检索词：3D 星系视图逐帧读取它做暗化 */
   var bandEls = {};
   var RIBBON_ALPHA = [0.92, 0.8, 0.68, 0.58, 0.48, 0.4, 0.32, 0.24, 0.18];
 
@@ -717,13 +723,25 @@
 
     function setView(v) {
       var tree = v === "tree";
+      var gal = v === "galaxy";
       Array.prototype.forEach.call(document.querySelectorAll("[data-vw]"), function (x) {
         x.classList.toggle("on", x.getAttribute("data-vw") === v);
       });
       tmBox.hidden = !tree;
-      bandsBox.style.display = tree ? "none" : "";
-      PanelState.write({ vw: tree ? "tree" : "" });
+      var galBox = document.getElementById("galaxy");
+      var galCap = document.getElementById("galaxy-cap");
+      if (galBox) galBox.hidden = !gal;
+      if (galCap) galCap.hidden = !gal;
+      bandsBox.style.display = (tree || gal) ? "none" : "";
+      PanelState.write({ vw: tree ? "tree" : (gal ? "galaxy" : "") });
+      var note = document.getElementById("vw-note");
+      if (note) note.textContent = tree
+        ? "树图模式：格子面积 = 该带成员数占比 · 悬停看全名 · 点击选中"
+        : gal
+          ? "星系模式：拖拽旋转（松手带惯性）· 滚轮 / 双指缩放 · 悬停看名字 · 点击选中进详情"
+          : "列表模式：九条带分组 · 点击成员看注解";
       if (tree) render();
+      if (window.CAGalaxy) { gal ? CAGalaxy.wake() : CAGalaxy.sleep(); }
     }
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-vw]"), function (b) {
@@ -732,12 +750,297 @@
 
     var rzT = null;
     window.addEventListener("resize", function () {
-      if (tmBox.hidden) return;
-      clearTimeout(rzT);
-      rzT = setTimeout(render, 160);
+      if (!tmBox.hidden) {
+        clearTimeout(rzT);
+        rzT = setTimeout(render, 160);
+      }
+      if (window.CAGalaxy && !document.getElementById("galaxy").hidden) CAGalaxy.wake();
     });
 
-    if (PanelState.read().vw === "tree") setView("tree");
+    var v0 = PanelState.read().vw;
+    if (v0 === "tree") setView("tree");
+    else if (v0 === "galaxy") setView("galaxy");
+  })();
+
+  /* ---------- 3D 星系视图：OrbitControls 交互词汇表（拖拽旋转+阻尼惯性 /
+     滚轮与双指缩放 / 闲置自转 / 悬停高亮 / 点击选中）的手写零依赖实现。
+     布局：九条带的中心按球面金螺旋分布，成员在带心周围球内聚团；
+     固定种子 LCG —— 同一基线下星图逐点可复现。 ---------- */
+  (function () {
+    var host = document.getElementById("galaxy");
+    if (!host || !window.CanvasRenderingContext2D) return;
+    var canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;";
+    host.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    var REDUCED = window.PrefersReducedMotion === true;
+    var AMBER = "255,180,84", STEEL = "143,199,232", INK = "231,237,243";
+    var FOV = 3.4;
+
+    /* 确定性随机：种子取自基线提交号前缀 */
+    var seed = 875748820;
+    function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+    var PTS = [], CENTERS = [];
+    (function build() {
+      var n = BANDS.length;
+      for (var i = 0; i < n; i++) {
+        var phi = Math.acos(1 - 2 * (i + 0.5) / n);
+        var th = Math.PI * (1 + Math.sqrt(5)) * i;
+        var cx = Math.sin(phi) * Math.cos(th);
+        var cy = Math.cos(phi);
+        var cz = Math.sin(phi) * Math.sin(th);
+        CENTERS.push({ x: cx, y: cy, z: cz, no: BANDS[i].no, name: BANDS[i].name });
+        var rb = 0.13 + BANDS[i].crates.length * 0.0042;
+        BANDS[i].crates.forEach(function (name) {
+          var u = rnd() * 2 - 1, ang = rnd() * 6.2832, rr = rb * Math.cbrt(rnd());
+          var s = Math.sqrt(1 - u * u);
+          PTS.push({
+            x: cx + rr * s * Math.cos(ang),
+            y: cy + rr * u,
+            z: cz + rr * s * Math.sin(ang),
+            name: name, bi: i
+          });
+        });
+      }
+    })();
+
+    var W = 0, H = 0, dpr = 1;
+    function size() {
+      var r = host.getBoundingClientRect();
+      W = Math.max(1, Math.round(r.width));
+      H = Math.max(1, Math.round(r.height));
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    var ax = -0.32, ay = 0.55, vax = 0, vay = 0, zoomv = 1;
+    var dragging = false, moved = 0, lastX = 0, lastY = 0;
+    var mx = -1, my = -1, hover = -1;
+    var lastInteract = 0, running = false, raf = 0, t0 = 0;
+    var pointers = {}, pinchDist = 0;
+
+    function frame(ts) {
+      var now = ts || performance.now();
+
+      /* 入场：星图从中心长出来（start small, build big） */
+      var intro = REDUCED ? 1 : Math.min(1, (now - t0) / 950);
+      var introE = 1 - Math.pow(1 - intro, 3);
+
+      /* 惯性 + 闲置自转 */
+      if (!dragging) {
+        if (!REDUCED && now - lastInteract > 2600) vay += (0.0021 - vay) * 0.02;
+        else vay *= 0.94;
+        vax *= 0.9;
+        ay += vay; ax += vax;
+      }
+      if (ax > 1.25) { ax = 1.25; vax = 0; }
+      if (ax < -1.25) { ax = -1.25; vax = 0; }
+
+      var cay = Math.cos(ay), say = Math.sin(ay);
+      var cax = Math.cos(ax), sax = Math.sin(ax);
+      var radBase = Math.min(W, H) * 0.345 * zoomv * introE;
+      var cx0 = W / 2, cy0 = H / 2;
+
+      function proj(x, y, z) {
+        var x1 = x * cay + z * say;
+        var z1 = -x * say + z * cay;
+        var y2 = y * cax - z1 * sax;
+        var z2 = y * sax + z1 * cax;
+        var per = FOV / (FOV + z2);
+        return { sx: cx0 + x1 * radBase * per, sy: cy0 + y2 * radBase * per, z: z2, per: per };
+      }
+
+      ctx.clearRect(0, 0, W, H);
+      var i, p, pr;
+
+      /* 带心 → 成员的暗连线（constellation 语法） */
+      var pc = [];
+      for (i = 0; i < CENTERS.length; i++) pc.push(proj(CENTERS[i].x, CENTERS[i].y, CENTERS[i].z));
+      ctx.lineWidth = 1;
+      for (i = 0; i < PTS.length; i++) {
+        p = PTS[i];
+        pr = proj(p.x, p.y, p.z);
+        p._sx = pr.sx; p._sy = pr.sy; p._z = pr.z; p._per = pr.per;
+        var c = pc[p.bi];
+        var la = 0.055 * (1 - (pr.z + 1) / 2) + 0.015;
+        ctx.strokeStyle = "rgba(" + STEEL + "," + la.toFixed(3) + ")";
+        ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(pr.sx, pr.sy); ctx.stroke();
+      }
+
+      /* 带心标记与标签（朝向观察者时） */
+      ctx.font = "10px IBM Plex Mono, monospace";
+      ctx.textAlign = "center";
+      for (i = 0; i < CENTERS.length; i++) {
+        var cc = pc[i];
+        if (cc.z > 0.45) continue;
+        var ca = 0.5 * (1 - (cc.z + 1) / 2) + 0.12;
+        ctx.fillStyle = "rgba(" + STEEL + "," + (ca * 0.9).toFixed(3) + ")";
+        ctx.fillRect(cc.sx - 1.5, cc.sy - 1.5, 3, 3);
+        ctx.fillStyle = "rgba(" + INK + "," + (ca * 0.75).toFixed(3) + ")";
+        ctx.fillText(CENTERS[i].no + " · " + CENTERS[i].name, cc.sx, cc.sy - 8);
+      }
+
+      /* 成员：按深度排序后绘制 */
+      var order = PTS.slice().sort(function (a, b) { return b._z - a._z; });
+      hover = -1;
+      var hdist = 144;
+      for (i = 0; i < order.length; i++) {
+        p = order[i];
+        var depth = 1 - (p._z + 1) / 2;
+        var isSel = selCrate === p.name;
+        var hayHit = !FILTER_Q || (SEARCH_TEXT[p.name] || p.name.toLowerCase()).indexOf(FILTER_Q) !== -1;
+        var a = (0.22 + 0.6 * depth) * (hayHit ? 1 : 0.1);
+        var r = 2.1 * p._per * (isSel ? 1.5 : 1);
+        ctx.fillStyle = "rgba(" + AMBER + "," + a.toFixed(3) + ")";
+        ctx.beginPath(); ctx.arc(p._sx, p._sy, r, 0, 6.2832); ctx.fill();
+        if (isSel) {
+          ctx.strokeStyle = "rgba(" + AMBER + ",.85)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(p._sx, p._sy, r + 3.5, 0, 6.2832); ctx.stroke();
+        }
+        if (!dragging && hayHit && mx >= 0) {
+          var dxh = p._sx - mx, dyh = p._sy - my;
+          var d2 = dxh * dxh + dyh * dyh;
+          if (d2 < hdist) { hdist = d2; hover = PTS.indexOf(p); }
+        }
+      }
+
+      /* 悬停名牌 */
+      if (hover >= 0) {
+        var hp = PTS[hover];
+        var label = hp.name + " · " + BANDS[hp.bi].no;
+        ctx.font = "11px IBM Plex Mono, monospace";
+        var tw = ctx.measureText(label).width;
+        var lx = Math.min(W - tw - 18, Math.max(6, hp._sx + 10));
+        var ly = Math.max(6, hp._sy - 26);
+        ctx.fillStyle = "rgba(16,20,24,.93)";
+        ctx.strokeStyle = "rgba(" + AMBER + ",.45)";
+        ctx.lineWidth = 1;
+        ctx.fillRect(lx, ly, tw + 14, 20);
+        ctx.strokeRect(lx + 0.5, ly + 0.5, tw + 13, 19);
+        ctx.fillStyle = "rgba(" + INK + ",.95)";
+        ctx.textAlign = "left";
+        ctx.fillText(label, lx + 7, ly + 14);
+        ctx.textAlign = "center";
+      }
+
+      if (running) raf = requestAnimationFrame(frame);
+      else raf = 0;
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      raf = requestAnimationFrame(frame);
+    }
+    function stop() {
+      running = false;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    }
+    function drawOnce() {
+      stop();
+      size();
+      frame(performance.now());
+    }
+    var inView = true;
+    function sync() {
+      if (!viewOn || !inView) { stop(); return; }
+      if (REDUCED) drawOnce();
+      else start();
+    }
+
+    function wake() { viewOn = true; size(); sync(); }
+    function sleep() { viewOn = false; stop(); }
+
+    canvas.addEventListener("pointerdown", function (e) {
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (Object.keys(pointers).length === 2) {
+        var ks = Object.keys(pointers);
+        pinchDist = Math.hypot(pointers[ks[0]].x - pointers[ks[1]].x, pointers[ks[0]].y - pointers[ks[1]].y);
+      }
+      dragging = true; moved = 0;
+      lastX = e.clientX; lastY = e.clientY;
+      lastInteract = performance.now();
+      canvas.style.cursor = "grabbing";
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      var rect = canvas.getBoundingClientRect();
+      mx = e.clientX - rect.left; my = e.clientY - rect.top;
+      if (dragging) {
+        if (Object.keys(pointers).length === 2 && pointers[e.pointerId]) {
+          pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+          var ks2 = Object.keys(pointers);
+          var d2 = Math.hypot(pointers[ks2[0]].x - pointers[ks2[1]].x, pointers[ks2[0]].y - pointers[ks2[1]].y);
+          if (pinchDist > 0) {
+            zoomv = Math.max(0.55, Math.min(2.4, zoomv * d2 / pinchDist));
+          }
+          pinchDist = d2;
+          lastInteract = performance.now();
+          return;
+        }
+        var dx = e.clientX - lastX, dy = e.clientY - lastY;
+        moved += Math.abs(dx) + Math.abs(dy);
+        ay += dx * 0.0052;
+        ax += dy * 0.0042;
+        vay = dx * 0.0052 * 0.55;
+        vax = dy * 0.0042 * 0.55;
+        lastX = e.clientX; lastY = e.clientY;
+        lastInteract = performance.now();
+      }
+    });
+    function endPointer(e) {
+      delete pointers[e.pointerId];
+      if (dragging && moved < 6 && hover >= 0) {
+        var p = PTS[hover];
+        selectCrate(BANDS[p.bi], p.name, null);
+      }
+      dragging = false;
+      pinchDist = 0;
+      lastInteract = performance.now();
+      canvas.style.cursor = hover >= 0 ? "pointer" : "grab";
+    }
+    canvas.addEventListener("pointerup", endPointer);
+    canvas.addEventListener("pointercancel", endPointer);
+    canvas.addEventListener("pointerleave", function () { mx = -1; my = -1; });
+    canvas.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      zoomv = Math.max(0.55, Math.min(2.4, zoomv * (e.deltaY < 0 ? 1.09 : 0.917)));
+      lastInteract = performance.now();
+    }, { passive: false });
+
+    function pickAt(x, y) {
+      var best = -1, bd = 196;
+      for (var i = 0; i < PTS.length; i++) {
+        var p = PTS[i];
+        if (p._sx === undefined) continue;
+        var ddx = p._sx - x, ddy = p._sy - y;
+        var dd = ddx * ddx + ddy * ddy;
+        if (dd < bd) { bd = dd; best = i; }
+      }
+      return best;
+    }
+
+    window.addEventListener("resize", function () { if (viewOn) { size(); sync(); } });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) { inView = en.isIntersecting; sync(); });
+      }, { rootMargin: "80px" }).observe(host);
+    }
+
+    window.CAGalaxy = {
+      wake: wake, sleep: sleep,
+      probe: function (x, y) {
+        var i = pickAt(x, y);
+        return i >= 0 ? { name: PTS[i].name, band: BANDS[PTS[i].bi].no, x: PTS[i]._sx, y: PTS[i]._sy } : null;
+      },
+      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pts: PTS.length, running: running }; }
+    };
   })();
 
   function selectCrate(band, name, chipEl) {
@@ -850,8 +1153,11 @@
 
   function applyFilter() {
     var q = qInput.value.trim().toLowerCase();
+    FILTER_Q = q;
     var tm = document.getElementById("treemap");
+    var gal = document.getElementById("galaxy");
     var inTree = tm && !tm.hidden;
+    var inGal = gal && !gal.hidden;
     var all = document.querySelectorAll("#bands .cr, #treemap .cr");
     var hits = 0;
     if (!q) {
@@ -868,9 +1174,16 @@
       var isHit = hay.indexOf(q) !== -1;
       c.classList.toggle("dimmed", !isHit);
       c.classList.toggle("hit", isHit);
-      /* 命中数只按当前可见视图计，避免列表和树图重复计数 */
-      if (isHit && (inTree ? c.closest("#treemap") !== null : c.closest("#bands") !== null)) hits++;
+      /* 命中数只按当前可见视图计，避免三视图重复计数 */
+      if (isHit && (inTree ? c.closest("#treemap") !== null : (!inGal && c.closest("#bands") !== null))) hits++;
     });
+    if (inGal) {
+      /* 星系视图里没有 .cr 元素，直接按可检索文本计数 */
+      hits = 0;
+      Object.keys(SEARCH_TEXT).forEach(function (nm) {
+        if (SEARCH_TEXT[nm].indexOf(q) !== -1) hits++;
+      });
+    }
     matchOut.innerHTML = hits
       ? '匹配 <b>' + hits + "</b> / " + total()
       : "没有匹配 — 换个中文或英文关键词试试";

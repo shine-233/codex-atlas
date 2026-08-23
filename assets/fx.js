@@ -30,6 +30,7 @@
     var W = 0, H = 0, dpr = 1;
     var AMBER = "255,180,84", STEEL = "143,199,232";
     var parts = [];
+    var sparks = [];   /* 点击爆裂：tsParticles 的 onclick burst 手写版 */
     var mouse = { x: -999, y: -999 };
     var running = false, rafId = 0;
 
@@ -103,6 +104,16 @@
         ctx.fillStyle = "rgba(" + p.c + "," + a.toFixed(3) + ")";
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
       }
+      /* 爆裂火花：短命、减速、淡出 */
+      for (i = sparks.length - 1; i >= 0; i--) {
+        var s2 = sparks[i];
+        s2.life -= 0.028;
+        if (s2.life <= 0) { sparks.splice(i, 1); continue; }
+        s2.vx *= 0.955; s2.vy *= 0.955;
+        s2.x += s2.vx; s2.y += s2.vy;
+        ctx.fillStyle = "rgba(" + s2.c + "," + (s2.life * 0.85).toFixed(3) + ")";
+        ctx.beginPath(); ctx.arc(s2.x, s2.y, s2.r * s2.life, 0, 6.2832); ctx.fill();
+      }
       rafId = requestAnimationFrame(frame);
     }
 
@@ -121,6 +132,20 @@
       mouse.y = e.clientY - rect.top;
     });
     host.parentElement.addEventListener("pointerleave", function () { mouse.x = -999; mouse.y = -999; });
+    host.parentElement.addEventListener("pointerdown", function (e) {
+      if (sparks.length > 90) return;
+      var rect = host.getBoundingClientRect();
+      var bx = e.clientX - rect.left, by = e.clientY - rect.top;
+      for (var i = 0; i < 14; i++) {
+        var ang = Math.random() * 6.2832, sp = 0.8 + Math.random() * 2.3;
+        sparks.push({
+          x: bx, y: by,
+          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+          life: 1, r: 1 + Math.random() * 1.5,
+          c: Math.random() < 0.55 ? AMBER : STEEL
+        });
+      }
+    });
 
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (ents) {

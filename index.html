@@ -286,7 +286,12 @@
 <script src="assets/fx.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>
-if (window.CATilt) CATilt(document.querySelectorAll(".panel"));
+/* 首页线路面板由 fx.js 的平面包裹倾斜负责（防边缘抖动 + 回弹过渡），
+   CATilt 只接管没被包裹的散卡，避免两套 transform 互相覆盖。 */
+if (window.CATilt) CATilt(Array.prototype.filter.call(
+  document.querySelectorAll(".panel"),
+  function (p) { return !p.parentElement.classList.contains("fx-tilt-wrap"); }
+));
 </script>
 <script>
 /* 自检通关徽章：读取各页 CHECKPOINT 的最好成绩（只统计五条主线，支线单独显示） */
