@@ -14,6 +14,9 @@
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/glossary.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <style>
   .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -126,7 +129,7 @@
         <input type="text" id="q" class="search-box"
                placeholder="输入术语片段，如 sse / seatbelt / 缓存 …（Esc 清除）"
                aria-label="检索术语">
-        <span class="match-readout" id="match-out">匹配 <b>0</b> / 0</span>
+        <span class="match-readout" id="match-out" aria-live="polite">匹配 <b>0</b> / 0</span>
       </div>
       <p class="small muted" style="margin:10px 0 0;">
         中英文都能搜：试试「缓存」「挂起」「轮次」。
@@ -137,16 +140,16 @@
           <button data-md="look" class="on">速查</button>
           <button data-md="drill">自测</button>
         </div>
-        <span class="match-readout" id="drill-out"></span>
+        <span class="match-readout" id="drill-out" aria-live="polite"></span>
       </div>
 
       <div class="deck" id="deck" hidden>
         <div class="deck-bar">
-          <span class="match-readout" id="deck-pos"></span>
+          <span class="match-readout" id="deck-pos" aria-live="polite"></span>
           <span class="grow" style="flex:1;"></span>
           <button class="btn" id="deck-shuffle" type="button">↻ 重排顺序</button>
         </div>
-        <button type="button" class="fcard" id="fcard">
+        <button type="button" class="fcard" id="fcard" aria-expanded="false">
           <span class="fc-mark" id="fc-mark" hidden>已记</span>
           <span class="fc-term" id="fc-term"></span>
           <div class="fc-back">
@@ -156,10 +159,10 @@
           <span class="fc-hint">点卡片或按空格翻面 · 翻面前先在脑子里答一遍</span>
         </button>
         <div class="deck-actions">
-          <button class="btn" id="d-prev" type="button">◀</button>
+          <button class="btn" id="d-prev" type="button" aria-label="上一张">◀</button>
           <button class="btn" id="d-known" type="button">✓ 记得</button>
           <button class="btn" id="d-unknown" type="button">✗ 忘了</button>
-          <button class="btn" id="d-next" type="button">▶</button>
+          <button class="btn" id="d-next" type="button" aria-label="下一张">▶</button>
         </div>
         <p class="small muted deck-tip">
           先看术语自己回忆，再翻面对答案。「记得 / 忘了」会记进本机存档——下次打开，先给你推没记牢的那些。键盘：空格翻面，← → 换张。
@@ -187,6 +190,7 @@
     <section class="gl-cat">
       <h2>请求构成</h2>
       <table class="rt">
+        <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody data-cat="请求构成">
           <tr data-k="responses api 接口 端点 post responses"><td><code>Responses API</code></td><td>OpenAI 的模型 HTTP 接口。Codex 每次采样都向它 POST 一次请求，然后逐条读回流式响应。</td><td><a href="labs/loop.html">01</a> 第10站</td></tr>
           <tr data-k="sse server-sent events 流式 流 推送"><td><code>SSE</code></td><td>Server-Sent Events：服务器往客户端单向推流的 HTTP 机制。模型的字是一个一个流回来的，底层就是它。</td><td><a href="labs/loop.html">01</a> 第10–11站</td></tr>
@@ -204,13 +208,14 @@
     <section class="gl-cat">
       <h2>权限与沙箱</h2>
       <table class="rt">
+        <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody>
           <tr data-k="read-only workspace-write danger-full-access 沙箱模式 只读 工作区 全开"><td><code>三档沙箱模式</code></td><td>进程能碰什么的硬边界：read-only 只出主意不动手；workspace-write 工作目录加临时目录可写、默认断网；danger-full-access 全放开。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="untrusted on-failure on-request never 审批策略 批准 弹窗"><td><code>四档审批策略</code></td><td>「什么时候先问你」的软规则：untrusted 全都先问；on-failure 失败才升级；on-request 模型自己申请；never 从不打扰。和沙箱模式是两条独立的轴。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="seatbelt macos 苹果 profile sandbox-exec"><td><code>Seatbelt</code></td><td>macOS 的沙箱强制机制。Codex 为每条命令生成一份 profile 规则，再用 sandbox-exec 套着启动。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="landlock seccomp linux 内核 bwrap bubblewrap"><td><code>Landlock + seccomp</code></td><td>Linux 内核侧的两道闸：Landlock 过滤文件树访问，seccomp 收窄可用系统调用。另有 bwrap 容器路线作备选。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="wfp windows filtering platform 视窗 网络 过滤"><td><code>WFP</code></td><td>Windows Filtering Platform：Windows 上管网络流量的内核框架，Codex 用它做网络层管控。</td><td><a href="labs/sandbox.html">03</a></td></tr>
-          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头才升级执行一次——放行的开关握在你手里。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头才升级执行一次。</td><td><a href="labs/sandbox.html">03</a></td></tr>
           <tr data-k="shell-escalation 升级流 审批升级"><td><code>shell-escalation</code></td><td>审批升级流的实现 crate：沙箱内拿不到的权限，经你批准后换一种方式重跑。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
           <tr data-k="execpolicy 执行策略 白名单 免审批"><td><code>execpolicy</code></td><td>执行策略引擎：判定哪些命令属于安全白名单，可以免审批直接跑。</td><td><a href="labs/atlas.html">05</a> B4</td></tr>
           <tr data-k="trust 项目信任 trusted 目录信任 projects 信任确认"><td><code>项目信任</code></td><td>第一次在某个目录里启动会弹「信任这个目录吗」；点过的目录写进 config 的 projects 表，之后免确认。信任的是「这里的 AGENTS.md 和命令我认」。</td><td><a href="labs/deep.html">07</a> B 房</td></tr>
@@ -222,13 +227,14 @@
     <section class="gl-cat">
       <h2>协议通道</h2>
       <table class="rt">
+        <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody>
           <tr data-k="app server 应用服务 json-rpc 服务进程 ide"><td><code>App Server</code></td><td>把 Codex 核心包装成一个 JSON-RPC 服务的进程。IDE 插件、桌面 App、TUI 都是它的客户端。</td><td><a href="labs/appserver.html">04</a></td></tr>
           <tr data-k="embedded 内嵌 同进程 本地 tui"><td><code>embedded 模式</code></td><td>本地默认形态：App Server 和 TUI 跑在同一个进程里。即便同进程，客户端与服务端的协议边界照样存在。</td><td><a href="labs/loop.html">01</a> 第3站</td></tr>
           <tr data-k="stdio jsonl 传输 标准输入输出 行"><td><code>stdio JSONL</code></td><td>主传输方式：在标准输入输出上每行一条 JSON。简单、可调试，IDE 场景够用。</td><td><a href="labs/appserver.html">04</a></td></tr>
           <tr data-k="thread turn item 原语 会话线程"><td><code>Thread / Turn / Item</code></td><td>协议三原语：Thread 是会话容器（可恢复、分叉、归档）；Turn 是由输入发起的一轮工作；Item 是里面最小的条目单位。</td><td><a href="labs/appserver.html">04</a></td></tr>
           <tr data-k="started delta completed 生命周期 占位 打字机"><td><code>started → delta → completed</code></td><td>Item 的生命周期三步：started 到达即可渲染占位，delta 流式补全（打字机效果靠它），completed 落定。</td><td><a href="labs/appserver.html">04</a> 第7–9条</td></tr>
-          <tr data-k="commandexecution approval 审批请求 反向 服务端请求 挂起"><td><code>commandExecution/approval</code></td><td>服务端反向发给客户端的审批请求。它到达时整轮暂停，等的是你——双向通道的直接证据。</td><td><a href="labs/appserver.html">04</a> 第11条</td></tr>
+          <tr data-k="commandexecution approval 审批请求 反向 服务端请求 挂起"><td><code>commandExecution/approval</code></td><td>服务端反向发给客户端的审批请求。它到达时整轮暂停，等客户端给一个应答——「双向」两个字就体现在这。</td><td><a href="labs/appserver.html">04</a> 第11条</td></tr>
           <tr data-k="rollout resume fork 落盘 恢复 断线 重连 分叉 轨迹"><td><code>rollout / resume / fork</code></td><td>轨迹落盘、断线恢复、时间线分叉。事件历史持久化保存之后，客户端随时能接着上次的现场继续。</td><td><a href="labs/appserver.html">04</a>; <a href="labs/atlas.html">B2</a></td></tr>
         </tbody>
       </table>
@@ -237,6 +243,7 @@
     <section class="gl-cat">
       <h2>仓库与工程</h2>
       <table class="rt">
+        <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody>
           <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——135 这个数字的出处。</td><td><a href="labs/atlas.html">05</a></td></tr>
           <tr data-k="codex exec 非交互 ci 脚本 一次性 自动化"><td><code>codex exec</code></td><td>非交互式一次性执行入口：codex exec "任务"。不进终端界面，CI 和脚本场景的主力形态。</td><td><a href="labs/atlas.html">05</a> B1</td></tr>
@@ -251,7 +258,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      解释按本站五个线路的语境撰写，目标是让你读得下去，不是权威定义；要较真，顺着「在哪看」回到对应线路，再回到固定提交 openai/codex@343074d4 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
+      解释按本站五个线路的语境撰写，够用就好；要较真，顺着「在哪看」回到对应线路，再回到固定提交 openai/codex@343074d4 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
     </aside>
 
   </main>
@@ -350,7 +357,11 @@
     drillOut.innerHTML = "已记 <b>" + n.k + "</b> · 待巩固 " + n.u + " · 共 " + CARDS.length + " 条";
   }
 
-  function flip() { flipped = !flipped; fcard.classList.toggle("flipped", flipped); }
+  function flip() {
+    flipped = !flipped;
+    fcard.classList.toggle("flipped", flipped);
+    fcard.setAttribute("aria-expanded", flipped ? "true" : "false");
+  }
 
   function step(d) { idx = (idx + d + order.length) % order.length; render(); }
 

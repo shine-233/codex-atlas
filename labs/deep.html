@@ -258,7 +258,7 @@
       </div>
       <p class="muted small" style="margin-bottom:14px;">
         先选你用的认证方式，然后按「下一步」走完整个流程。两条线在第 5 步之后分岔：
-        一个续命靠刷新，一个压根不需要续。
+        一个靠 refresh_token 静默续期，一个压根没有过期这回事。
       </p>
       <div class="lab-grid" style="grid-template-columns:1fr;">
         <div style="padding:0 24px 6px;">
@@ -329,7 +329,7 @@
       <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
         Codex 不让模型输出普通 diff——没有行号、靠上下文锚定的自有格式更好改也更好校验。
         右边的补丁文本可以直接编辑；点「应用补丁」，左边这份示例文件会被真的改掉，
-        或者被拒绝，两种结果都有教学价值。
+        或者被拒绝。拒绝时读一下失败原因，那正是解析器的校验顺序。
       </p>
       <div style="padding:0 24px 20px;">
         <div class="pl-grid">
@@ -478,7 +478,7 @@
         { k: "交给 CLI", d: "<b>codex login --api-key</b> 写入 auth.json；或者只 export OPENAI_API_KEY，不落盘。" },
         { k: "出站端点不同", d: "请求打向 <b>api.openai.com/v1/responses</b>。同一套 Responses API，另一扇门。" },
         { k: "按 token 计费", d: "没有套餐额度这回事，花多少付多少。结合 01 成本对照里的全量重发曲线，你就知道为什么缓存命中那么值钱。" },
-        { k: "没有续命机制", d: "密钥是长期凭证：不过期、不刷新。泄露即事故，权限直接到账户级。" }
+        { k: "没有续期机制", d: "密钥是长期凭证：不过期、不刷新。泄露即事故，权限直接到账户级。" }
       ]
     };
     var NOTES = {
@@ -486,7 +486,7 @@
       apikey: "两种凭据都在手时听谁的？显式 --api-key > 环境变量 > auth.json 里已存的登录态；config.toml 的 preferred_auth_method 负责裁决定性——这是简化模型，组合细节以 docs/config.md 为准。"
     };
     var JSONS = {
-      chatgpt: '{\n  "OPENAI_API_KEY": null,\n  "tokens": {\n    "id_token": "«JWT · 三段式»",\n    "access_token": "«每次出站都带着»",\n    "refresh_token": "«静默续期的命根»",\n    "account_id": "«…»"\n  },\n  "last_refresh": "2026-08-22T09:41:00Z"\n}',
+      chatgpt: '{\n  "OPENAI_API_KEY": null,\n  "tokens": {\n    "id_token": "«JWT · 三段式»",\n    "access_token": "«每次出站都带着»",\n    "refresh_token": "«静默续期靠它»",\n    "account_id": "«…»"\n  },\n  "last_refresh": "2026-08-22T09:41:00Z"\n}',
       apikey: '{\n  "OPENAI_API_KEY": "sk-«……»",\n  "tokens": null\n}'
     };
     var curAuth = "chatgpt";
@@ -592,7 +592,9 @@
         Array.prototype.forEach.call(document.querySelectorAll("[data-scn]"), function (x) {
           x.classList.toggle("on", x === b);
         });
-        var scn = SCN[b.getAttribute("data-scn")];
+        var scnKey = b.getAttribute("data-scn");
+        var scn = SCN[scnKey] || SCN[scnKey + "_"];
+        if (!scn) return;
         Array.prototype.forEach.call(document.querySelectorAll("#ck-ladder .rung"), function (r) {
           r.classList.toggle("win", scn.hit.indexOf(r.getAttribute("data-layer")) !== -1);
         });
@@ -797,7 +799,7 @@
           msg: hunks + " 个段落全部通过校验，改动已应用到左边的文件。" +
             (delCount ? " 删 " + delCount + " 行" : "") +
             (addIdx.length ? " · 增 " + addIdx.length + " 行" : "") +
-            "。注意顺序：解析器先把整张补丁读完验完，才动第一行文件——先全量校验、后应用，失败了就不该留半张脸。",
+            "。注意顺序：解析器先把整张补丁读完验完，才动第一行文件——先全量校验、后应用，任何一段失败整张作废。",
           changes: { add: addIdx, del: delIdx },
           file: work
         };
@@ -854,13 +856,13 @@
         why: "<b>AgentReasoning 流</b>：核心把模型的 reasoning delta 逐字转发过来，TUI 用暗色斜体渲染。嫌吵可以在 config 里关显示，但它一直在跑。" },
       { kind: "agent", tag: "assistant · 流式正文", stream: true,
         text: "好。我会把上限挪进配置读取，默认仍是 3，然后在任务对象上留覆盖口子，最后跑测试确认。",
-        why: "<b>AgentMessage delta</b>：打字机效果的本体，协议基础是 04 讲过的 item started → delta → completed 三段生命周期。" },
+        why: "<b>AgentMessage delta</b>：模型正文逐字上屏，靠的是 04 讲过的 item started → delta → completed 三段生命周期。" },
       { kind: "exec", tag: "exec · 命令与输出", stream: false,
         text: "$ cargo test -p task-runner\n   Compiling task-runner v0.1.0\n    Finished test [unoptimized] target(s)\n     Running unittests src/lib.rs\n test retry_uses_configured_max ... ok\n test retry_gives_up_eventually ... ok\n test result: ok. 12 passed; 0 failed",
         why: "<b>ExecCommandBegin / End</b>：命令先亮出来给你看（04 第 10 条），跑在 03 讲的沙箱之下，输出折叠进这一格。点击展开是 TUI 的基本礼仪。" },
       { kind: "patch", tag: "apply_patch · 文件变更", stream: false,
         text: "*** Update File: src/task_runner.rs\n  @@ pub fn retry\n-    let max = 3;\n+    let max = task.max_retries.unwrap_or(3);\n  (1 个文件 · +1 −1)",
-        why: "<b>ApplyPatchApprovalRequest → TurnDiff</b>：补丁先过 C 房那种解析器，再经审批闸口（04 第 11 条的反向请求），落盘后以红绿行呈现。上一格刚跑通的格式，这里是它的正式登场。" },
+        why: "<b>ApplyPatchApprovalRequest → TurnDiff</b>：补丁先过 C 房那种解析器，再经审批闸口（04 第 11 条的反向请求），落盘后以红绿行呈现——用的正是 C 房拆过的那套格式。" },
       { kind: "status", tag: "状态栏 · 回合收尾", stream: false,
         text: "tokens 48,211 · cached 44,120 · turn 完成",
         why: "<b>TurnComplete 的 usage 回传</b>（04 最后一条）：cached 占比高，正是 01 成本对照讲的缓存命中在干活。状态栏还常驻模型、审批档、沙箱档、git 分支——一眼确认自己在什么权限下干活。" }
@@ -908,23 +910,26 @@
       stopTypewriter();
       cellsBox.innerHTML = "";
       for (var i = 0; i < n; i++) {
-        var el = buildCell(CELLS[i]);
-        if (instant !== true && CELLS[i].stream && i === n - 1) {
+        var cell = CELLS[i];
+        var el = buildCell(cell);
+        if (instant !== true && cell.stream && i === n - 1) {
+          cellsBox.appendChild(el);
           var body = el.querySelector(".tc-body");
+          body.innerHTML = "";
           var cur2 = document.createElement("span");
           cur2.className = "tui-cursor";
           body.appendChild(cur2);
           var p = 0;
           typeTimer = setInterval(function () {
             p += 3;
-            if (p >= CELLS[i].text.length) {
+            if (p >= cell.text.length) {
               stopTypewriter();
-              body.innerHTML = bodyHtml(CELLS[i]) ;
+              body.innerHTML = bodyHtml(cell);
               body.appendChild(cur2);
               setTimeout(function(){ cur2.remove(); }, 600);
               return;
             }
-            body.innerHTML = bodyHtml(CELLS[i], p);
+            body.innerHTML = bodyHtml(cell, p);
             body.appendChild(cur2);
           }, 24);
         } else {

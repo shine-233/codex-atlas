@@ -33,11 +33,55 @@
   }
   .mode-card:hover { border-color: var(--dim); }
   .mode-card.on { border-color: var(--amber); background: var(--amber-dim); }
-  .mode-card .mc-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+  .mode-card .mc-name { display: block; font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); }
   .mode-card.on .mc-name { color: var(--amber); }
-  .mode-card .mc-desc { font-size: 12px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
+  .mode-card .mc-desc { display: block; font-size: 12px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
 
   .acts { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+
+  /* 内核机制规则样例 */
+  .mech-sample-wrap { margin-top: 14px; border-top: 1px dashed var(--line-strong); padding-top: 12px; }
+  .mech-sample-tag {
+    font-family: var(--mono); font-size: 10.5px; color: var(--faint);
+    letter-spacing: .08em; margin-bottom: 8px;
+  }
+  .mech-sample {
+    margin: 0; background: var(--bg0); border: 1px solid var(--line);
+    padding: 12px 14px; font-family: var(--mono); font-size: 11.5px;
+    line-height: 1.85; color: var(--dim); white-space: pre-wrap; overflow-x: auto;
+  }
+
+  /* 审批弹窗形状还原 */
+  .approve-mock {
+    max-width: 560px; margin: 16px 0 10px;
+    border: 1px solid var(--amber); background: var(--bg2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .35), 0 0 0 1px rgba(255, 180, 84, .12);
+    animation: ca-rise .35s var(--ease) both;
+  }
+  .am-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--amber-dim); border-bottom: 1px solid rgba(255, 180, 84, .3);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--amber);
+    padding: 7px 14px;
+  }
+  .am-bar i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber); flex-shrink: 0;
+    animation: ca-blink 1.4s steps(2) infinite;
+  }
+  .am-cmd {
+    margin: 0; padding: 12px 16px 4px;
+    font-family: var(--mono); font-size: 13.5px; color: var(--ink);
+  }
+  .am-why { margin: 6px 16px 12px; font-size: 12.5px; color: var(--dim); line-height: 1.65; }
+  .am-opts { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 14px; }
+  .am-opt {
+    font-family: var(--mono); font-size: 12px;
+    border: 1px solid var(--line-strong); padding: 5px 14px; color: var(--dim);
+  }
+  .am-opt.on { border-color: var(--ok); color: var(--ok); background: var(--ok-dim); }
+  .am-opt.deny { border-color: var(--deny); color: var(--deny); }
   .act {
     display: flex; align-items: center; gap: 10px;
     background: var(--bg2); border: 1px solid var(--line-strong);
@@ -177,7 +221,7 @@
       <p class="eyebrow"><span class="tick">▮</span>03 权限沙箱</p>
       <h1>同一个动作，换个模式就换一个判决。</h1>
       <p class="lede">
-        沙箱是 Codex 敢在你机器上跑命令的底气。它有两条独立的轴：
+        凭什么让模型在你机器上跑命令？沙箱就是这道题的答案。它有两条独立的轴：
         <b style="color:var(--ink);">沙箱模式</b>决定进程能碰什么，
         <b style="color:var(--ink);">审批策略</b>决定什么时候先问你。
         这台判定器把两条轴拆开：选操作系统、选模式、选一个具体动作，看它落在哪一边——
@@ -188,7 +232,7 @@
     <section class="panel hot" style="margin-top:30px;">
       <div class="panel-title">
         <h3>SCENARIO VERDICT · 场景判定器</h3>
-        <span class="readout" id="combo-readout"></span>
+        <span class="readout" id="combo-readout" aria-live="polite"></span>
       </div>
 
       <div style="display:grid;grid-template-columns:340px 1fr;gap:24px;" id="verdict-grid">
@@ -206,16 +250,16 @@
             <div class="ctrl-label">沙箱模式（决定能碰什么）</div>
             <div class="mode-cards" role="group" aria-label="选择沙箱模式">
               <button class="mode-card on" data-mode="ro">
-                <div class="mc-name">read-only</div>
-                <div class="mc-desc">全盘可读；不可写、不可联网。适合让它只出主意不动手。</div>
+                <span class="mc-name">read-only</span>
+                <span class="mc-desc">全盘可读；不可写、不可联网。适合让它只出主意不动手。</span>
               </button>
               <button class="mode-card" data-mode="ww">
-                <div class="mc-name">workspace-write</div>
-                <div class="mc-desc">日常档位：工作目录与临时目录可写；联网默认关闭。</div>
+                <span class="mc-name">workspace-write</span>
+                <span class="mc-desc">日常档位：工作目录与临时目录可写；联网默认关闭。</span>
               </button>
               <button class="mode-card" data-mode="full">
-                <div class="mc-name">danger-full-access</div>
-                <div class="mc-desc">全放开：任意读写加网络。danger 这个词是字面意思。</div>
+                <span class="mc-name">danger-full-access</span>
+                <span class="mc-desc">全放开：任意读写加网络。danger 这个词是字面意思。</span>
               </button>
             </div>
           </div>
@@ -241,6 +285,10 @@
           <p class="v-why" id="v-why">左边六个动作各对应一条真实场景。选定后这里给出该模式下的判定与理由。</p>
           <div class="v-mech" id="v-mech">
             强制执行机制：<b>—</b><br>相关源码位置：<b>—</b>
+          </div>
+          <div class="mech-sample-wrap">
+            <div class="mech-sample-tag">内核看到的规则 · 随上方 OS × 模式实时生成（形状示意，非真实输出）</div>
+            <pre class="mech-sample" id="mech-sample"></pre>
           </div>
         </div>
       </div>
@@ -293,7 +341,7 @@
         </p>
         <p class="muted" style="margin-bottom:0;">
           给模型接一个 MCP 文件服务器，它的删除操作不会因为 Codex 处于 read-only 而被拦截。
-          能拦住它的只有两样：MCP 服务器自己的权限设计，和你对审批弹窗的手。
+          能拦住它的只有两样：MCP 服务器自己的权限设计，和你会不会点那个「拒绝」。
         </p>
       </div>
     </section>
@@ -312,6 +360,31 @@
       </table>
       <p class="small muted">
         判定器里 workspace-write 对「写工作区外路径」给出的琥珀色结果，走的就是这条轴：沙箱说不行，但你可以点头放行一次。
+      </p>
+    </section>
+
+    <!-- 审批弹窗的形状 -->
+    <section>
+      <h2>审批弹窗长什么样</h2>
+      <p class="muted small">
+        琥珀色的「条件放行」最终会落到你面前的一个确认框。判定器里点
+        <button type="button" class="btn" id="demo-approve-act" style="padding:2px 12px;font-size:12px;">$ touch ~/x</button>
+        再切到 workspace-write，然后想象屏幕上出现这个：
+      </p>
+      <div class="approve-mock">
+        <div class="am-bar"><i></i>approval requested · codex</div>
+        <pre class="am-cmd">$ touch ~/x</pre>
+        <p class="am-why">这条命令要写入工作目录之外的路径。批准后仅本次有效；沙箱本身仍然挡着其余的越界动作。</p>
+        <div class="am-opts">
+          <span class="am-opt on">批准一次</span>
+          <span class="am-opt">本轮内允许</span>
+          <span class="am-opt deny">拒绝</span>
+        </div>
+      </div>
+      <p class="small muted">
+        按键与文案随版本、客户端各有画法（TUI 和 IDE 插件不长一样），这里给的是形状不是截图。
+        这类请求在线上的样子是 <a href="appserver.html">04 协议线路</a> 第 11 条——服务端反向请求，整轮挂起等你应答。
+        选「拒绝」也不会中断回合：模型收到的是「没批」，自己换思路。
       </p>
     </section>
 
@@ -400,7 +473,7 @@
       mech:"普通文件读取，无需额外授权。" },
     { id:"ra", glyph:"cat ~/", name:"读工作区外的文件（如 ~/.ssh/config）",
       v:{ ro:"allow", ww:"allow", full:"allow" },
-      why:"同样是放行，但值得停下来想一下：<b>全盘可读是设计取舍，不是疏忽</b>。敏感文件的隔离要靠磁盘权限和信任边界解决，别指望沙箱替你保密。",
+      why:"同样是放行，但<b>全盘可读是设计取舍，不是疏忽</b>。敏感文件的隔离要靠磁盘权限和信任边界解决，别指望沙箱替你保密。",
       mech:"同上；对应枚举中的 DiskFullReadAccess 语义。" },
     { id:"ww", glyph:"edit", name:"修改工作区内的文件",
       v:{ ro:"deny", ww:"allow", full:"allow" },
@@ -433,6 +506,8 @@
   var comboReadout = document.getElementById("combo-readout");
   var mxBody = document.getElementById("mx-body");
   var pipe = document.getElementById("pipe");
+  /* CONFIG BRIDGE 的重渲染钩子：判定器状态一变，下面的配置片段跟着变 */
+  var cfgRender = function () {};
 
   function chipCls(v) {
     return v === "allow" ? ["ALLOW", "allow"] : v === "deny" ? ["DENY", "deny"] : ["条件放行", "cond"];
@@ -543,6 +618,53 @@
       "相关源码位置：<b>" + o.crates + "</b><br>" +
       (act ? "说明：" + act.mech : "说明：—" ) + "<br>" +
       "<span style='opacity:.75;'>" + o.note + "</span>";
+    var sample = document.getElementById("mech-sample");
+    if (sample) sample.textContent = mechSampleText();
+  }
+
+  /* 内核规则样例：教学简化，按当前 OS × 模式生成 */
+  function mechSampleText() {
+    var m = curMode;
+    if (curOs === "mac") {
+      if (m === "full") return "(version 1)\n(allow default)   ; 全放开：不生成任何拒绝规则\n\n—— Seatbelt profile 由 codex-rs/sandboxing/ 动态拼出，形状示意";
+      var L = ["(version 1)", "(deny default)", "(allow read*)                                   ; 全盘可读：设计取舍"];
+      if (m === "ww") {
+        L.push('(allow write* (subpath (param "CWD")))          ; 工作目录',
+               '(allow write* (subpath "/private/tmp"))         ; 系统临时目录',
+               "(deny network*)                                 ; 默认断网");
+      } else {
+        L.push("(deny write*)                                   ; read-only：一个字节都不写",
+               "(deny network*)");
+      }
+      return L.join("\n") + "\n\n—— Seatbelt profile 形状示意";
+    }
+    if (curOs === "linux") {
+      if (m === "full") return "不套 Landlock / seccomp——进程裸跑，权限就是你的用户权限。";
+      var L2 = [
+        "$ codex-linux-sandbox <命令>",
+        "├─ Landlock ruleset",
+        "│   ├─ ALLOW read  /                     （全盘可读）"
+      ];
+      if (m === "ww") {
+        L2.push("│   ├─ ALLOW write ~/proj/api            （工作目录）",
+                "│   ├─ ALLOW write /tmp                  （临时目录）",
+                "│   └─ DENY  write ~/**                  （其余路径全拒）",
+                "└─ seccomp: 收窄网络类 syscall（connect 等）");
+      } else {
+        L2.push("│   └─ DENY  write /**                   （read-only）",
+                "└─ seccomp: 收窄网络与写类 syscall");
+      }
+      return L2.join("\n") + "\n\n—— Landlock / seccomp 组合的教学简化";
+    }
+    if (m === "full") return "WFP 不设出站规则 · 访问令牌不给收权——全放开。";
+    var L3 = [
+      m === "ww"
+        ? "WFP 出站过滤   → BLOCK（network_access 未开启）"
+        : "WFP 出站过滤   → BLOCK（read-only 同样断网）",
+      "受限访问令牌   → 写权限仅授予：工作目录、%TEMP%"
+    ];
+    if (m === "ro") L3.push("                 （read-only 连这两处也不给）");
+    return L3.join("\n") + "\n\n—— WFP + 受限令牌的教学简化；实现位置随版本演进";
   }
 
   function markMatrixSel() {
@@ -609,6 +731,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".mode-card"), function (c) {
       c.classList.toggle("on", c.getAttribute("data-mode") === m);
     });
+    cfgRender();
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-os]"), function (b) {
@@ -636,6 +759,7 @@
       });
       buildMatrix();   /* 矩阵格子随策略重新着色 */
       renderVerdict();
+      cfgRender();
     });
   });
 
@@ -682,7 +806,9 @@
       "rm ~/notes.txt",
       "echo log > /tmp/build.log",
       "curl https://api.openai.com/v1/models",
-      "cargo test"
+      "cargo test",
+      "sed -n '1p' README.md",
+      "sed -i.bak 's/3/max_retries/' src/task.rs"
     ];
     EXAMPLES.forEach(function (cmd) {
       var b = document.createElement("button");
@@ -712,6 +838,23 @@
         /(^|[\s;|&])git\s+(clone|push|pull|fetch)\b/.test(s);
       if (net) return { id: "net",
         rule: "要出网（下载依赖、推送、调远程接口）。workspace-write 默认断网——琥珀色那格就是它。" };
+
+      /* sed 特例：不带 -i / --in-place 时只流式输出到 stdout，不落盘；原地改写才按写入分区分 */
+      var sedM = s.match(/(^|[\s;|&])sed\b(.*)$/);
+      if (sedM) {
+        var sedArgs = sedM[2];
+        var inPlace = /(^|\s)(--in-place\b|-[a-hj-z]*i)/.test(sedArgs);
+        if (!inPlace) {
+          if (/(~\/|\$home\b|\/(etc|usr|var|opt)\b)/.test(s))
+            return { id: "ra", rule: "sed 不带 -i 只往标准输出打字，不改盘——但读的是工作区之外的路径。" };
+          return { id: "rw", rule: "sed 不带 -i 是流式编辑、结果走 stdout，不碰原文件——按普通读取处理。" };
+        }
+        if (/(^|[\s"'=])(\/tmp\/|\/var\/tmp|\$tmpdir|%temp%)/.test(s))
+          return { id: "wt", rule: "sed -i 写系统临时目录。临时目录与工作目录同级放行（DiskWriteTempOnly 的语义）。" };
+        if (/(^|[\s"'=~])(~\/|\$home\/?|\/(etc|usr|opt|bin|sbin)\b)/.test(s))
+          return { id: "wo", rule: "sed -i 的写入目标在工作目录之外：先被沙箱墙挡住，能不能过看你的审批签名。" };
+        return { id: "ww", rule: "sed -i 原地改写文件——落点在工作区内，workspace-write 白名单的日常领地。" };
+      }
 
       var write =
         /(^|[\s;|&])(touch|mkdir|rmdir|rm|mv|cp|dd|truncate|chmod|chown|ln|patch|apply_patch|sed)\b/.test(s) ||
@@ -751,10 +894,33 @@
     });
   })();
 
-  /* ---------- CONFIG BRIDGE：把当前组合写成配置片段 ---------- */
+  /* 弹窗演示按钮：一键把判定器摆到「条件放行」的组合 */
+  (function () {
+    var b = document.getElementById("demo-approve-act");
+    if (!b) return;
+    b.addEventListener("click", function () {
+      var act = ACTS.filter(function (a) { return a.id === "wo"; })[0];
+      setMode("ww");
+      curPol = "on-request";
+      Array.prototype.forEach.call(document.querySelectorAll("[data-pol]"), function (x) {
+        x.classList.toggle("on", x.getAttribute("data-pol") === "on-request");
+      });
+      buildMatrix();
+      curAct = act;
+      buildActs();
+      renderVerdict();
+      cfgRender();
+      var v = document.querySelector(".verdict");
+      if (v) {
+        v.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "nearest" });
+        if (window.CAFlash) CAFlash(v);
+      }
+    });
+  })();
+
+  /* ---------- CONFIG BRIDGE：把当前组合写成配置片段（与上方判定器共用同一份状态） ---------- */
   (function () {
     var MODE_NAME = { ro: "read-only", ww: "workspace-write", full: "danger-full-access" };
-    var curMode = "ww", curPol = "on-request";
     var tomlBox = document.getElementById("cfg-toml");
     var cliBox = document.getElementById("cfg-cli");
     var notesBox = document.getElementById("cfg-notes");
@@ -797,30 +963,44 @@
         notes.push('<p class="cfg-note">untrusted 下白名单外的命令一律先弹窗——包括沙箱内本来能直接跑的那些。</p>');
       }
       if (curPol === "never" && curMode === "ww") {
-        notes.push('<p class="cfg-note">跑批参考：<code>codex exec --sandbox workspace-write "任务"</code> 非交互执行；拿不到的权限直接失败，不排队等人。</p>');
+        notes.push('<p class="cfg-note">跑批参考：<code>codex exec --sandbox workspace-write "任务"</code> 非交互执行；拿不到的权限直接失败。</p>');
       }
       notesBox.innerHTML = notes.join("");
     }
 
+    /* 桥接区自己的分段按钮高亮跟随共享状态 */
+    function syncSegHi() {
+      Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (x) {
+        x.classList.toggle("on", x.getAttribute("data-cm") === curMode);
+      });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (x) {
+        x.classList.toggle("on", x.getAttribute("data-cp") === curPol);
+      });
+    }
+
     Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (b) {
       b.addEventListener("click", function () {
-        curMode = b.getAttribute("data-cm");
-        Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (x) {
-          x.classList.toggle("on", x === b);
-        });
+        setMode(b.getAttribute("data-cm"));       /* 与上方判定器同源 */
+        renderVerdict();
+        syncSegHi();
         render();
       });
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (b) {
       b.addEventListener("click", function () {
-        curPol = b.getAttribute("data-cp");
-        Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (x) {
-          x.classList.toggle("on", x === b);
-        });
+        curPol = b.getAttribute("data-cp");       /* 与上方判定器同源 */
+        buildMatrix();
+        renderVerdict();
+        syncSegHi();
         render();
       });
     });
     netBox.addEventListener("change", render);
+
+    /* 判定器那边的 OS/模式/策略变化也会走到这里（setMode / 策略点击 / 状态恢复） */
+    cfgRender = function () { syncSegHi(); render(); };
+
+    syncSegHi();
     render();
   })();
 
@@ -836,11 +1016,11 @@
     { q: "经 MCP 服务器接入的工具，受 Codex 沙箱管辖吗？",
       opts: ["完全受管，和内置 shell 工具一样", "不受管——防护由 MCP 提供方自行负责", "只在 read-only 模式下受管"],
       a: 1,
-      why: "沙箱声明只描述内置 shell 工具的运行环境。官方博客原话：MCP 工具「需自行负责执行其防护措施」。能拦住它的只有提供方自己的权限设计和你的审批之手。" },
+      why: "沙箱声明只描述内置 shell 工具的运行环境。官方博客原话：MCP 工具「需自行负责执行其防护措施」。能拦住它的只有提供方自己的权限设计，和你会不会点拒绝。" },
     { q: "审批策略设为 never 时，「条件放行」的动作会怎样？",
       opts: ["照常弹窗征求同意", "自动放行一次", "直接失败——不会弹窗"],
       a: 2,
-      why: "矩阵里切到 never 看得最清楚：琥珀格全部压成 DENY。无人值守跑批选它，拿不到的权限宁可失败也不等人。" }
+      why: "矩阵里切到 never 看得最清楚：琥珀格全部压成 DENY。无人值守跑批选它——宁可失败也不弹窗。" }
   ]);
 })();
 </script>

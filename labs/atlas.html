@@ -175,7 +175,7 @@
 
       <div class="search-row">
         <input type="text" id="q" class="search-box"
-               placeholder="输入 crate 名片段，如 core / sandbox / mcp …（Esc 清除）"
+                placeholder="搜 crate 名或功能词：沙箱 / 记忆 / core / mcp …（Esc 清除）"
                aria-label="检索 crate 名称">
         <span class="match-readout" id="match-out">匹配 <b>135</b> / 135</span>
       </div>
@@ -244,7 +244,7 @@
   /* 九条功能带：成员为固定提交 @343074d4 实测名单 */
   var BANDS = [
     { no:"B1", name:"入口", en:"SURFACE", count:8,
-      desc:"用户与外部程序接触 Codex 的地方。同一个核心，多种打开方式。",
+      desc:"用户与外部程序接触 Codex 的地方：CLI、TUI、exec、app-server 都从这条带出发。",
       crates:["cli","tui","exec","app-server","app-server-daemon","arg0","install-context","login"],
       notes:{
         "cli":"clap 参数解析与 MultitoolCli 定义处——01 第 2 站的现场。",
@@ -373,7 +373,7 @@
         "cloud-config":"云端功能开关与配置读取。",
         "cloud-tasks":"云端任务下发与轮询主逻辑。",
         "cloud-tasks-client":"云任务客户端 API。",
-        "cloud-tasks-mock-client":"测试用 mock——名字直白得可爱。",
+        "cloud-tasks-mock-client":"名字里自带 mock 的测试替身，别把它配进生产环境。",
         "external-agent-migration":"把外部 agent 会话迁移进 Codex。",
         "agent-graph-store":"agent 关系图谱存储。",
         "agent-identity":"agent 身份标识原语。"
@@ -738,6 +738,7 @@
 
   function selectCrate(band, name, chipEl) {
     selCrate = name;
+    PanelState.write({ sel: name });
     dcBand.textContent = band.no + " · " + band.en;
     dcName.textContent = name;
     var note = (band.notes && band.notes[name]) ||
@@ -754,18 +755,31 @@
     });
   }
 
-  /* 点交叉引用：滚到目标成员并选中它 */
+  /* 点交叉引用：滚到目标成员并选中它（列表/树图两个视图都能落点） */
   dcBody.addEventListener("click", function (e) {
     var t = e.target;
     if (!t.classList || !t.classList.contains("xref")) return;
     var nm = t.getAttribute("data-x");
     var band = CRATE_INDEX[nm];
     if (!band) return;
+    var tmBox = document.getElementById("treemap");
+    var inTree = tmBox && !tmBox.hidden;
+    var primary = inTree ? tmBox : bandsBox;
+    var secondary = inTree ? bandsBox : tmBox;
+    var matches = function (c) { return (c.dataset.name || c.textContent) === nm; };
     var target = null;
-    Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) {
-      if (!target && c.textContent === nm) target = c;
+    Array.prototype.forEach.call(primary.querySelectorAll(".cr"), function (c) {
+      if (!target && matches(c)) target = c;
     });
-    if (!target) return;
+    if (!target) {
+      /* 目标在另一个视图里：选中并显示详情，但不做无效滚动 */
+      Array.prototype.forEach.call(secondary.querySelectorAll(".cr"), function (c) {
+        if (!target && matches(c)) target = c;
+      });
+      if (!target) return;
+      selectCrate(band, nm, null);
+      return;
+    }
     target.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "nearest" });
     selectCrate(band, nm, target);
   });
@@ -788,10 +802,14 @@
         '<span class="chip band-count">' + b.crates.length + " · " + pct + "%</span>";
       function showBand() {
         showBandInfo(b);
+        selCrate = null;
+        PanelState.write({ sel: "" });
         Array.prototype.forEach.call(bandsBox.querySelectorAll(".cr"), function (c) { c.classList.remove("sel"); });
       }
       head.addEventListener("click", showBand);
-      head.addEventListener("keydown", function (e) { if (e.key === "Enter") showBand(); });
+      head.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showBand(); }
+      });
       sec.appendChild(head);
 
       var dd = document.createElement("div");
@@ -817,6 +835,15 @@
     });
   }
 
+  /* 每个成员的可检索文本：名字 + 带名 + 注解纯文本，中文功能词也能命中 */
+  var SEARCH_TEXT = {};
+  BANDS.forEach(function (b) {
+    b.crates.forEach(function (name) {
+      var note = b.notes && b.notes[name] ? b.notes[name].replace(/<[^>]*>/g, "") : "";
+      SEARCH_TEXT[name] = (name + " " + b.no + " " + b.name + " " + b.en + " " + note).toLowerCase();
+    });
+  });
+
   function applyFilter() {
     var q = qInput.value.trim().toLowerCase();
     var tm = document.getElementById("treemap");
@@ -832,8 +859,9 @@
       return;
     }
     Array.prototype.forEach.call(all, function (c) {
-      var name = (c.dataset.name || c.textContent).toLowerCase();
-      var isHit = name.indexOf(q) !== -1;
+      var name = c.dataset.name || c.textContent;
+      var hay = SEARCH_TEXT[name] || name.toLowerCase();
+      var isHit = hay.indexOf(q) !== -1;
       c.classList.toggle("dimmed", !isHit);
       c.classList.toggle("hit", isHit);
       /* 命中数只按当前可见视图计，避免列表和树图重复计数 */
@@ -841,7 +869,7 @@
     });
     matchOut.innerHTML = hits
       ? '匹配 <b>' + hits + "</b> / " + total()
-      : "没有匹配 — 换个关键词试试";
+      : "没有匹配 — 换个中文或英文关键词试试";
     PanelState.write({ q: q });
   }
 
@@ -851,9 +879,13 @@
   });
 
   build();
-  var savedQ = PanelState.read().q || "";
+  var st0 = PanelState.read();
+  var savedQ = st0.q || "";
   if (savedQ) { qInput.value = savedQ; applyFilter(); }
   else { matchOut.innerHTML = '匹配 <b>135</b> / 135'; }
+  /* 恢复上次选中的成员：刷新不丢，链接可分享（#sel=xxx） */
+  var savedSel = st0.sel || "";
+  if (savedSel && CRATE_INDEX[savedSel]) selectCrate(CRATE_INDEX[savedSel], savedSel, null);
 
   window.addEventListener("hashchange", function () { location.reload(); });
 
@@ -873,7 +905,7 @@
     { q: "九条功能带是上游的官方分类吗？",
       opts: ["是", "部分是", "否——分带是本站归纳"],
       a: 2,
-      why: "上游没有这种分类。跨带成员（如 login）按主要职责归带，读的时候把它当路标：定位用，别当代码评审结论。" }
+      why: "上游没有这种分类。跨带成员（如 login）按主要职责归带——证据边界里的提醒和这里是同一句话，因为这条边界最容易被忘掉。" }
   ]);
 })();
 </script>

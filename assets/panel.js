@@ -296,10 +296,11 @@
       { no: "01", name: "循环回路 · 单步仪", sub: "13 站 · 播放/键盘", href: P("labs/loop.html"), kw: "loop agent turn 阶段 循环 回路" },
       { name: "↳ 第10站 · POST /responses", sub: "出站与 SSE", href: P("labs/loop.html") + "#s=10", kw: "sse api endpoint 出站 采样" },
       { name: "↳ 会话建立段 / 重采样回路图", sub: "拓扑联动", href: P("labs/loop.html") + "#setup-panel", kw: "topology 拓扑 setup 建立段" },
+      { name: "↳ TURN SIMULATOR · 自己开一轮", sub: "队列对 / steer 沙盒", href: P("labs/loop.html") + "#sim-panel", kw: "simulator 沙盒 队列 steer 并入 状态机 turn 自己开" },
       { no: "02", name: "输入组装 · 组装仪", sub: "七层开关", href: P("labs/prompt.html"), kw: "prompt payload agents 层叠 32kib 负载" },
       { no: "03", name: "权限沙箱 · 场景判定器", sub: "模式×审批×动作", href: P("labs/sandbox.html"), kw: "sandbox 权限 沙箱 seatbelt landlock wfp 判定 审批" },
       { name: "↳ CONFIG BRIDGE · 配置片段生成", sub: "", href: P("labs/sandbox.html") + "#cfg-panel", kw: "config toml 配置 cli 片段" },
-      { no: "04", name: "协议线路 · 报文时间线", sub: "16 条 · 审批分支", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
+      { no: "04", name: "协议线路 · 报文时间线", sub: "审批分支 · 双向通道", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
       { no: "05", name: "Crate 图谱", sub: "135 成员 · 列表/树图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
       { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
       { name: "↳ 自测模式 · 翻卡回忆", sub: "记得/忘了存档", href: P("glossary.html") + "#md=drill", kw: "flashcard drill 自测 记忆 翻卡 背题" },
@@ -436,7 +437,9 @@
     "每页末尾的 CHECKPOINT 全部答对会盖 ALL CLEAR 徽章。",
     "正文里带虚线下划线的词，悬停或回车就有人话解释。",
     "每台仪器的状态写在地址栏里，刷新或分享链接都不丢。",
-    "首页的回路图能悬停：琥珀点是请求出站，钢青点是事件回流。"
+    "首页的回路图能悬停：琥珀点是请求出站，钢青点是事件回流。",
+    "01 下方的 TURN SIMULATOR 能自己开一轮：运行中再插话，看 steer 怎么并入。",
+    "成本对照上面有个小赌局——先猜缓存能省几倍，再拉滑杆对答案。"
   ];
   var tipIdx = -1;
   function nextTip() {
@@ -499,6 +502,48 @@
       showToast("<b>小鳕</b> · 是，我是站宠。codex 词源是法典，跟鳕鱼没关系——但 cod 是鳕鱼，这站说了算。");
     }
   });
+
+  /* 悬停气泡：小鳕冒一句短话，20 秒内不重复打扰 */
+  var QUIPS = [
+    "在看哪条线路？",
+    "滑杆是可以倒着拖的。",
+    "今天也想通关。",
+    "别忘了我底下还藏着彩蛋。",
+    "有工具调用才会转第二圈哦。",
+    "累了就按 ? 歇一会儿。"
+  ];
+  var bubble = document.createElement("div");
+  bubble.className = "cod-bubble";
+  bubble.setAttribute("aria-hidden", "true");
+  document.body.appendChild(bubble);
+  var bubbleTimer = null, lastBubble = 0, quipIdx = Math.floor(Math.random() * QUIPS.length);
+  function showBubble() {
+    var now = Date.now();
+    if (now - lastBubble < 20000) return;
+    lastBubble = now;
+    quipIdx = (quipIdx + 1) % QUIPS.length;
+    bubble.textContent = QUIPS[quipIdx];
+    bubble.classList.add("show");
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(function () { bubble.classList.remove("show"); }, 3200);
+  }
+  pet.addEventListener("mouseenter", showBubble);
+  pet.addEventListener("focus", showBubble);
+
+  /* 闲置巡游：页面可见且用户半分钟没动，小鳕自己游一圈（不弹提示） */
+  var lastActive = Date.now();
+  function markActive() { lastActive = Date.now(); }
+  ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (evName) {
+    document.addEventListener(evName, markActive, { passive: true });
+  });
+  (function idleSwimLoop() {
+    setTimeout(function () {
+      if (!document.hidden && Date.now() - lastActive > 45000 && !reduced) {
+        swimOnce(function () {});
+      }
+      idleSwimLoop();
+    }, 50000 + Math.floor(Math.random() * 40000));
+  })();
 
   /* 自检通关时，小鳕游过屏幕庆祝一下 */
   document.addEventListener("ca:allclear", function () {

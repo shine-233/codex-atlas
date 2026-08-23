@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
 <title>CODEX ATLAS · openai/codex 源码交互图鉴</title>
-<meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、135 个 crate 图谱，全部做成可操作的交互仪器。非官方中文学习站。">
+<meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、135 个 crate 图谱，全部可以上手操作。非官方中文学习站。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
@@ -73,12 +73,12 @@
       <p class="eyebrow"><span class="tick">▮</span>OPENAI / CODEX 源码交互图鉴</p>
       <h1>把 Codex CLI 拆到事件级，<br>再看着它装回去。<span class="cursor-blink" aria-hidden="true">▌</span></h1>
       <p class="lede">
-        Codex CLI 的核心代码是开源的，但一万多个提交不会自己解释自己。这个站不搬运教程，
-        而是把五条主干线路做成可以动手的仪器：单步走完一轮 Agent 循环，逐层搭出一次模型请求，
+        Codex CLI 的核心代码是开源的，但一万多个提交不会自己解释自己。这个站把五条主干线路
+        做成了能上手的仪器：单步走完一轮 Agent 循环，逐层搭出一次模型请求，
         切换沙箱模式看权限判定，放一遍客户端协议报文，翻 135 个 crate 的分层图谱。
       </p>
       <p class="small muted" style="margin-top:8px;">
-        左边那排编号就是目录：00 总览，01–05 五条线路，06 术语速查。
+        左边那排编号就是目录：00 总览，01–05 五条线路，06 术语速查，07 深水区支线。
         正文里带 <span style="border-bottom:1px dashed rgba(255,180,84,.55);cursor:help;">虚线下划线</span> 的词，
         悬停或点一下就能看到人话解释。
       </p>
@@ -93,7 +93,7 @@
       <p class="small muted" style="font-family:var(--mono); font-size:11px; letter-spacing:.08em; margin-top:10px;">
         琥珀点 = 请求出站方向 · 钢青点 = SSE 事件回流 · 示意图，非真实拓扑
         <button class="btn" id="pulse-toggle" type="button" aria-pressed="false"
-                style="margin-left:12px; padding:3px 10px; font-size:11px;">⏸ 暂停脉冲</button>
+                style="margin-left:12px; padding:6px 14px; font-size:12px;">⏸ 暂停脉冲</button>
       </p>
     </section>
 
@@ -101,7 +101,7 @@
 
     <!-- 三步上手：这是真实顺序 -->
     <section>
-      <p class="eyebrow"><span class="tick">02</span>三步上手</p>
+      <p class="eyebrow"><span class="tick">01</span>三步上手</p>
       <h2 style="margin-top:6px;">第一次来，按顺序走这三步</h2>
       <table class="rt">
         <thead>
@@ -127,11 +127,11 @@
       </table>
     </section>
 
-    <!-- 五个线路 -->
+    <!-- 五条主线 + 支线 -->
     <section>
-      <p class="eyebrow"><span class="tick">03</span>五个线路
+      <p class="eyebrow"><span class="tick">02</span>线路总览
         <span class="readout" id="qp-sum" style="margin-left:14px;text-transform:none;letter-spacing:.04em;"></span></p>
-      <h2 style="margin-top:6px;">每条线路是一台独立仪器</h2>
+      <h2 style="margin-top:6px;">五条主线，一台支线</h2>
 
       <div class="panel hot">
         <div class="panel-title">
@@ -145,7 +145,6 @@
             <b class="a"></b><b class="b"></b>
           </div>
         </div>
-        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">用户敲下一句话之后，Codex 内部发生了什么？为什么改一行代码常常要过两次模型？工具调用的结果又从哪条路回到上下文里？</p>
         <p class="small muted">13 个阶段可单步停留。每一步给出对应的真实文件路径与事件名，如 <code>core/src/session/mod.rs</code> 的队列对、<code>ResponseEvent::OutputItemDone</code>。</p>
         <p style="margin:14px 0 0;"><a class="btn on" href="labs/loop.html">进入 01 →</a></p>
@@ -164,7 +163,6 @@
             <i style="width:38%;animation-delay:1.5s;"></i>
           </div>
         </div>
-        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">发往 Responses API 的那次请求里到底有什么？base_instructions、config.toml 里的开发者指令、沿目录层叠的 AGENTS.md、环境消息、工具清单——各占哪一层，谁覆盖谁，32 KiB 上限卡在哪。</p>
         <p class="small muted">每层开关可独立启停；体积为示意刻度，非实测 token 数，出处见页面脚注。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/prompt.html">进入 02 →</a></p>
@@ -181,7 +179,6 @@
             <i class="g" style="animation-delay:1.2s;"></i><i class="r" style="animation-delay:1.6s;"></i><i class="y" style="animation-delay:2s;"></i>
           </div>
         </div>
-        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">read-only / workspace-write / danger-full-access 三种模式分别放行什么？macOS 用 Seatbelt、Linux 用 Landlock+bwrap、Windows 用 WFP——同一动作在三套机制下怎么判？为什么 MCP 工具不在 Codex 沙箱的管辖范围内？</p>
         <p class="small muted">选系统、选模式、选一个具体动作，直接给判定和理由。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/sandbox.html">进入 03 →</a></p>
@@ -190,14 +187,13 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">04</span>协议线路</h3>
-          <span class="readout">16 条报文 · 审批闸口分支<span class="qp-chip" data-qp="appserver.html"></span></span>
+          <span class="readout">双向时序 · 闸口后分两支<span class="qp-chip" data-qp="appserver.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-msgs">
             <i></i><i class="s2c" style="animation-delay:.45s;"></i><i style="animation-delay:.9s;"></i><i class="s2c" style="animation-delay:1.35s;"></i>
           </div>
         </div>
-        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">VS Code 插件、macOS App 和 TUI 是怎么共用同一个核心的？JSON-RPC 双向通道上，Thread/Turn/Item 三原语的生命周期怎样流动？审批请求为什么能把整轮对话挂起，等的是谁？</p>
         <p class="small muted">报文序列可整段播放，也可点击任意一条查看结构示例（标注为示意形状）。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/appserver.html">进入 04 →</a></p>
@@ -218,7 +214,6 @@
             <b></b>
           </div>
         </div>
-        <p class="muted small" style="margin-bottom:6px;">回答的问题：</p>
         <p style="margin-bottom:12px;">想读某个功能的实现，该从哪个 crate 下手？135 个工作区成员分成九条功能带：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持按名字检索高亮。</p>
         <p class="small muted">成员名单取自固定提交下的 codex-rs/Cargo.toml，可直接复核；分带是本站归纳，不是上游分类。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/atlas.html">进入 05 →</a></p>
@@ -229,7 +224,7 @@
           <h3><span style="font-family:var(--mono);color:var(--steel);font-size:13px;margin-right:10px;">07</span>深水区 · 支线</h3>
           <span class="readout">5 间房 · 凭据 / 配置 / 补丁 / TUI / 扩展<span class="qp-chip" data-qp="deep.html"></span></span>
         </div>
-        <p style="margin-bottom:12px;">主干之外常被打听的五件事，各配一台能动手的小仪器：
+        <p style="margin-bottom:12px;">主干之外常被打听的五件事，每件配一个能动手的小玩意儿：
         登录令牌从哪来到哪去、config.toml 谁覆盖谁、apply_patch 格式现场拆解试错、
         TUI 每格画面背后是哪条事件、技能记忆钩子挂在系统的哪个位置。</p>
         <p class="small muted">支线深度不及主线，门槛也更低——每间房独立，按需跳进去。凭据与配置出自官方文档级材料；TUI 与扩展机制就地标注为结构示意。</p>
@@ -241,13 +236,13 @@
 
     <!-- 按问题路由 -->
     <section id="route">
-      <p class="eyebrow"><span class="tick">04</span>信号路由</p>
+      <p class="eyebrow"><span class="tick">03</span>信号路由</p>
       <h2 style="margin-top:6px;">按你的问题选入口</h2>
       <div class="search-row" style="margin-bottom:2px;">
         <input type="text" id="route-q" class="search-box"
                placeholder="输入关键词过滤，如 agents / 沙箱 / 断线 / ci …（Esc 清除）"
                aria-label="过滤路由表问题">
-        <span class="match-readout" id="route-count"></span>
+        <span class="match-readout" id="route-count" aria-live="polite"></span>
       </div>
       <table class="rt">
         <thead>
@@ -278,8 +273,8 @@
     <!-- 证据边界 -->
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      上游基线固定为 openai/codex main 分支提交 <code>343074d4207d572809bd8cea15f4be1d09d98e0b</code>（2026-08-22，"Report runtime MCP connection status"）。星标数与 crate 数为该日经 GitHub API 实测；上游持续变化，数字以固定提交为准。
-      内容来源分三类：① 仓库文件与 Cargo.toml 成员名单，可自行复核；② OpenAI 官方博客《Unrolling the Codex agent loop》与《Unlocking the Codex harness》；③ 社区源码研究（wineandchord 逐函数分析等），仅作交叉参考。
+      上游基线固定为 openai/codex main 分支提交 <a href="https://github.com/openai/codex/commit/343074d4207d572809bd8cea15f4be1d09d98e0b" target="_blank" rel="noopener"><code>343074d4207d572809bd8cea15f4be1d09d98e0b</code></a>（2026-08-22，"Report runtime MCP connection status"）。星标数与 crate 数为该日经 GitHub API 实测；上游持续变化，数字以固定提交为准。
+      内容来源分三类：① <a href="https://github.com/openai/codex/blob/343074d4207d572809bd8cea15f4be1d09d98e0b/codex-rs/Cargo.toml" target="_blank" rel="noopener">仓库文件与 Cargo.toml 成员名单</a>，可自行复核；② OpenAI 官方博客《Unrolling the Codex agent loop》与《Unlocking the Codex harness》；③ 社区源码研究（wineandchord 逐函数分析等），仅作交叉参考。
       凡属推断或示意，页面内均就地标注。本站是非官方学习项目，与 OpenAI 无隶属关系；发现事实错误请提 issue 指出具体页面与依据。
     </aside>
 
@@ -289,25 +284,24 @@
 <script src="assets/panel.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>
-/* 自检通关徽章：读取各页 CHECKPOINT 的最好成绩 */
+/* 自检通关徽章：读取各页 CHECKPOINT 的最好成绩（只统计五条主线，支线单独显示） */
 (function () {
   var data = window.CAProgress ? CAProgress.read() : {};
-  var cleared = 0, answered = 0;
+  var MAIN = ["loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html"];
+  var cleared = 0;
   document.querySelectorAll(".qp-chip").forEach(function (el) {
     var rec = data[el.getAttribute("data-qp")];
     if (!rec || !rec.t) { el.remove(); return; }
-    answered++;
     el.textContent = "自检 " + rec.c + "/" + rec.t;
-    if (rec.c >= rec.t) { el.classList.add("done"); cleared++; }
+    var done = rec.c >= rec.t;
+    if (done) { el.classList.add("done"); if (MAIN.indexOf(el.getAttribute("data-qp")) !== -1) cleared++; }
     else el.classList.add("part");
-    el.title = rec.c >= rec.t ? "这条线路的自检已全部答对" : "自检答对 " + rec.c + " 题，还差 " + (rec.t - rec.c) + " 题";
+    el.title = done ? "这条线路的自检已全部答对" : "自检答对 " + rec.c + " 题，还差 " + (rec.t - rec.c) + " 题";
   });
   var sum = document.getElementById("qp-sum");
-  if (sum) sum.innerHTML = cleared
-    ? "自检通关 <b>" + cleared + "</b> / 5" +
-      (cleared >= 5 ? ' · <b style="color:var(--amber);">五条全通</b>' : "")
-    : "";
-  /* 首次集齐五条线路：广播一次全通关，站宠来庆祝 */
+  if (sum && cleared) sum.innerHTML = "自检通关 <b>" + cleared + "</b> / 5" +
+    (cleared >= 5 ? ' · <b style="color:var(--amber);">五条全通</b>' : "");
+  /* 首次集齐五条主线：广播一次全通关，站宠来庆祝 */
   if (cleared >= 5) {
     try {
       if (localStorage.getItem("ca-grand") !== "1") {

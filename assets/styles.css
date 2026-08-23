@@ -8,7 +8,7 @@
   --bg2: #1b232c;
   --ink: #e7edf3;
   --dim: #9aa7b4;
-  --faint: #5f6c79;
+  --faint: #7f8c98;
   --amber: #ffb454;
   --amber-dim: rgba(255, 180, 84, 0.13);
   --steel: #8fc7e8;
@@ -26,6 +26,17 @@
   --t-fast: 0.15s;
   --t-med: 0.28s;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 控制行共享基样式：各仪器页可在此基础上加页内覆盖 */
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
 }
 
 * { box-sizing: border-box; }
@@ -1285,3 +1296,43 @@ body::after {
 /* 表格行悬停：琥珀左标尺提示「这一行是通路」 */
 .rt tbody tr { transition: background .15s var(--ease); }
 .rt tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 rgba(255, 180, 84, .5); }
+
+/* ---------- 小鳕的闲置生命感：上下轻浮 + 悬停气泡 ---------- */
+
+/* 待机时整条鱼慢慢浮沉，像在水里悬停（reduced-motion 全局已关） */
+.cod-pet svg { animation: cod-bob 3.6s ease-in-out infinite; }
+@keyframes cod-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2.5px); }
+}
+/* 答题反应的整鱼动画与 bob 共存：hop/dip 优先，结束后回到 bob */
+.cod-pet.pet-happy svg, .cod-pet.pet-ouch svg { animation: pet-hop .6s cubic-bezier(0.2, 0.8, 0.2, 1), cod-bob 3.6s ease-in-out .6s infinite; }
+
+/* 悬停气泡：小鳕冒一句话 */
+.cod-bubble {
+  position: fixed;
+  right: 66px; bottom: 34px;
+  z-index: 88;
+  max-width: min(260px, calc(100vw - 90px));
+  background: var(--bg1);
+  border: 1px solid var(--line-strong);
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 8px 12px;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
+}
+.cod-bubble.show { opacity: 1; transform: none; }
+.cod-bubble::after {
+  content: "";
+  position: absolute;
+  right: -5px; bottom: 12px;
+  width: 8px; height: 8px;
+  background: var(--bg1);
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  transform: rotate(-45deg);
+}

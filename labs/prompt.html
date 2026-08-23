@@ -141,12 +141,12 @@
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
       <p class="eyebrow"><span class="tick">▮</span>02 输入组装</p>
-      <h1>一次请求的七层构成，<br>逐层打开看清楚。</h1>
+      <h1>一次请求的七层构成，<br>每一层都能单独关掉。</h1>
       <p class="lede">
-        你以为发给模型的只是一句话。实际发出去的是一个结构化负载：
+        发给模型的东西比一句话多得多：
         身份指令、工具清单、沙箱声明、目录里层层叠叠的 AGENTS.md、环境描述，
         再加上<b style="color:var(--ink);">全量重发的对话历史</b>。
-        右边的组装仪按真实字段顺序排列，拨动左边的开关，看每一层进进出出。
+        右边的组装仪按真实字段顺序排列，拨动左边的开关，看每层的去留。
       </p>
     </header>
 
@@ -171,7 +171,8 @@
 
           <p class="small muted" style="margin:8px 0 0;">
             「对话历史」只在第二轮起出现——第一轮没有过去。<br>
-            「AGENTS.md 层叠」展开后可单独控制四个目录位。
+            「AGENTS.md 层叠」展开后可单独控制四个目录位。<br>
+            「instructions」「tools」两层在真实请求里关不掉；这里允许关闭，只是为了看清结构。
           </p>
         </div>
 
@@ -264,7 +265,7 @@
     { id:"agents", grp:"input[2]", name:"user instructions · AGENTS.md 层叠", src:"$CODEX_HOME → git root → … → cwd",
       w:26, on:true,
       cap:true,
-      detail:"从 $CODEX_HOME 开始，沿 git root 到当前工作目录的路径逐层读取 AGENTS.md 和 AGENTS.override.md，更具体的覆盖更通用的。层叠总量受 32 KiB 默认上限约束——这个设计在系统层面鼓励把信息分散到目录结构，而不是堆一个巨型文件。",
+      detail:"从 $CODEX_HOME 开始，沿 git root 到当前工作目录的路径逐层读取 AGENTS.md 和 AGENTS.override.md，更具体的覆盖更通用的。层叠总量受 32 KiB 默认上限约束——上限卡的是总量，不是单个文件。",
       ev:["官方博客"],
       subs:[
         { id:"home", label:"~/.codex/AGENTS.md", w:.28 },
@@ -274,11 +275,11 @@
       ] },
     { id:"env", grp:"input[3]", name:"environment context · 本地环境消息", src:"运行时探测",
       w:8, on:true,
-      detail:"一条 role=user 消息，告诉模型它身处的机器：当前工作目录、用户 shell 等。换一台电脑这层内容就不同——它是会话的环境锚点。",
+      detail:"一条 role=user 消息，告诉模型它身处的机器：当前工作目录、用户 shell 等。换一台电脑，这层内容就不一样。",
       ev:["官方博客"] },
     { id:"history", grp:"input[4+]", name:"conversation history · 全量历史", src:"session 记录回放",
       w:48, on:true,
-      detail:"之前的全部对话条目（含 reasoning、function_call 及其输出）作为 input 列表整体重发。不用 previous_response_id 是有意为之：请求完全无状态，兼容零数据保留部署。二次增长的代价靠提示缓存命中摊平。",
+      detail:"之前的全部对话条目（含 reasoning、function_call 及其输出）作为 input 列表整体重发。为什么不用服务端会话状态，见下方「两个容易答错的问题」；成本侧靠提示缓存：命中前缀按约一折计费。",
       ev:["官方博客"] }
   ];
 
@@ -373,6 +374,9 @@
         var d = document.createElement("div");
         d.className = "lyr" + (L.on ? "" : " off") + (selLayer === L.id ? " sel" : "");
         layerEls[L.id] = d;
+        d.setAttribute("tabindex", "0");
+        d.setAttribute("role", "button");
+        d.setAttribute("aria-label", L.name + "：查看来源与作用");
         var row = document.createElement("div");
         row.className = "ly-row";
         var nm = document.createElement("span");
@@ -434,7 +438,7 @@
           d.appendChild(subBox);
         }
 
-        d.addEventListener("click", function () {
+        function openLayer() {
           selLayer = L.id;
           dtTitle.textContent = L.name;
           dtBody.innerHTML = L.detail +
@@ -443,6 +447,10 @@
             "</span>";
           if (window.CAFlash) CAFlash(document.getElementById("detail"));
           render();
+        }
+        d.addEventListener("click", openLayer);
+        d.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLayer(); }
         });
 
         fg.appendChild(d);
@@ -483,8 +491,14 @@
       seg.title = L.name + " · ≈" + L._w + " 单位（示意权重）";
       var overCap = L.id === "agents" && L.subs && L.subs.every(function (s) { return s.on; });
       if (overCap) { seg.classList.add("over"); seg.title += " · 已触顶截断"; }
-      seg.addEventListener("click", function () {
+      function openSeg() {
         if (layerEls[L.id]) layerEls[L.id].click();
+      }
+      seg.setAttribute("tabindex", "0");
+      seg.setAttribute("role", "button");
+      seg.addEventListener("click", openSeg);
+      seg.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSeg(); }
       });
       budgetTrack.appendChild(seg);
     });
@@ -521,7 +535,7 @@
       ? '    { "role": "user", "content": "«环境上下文：cwd、shell»" }'
       : '    // 环境上下文层关闭');
     items.push(isOn("history")
-      ? '    …'
+      ? '    …\n    // 历史条目的形状（第二轮起逐条回放）：\n    { "role": "user", "content": "«上一轮的用户输入»" },\n    { "type": "reasoning", "encrypted_content": "«推理摘要»" },\n    { "type": "function_call", "name": "shell", "arguments": "«cargo test»" },\n    { "type": "function_call_output", "output": "«命令输出»" }'
       : '    // 第一轮没有历史');
 
     var text =
@@ -610,6 +624,21 @@
     });
     buildToggles();
     render();
+    syncPresetHi();
+  }
+
+  /* 预设按钮高亮与实际层状态保持一致（手工改开关后高亮自动消失/匹配） */
+  function syncPresetHi() {
+    var P = {
+      fresh:   { instr:1, tools:1, sandbox:1, devinstr:0, agents:0, env:1, history:0 },
+      typical: { instr:1, tools:1, sandbox:1, devinstr:0, agents:1, env:1, history:1 },
+      heavy:   { instr:1, tools:1, sandbox:1, devinstr:1, agents:1, env:1, history:1 }
+    };
+    Array.prototype.forEach.call(document.querySelectorAll(".presets button"), function (x) {
+      var p = P[x.getAttribute("data-preset")];
+      var m = p && LAYERS.every(function (L) { return !!p[L.id] === !!L.on; });
+      x.classList.toggle("on", !!m);
+    });
   }
 
   restoreState();

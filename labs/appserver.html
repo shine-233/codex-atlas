@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
 <meta property="og:title" content="04 协议线路 · App Server 报文时间线 — CODEX ATLAS">
-<meta property="og:description" content="16 条报文逐步放：双向 JSON-RPC 通道上 Thread/Turn/Item 怎么流动，审批请求到达时整轮如何挂起等你裁决——批准和拒绝是两条不同时间线。">
+<meta property="og:description" content="报文逐步放：双向 JSON-RPC 通道上 Thread/Turn/Item 怎么流动，审批请求到达时整轮如何挂起等你裁决——批准和拒绝是两条不同时间线。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/appserver.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -76,6 +76,12 @@
 
   .detail-json { margin-top: 0; }
   .detail-json pre { margin: 10px 0 0; }
+  /* 报文 JSON 着色 */
+  .jx-key { color: var(--steel); }
+  .jx-str { color: #ffd9a0; }
+  .jx-num { color: var(--ok); }
+  .jx-kw { color: var(--deny); }
+  .jx-cmt { color: var(--faint); font-style: italic; }
   .dj-tag { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .08em; }
 
   /* 控制行与报文进度滑杆（对齐 01 单步仪的控件排布） */
@@ -192,7 +198,7 @@
     </section>
 
     <section>
-      <h2>三原语：协议的全部词汇量</h2>
+      <h2>三原语：Thread、Turn、Item</h2>
       <table class="rt">
         <thead><tr><th style="width:110px;">原语</th><th>定义与生命周期</th></tr></thead>
         <tbody>
@@ -261,7 +267,7 @@
       d:"模型要执行命令了。命令本身先亮出来给你看。" },
     { dir:"gate", who:"SERVER", k:"server request", m:"commandExecution/approval", gate:true,
       j:'{ "jsonrpc": "2.0", "id": 77,\n  "method": "commandExecution/approval",\n  "params": { "threadId": "t_9f3a…", "itemId": "i_07…",\n              "command": "cargo test --all",\n              "cwd": "~/proj/api",\n              "reason": "在沙箱限制之外运行需要授权" } }',
-      d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等的是客户端，也就是你。" },
+      d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等客户端给一个应答。" },
     { dir:"c2s", who:"CLIENT", k:"decision", m:"approval 应答", br:true,
       j:'/* 批准 */\n{ "id": 77, "result": { "decision": "approved" } }\n\n/* 拒绝同样是有效应答 */\n{ "id": 77, "result": { "decision": "denied" } }',
       d:"由你在下面决定。批准和拒绝都是有效应答，区别只是模型接下来是执行还是改道。" },
@@ -270,7 +276,7 @@
       d:"命令在沙箱内跑完了。管着它的可能是 Seatbelt、Landlock 或 WFP——取决于你在哪台机器上（见 03）。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"agent_message (调整方案)", branch:"denied",
       j:'{ "method": "item/delta",\n  "params": { "delta": "收到，那我先只读检查测试文件…" } }',
-      d:"轮次继续而不是中断。拒绝被当成正常反馈消化掉了。" },
+      d:"轮次继续而不是中断。模型收到的就是「没批」这个事实，自己换思路。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"file_change", branch:"approved",
       j:'{ "method": "item/completed",\n  "params": { "type": "file_change",\n              "files": [ "src/auth.rs", "tests/login.rs" ] } }',
       d:"修改落盘，diff 已经在 UI 上展开。" },
@@ -326,18 +332,26 @@
       "</div>" +
       '<div class="mdesc">' + msg.d + "</div>";
     if (state !== "ghost") {
-      d.addEventListener("click", function () { showDetail(msg); if (window.CAFlash) CAFlash(document.querySelector(".detail-json")); });
+      d.setAttribute("tabindex", "0");
+      d.setAttribute("role", "button");
+      d.setAttribute("aria-label", "查看 " + msg.m + " 的报文结构");
+      function open() { showDetail(msg); if (window.CAFlash) CAFlash(document.querySelector(".detail-json")); }
+      d.addEventListener("click", open);
+      d.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+      });
     }
     return d;
   }
 
-  function renderDecideBox(msg) {
+  function renderDecideBox(msg, stranded) {
     gateZone.innerHTML = "";
     if (!msg || !msg.gate || branch !== null) return;
     var box = document.createElement("div");
     box.className = "decide show";
     box.innerHTML =
-      '<span class="dq"><b>审批请求到达：</b>' + msg.m + " —— 核心线程已暂停。你说了算：</span>";
+      '<span class="dq"><b>审批请求到达：</b>' + msg.m + " —— 核心线程已暂停。" +
+      (stranded ? "你刚才跳过了这一步，两条分支还在等裁决：" : "你说了算：") + "</span>";
     var yes = document.createElement("button");
     yes.className = "btn primary";
     yes.textContent = "✓ 批准放行";
@@ -367,8 +381,11 @@
       seqBox.appendChild(renderRow(m, state));
     });
     rebuildSeq(list);
-    var gateMsg = list[Math.max(0, cur - 1)];
-    if (cur > 0 && gateMsg && gateMsg.gate) renderDecideBox(gateMsg);
+    /* 闸门裁决：当前停在闸口时弹出；跳过了闸口也要把裁决框追回来 */
+    var gateIdx = -1, gi;
+    for (gi = 0; gi < list.length; gi++) { if (list[gi].gate) { gateIdx = gi; break; } }
+    if (branch === null && gateIdx !== -1 && cur === gateIdx + 1) renderDecideBox(list[gateIdx], false);
+    else if (branch === null && gateIdx !== -1 && cur > gateIdx + 1) renderDecideBox(list[gateIdx], true);
     else gateZone.innerHTML = "";
   }
 
@@ -478,11 +495,26 @@
     djMethod.textContent = msg.m + " · " + msg.k;
     if (msg.j) {
       djPre.style.display = "";
-      djPre.textContent = msg.j;
+      djPre.innerHTML = hlJson(msg.j);
     } else {
       djPre.style.display = "none";
     }
     djDesc.innerHTML = msg.d;
+  }
+
+  /* 极简 JSON 着色：键 / 字符串 / 数字 / 布尔 / 注释，先转义再包 span */
+  function hlJson(src) {
+    var e = src.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    return e.replace(
+      /("(?:\\.|[^"\\])*")(\s*:)?|(\/\*[\s\S]*?\*\/)|\b(true|false|null)\b|(-?\d+(?:\.\d+)?)/g,
+      function (m, str, colon, cmt, kw, num) {
+        if (cmt) return '<span class="jx-cmt">' + cmt + "</span>";
+        if (str && colon) return '<span class="jx-key">' + str + "</span>" + colon;
+        if (str) return '<span class="jx-str">' + str + "</span>";
+        if (kw) return '<span class="jx-kw">' + kw + "</span>";
+        if (num) return '<span class="jx-num">' + num + "</span>";
+        return m;
+      });
   }
 
   function stop() {
@@ -587,7 +619,7 @@
     { q: "commandExecution/approval 这种审批请求，是从哪边发往哪边的？",
       opts: ["客户端 → 服务端", "服务端 → 客户端", "两边同时向对方发"],
       a: 1,
-      why: "时间线第 11 条标红了方向：这次是服务端发请求，JSON-RPC 的「双向」在这里兑现。核心线程整个暂停，等的是客户端——也就是你。" },
+      why: "时间线第 11 条标红了方向：这次是服务端发请求，JSON-RPC 的「双向」在这里兑现。核心线程整个暂停，等客户端给一个应答——审批权在你手里。" },
     { q: "Item 的生命周期顺序是？",
       opts: ["started → delta → completed", "completed → delta → started", "没有固定顺序，随实现变化"],
       a: 0,

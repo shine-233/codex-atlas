@@ -71,6 +71,40 @@
   .tick-ruler { display: flex; justify-content: space-between; padding: 0 2px; margin-top: -4px; }
   .tick-ruler i { width: 1px; height: 5px; background: var(--line-strong); }
 
+  /* Turn 沙盒模拟器 */
+  .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 860px) { .sim-grid { grid-template-columns: 1fr; } }
+  .sim-left { border-right: 1px solid var(--line); padding: 18px 22px; }
+  @media (max-width: 860px) { .sim-left { border-right: none; border-bottom: 1px solid var(--line); } }
+  .sim-state-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+  .sim-chip {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+    padding: 5px 12px; border: 1px solid var(--line-strong);
+    background: var(--bg2); color: var(--dim);
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  }
+  .sim-chip.live { color: var(--amber); border-color: rgba(255,180,84,.5); background: var(--amber-dim); }
+  .sim-chip.donechip { color: var(--ok); border-color: rgba(123,201,139,.45); background: var(--ok-dim); }
+  .sim-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .sim-log {
+    padding: 14px 18px; min-height: 208px; max-height: 260px; overflow-y: auto;
+    font-family: var(--mono); font-size: 11.5px; line-height: 2.05;
+    background: var(--bg0);
+  }
+  .sim-log p { margin: 0; color: var(--dim); white-space: nowrap; }
+  .sim-log .lg-no { color: var(--faint); margin-right: 9px; }
+  .sim-log .lg-req { color: var(--amber); }
+  .sim-log .lg-ev { color: var(--steel); }
+  .sim-log .lg-ok { color: var(--ok); }
+  .sim-log .lg-note { color: var(--faint); }
+  .sim-empty { color: var(--faint); }
+
+  /* 先猜后揭 */
+  .bet-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+  .bet-row .bet-q { font-size: 13.5px; color: var(--ink); margin-right: 6px; }
+  .bet-row .cq-opt { padding: 5px 12px; font-size: 12.5px; }
+  #bet-out { margin: 0 0 4px; }
+
   /* 再采样圈数 · 历史增长条（与上方单步仪、下方成本对照同一套刻度） */
   .lap-meter { padding: 14px 24px 4px; border-top: 1px dashed var(--line); margin-top: 18px; }
   .lap-head {
@@ -90,6 +124,40 @@
     background: linear-gradient(90deg, rgba(255,180,84,.45), rgba(255,180,84,.85));
     transition: width .45s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  /* 第 11 站现场：SSE 事件瀑布 */
+  .sse-grid {
+    display: grid; grid-template-columns: 1.15fr .85fr;
+    gap: 14px; padding: 4px 24px 0;
+  }
+  .sse-log {
+    margin: 0; min-height: 216px;
+    background: var(--bg0); border: 1px solid var(--line);
+    padding: 14px 16px;
+    font-family: var(--mono); font-size: 12px; line-height: 2.05;
+    color: var(--dim); white-space: pre-wrap; overflow-x: auto;
+  }
+  .sse-log .ev-name { color: var(--steel); }
+  .sse-log .ev-note { color: var(--faint); }
+  .sse-right { display: flex; flex-direction: column; gap: 10px; }
+  .sse-bubble {
+    background: var(--bg2); border: 1px dashed var(--line-strong);
+    padding: 14px 16px; min-height: 96px;
+    font-size: 14.5px; line-height: 1.85;
+    transition: border-color var(--t-med) var(--ease);
+  }
+  .sse-bubble.done { border-style: solid; }
+  .sse-bubble .sse-idle { color: var(--faint); font-size: 13px; }
+  .sse-caret {
+    display: inline-block; width: 8px; height: 1.05em;
+    background: var(--amber); vertical-align: -2px; margin-left: 2px;
+    animation: ca-blink 1s steps(2) infinite;
+  }
+  .sse-usage {
+    font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+    letter-spacing: .04em; min-height: 20px;
+  }
+  #sse-panel.on-stage { border-color: rgba(255, 180, 84, .5); box-shadow: inset 3px 0 0 var(--amber-dim), 0 0 0 1px rgba(255,180,84,.18); }
+  @media (max-width: 1023px) { .sse-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -195,7 +263,7 @@
         <h3>SETUP CHAIN · 会话建立段（01–08）</h3>
         <span class="readout">随上方阶段联动 · 只走一遍，不循环</span>
       </div>
-      <div class="loopmap" id="setupmap" role="img"
+      <div class="loopmap" id="setupmap" role="group"
            aria-label="会话建立段示意图：npm 启动器、Rust CLI、TUI 内嵌 App Server、TurnStart、核心分发、队列对、占用检查、TurnStarted 八站依次相连"></div>
       <p class="small muted" style="margin:8px 0 0;">
         前 8 站是一条单向的建立段：<b>进程接力</b>（1–3）→ <b>协议下单</b>（4–5）→
@@ -210,7 +278,7 @@
         <h3>RESAMPLING MAP · 循环体的形状</h3>
         <span class="readout">随上方阶段联动 · 拓扑依据源码结构</span>
       </div>
-      <div class="loopmap" id="loopmap" role="img"
+      <div class="loopmap" id="loopmap" role="group"
            aria-label="采样回路示意图：阶段九到十二构成循环体，有工具调用就带着增长后的历史回到第九步再次采样，没有工具调用则收束到第十三步"></div>
       <p class="small muted" style="margin:8px 0 0;">
         第 9–12 步是一个可能转多圈的环：<b>只要有工具调用</b>，输出写回历史、Prompt 重新组装、再来一次采样；
@@ -228,14 +296,84 @@
       </div>
     </section>
 
+    <!-- 第 11 站现场：SSE 事件瀑布 -->
+    <section class="panel" id="sse-panel">
+      <div class="panel-title">
+        <h3>SSE WATERFALL · 第 11 站现场：一条回答是怎么流回来的</h3>
+        <span class="readout">左边是事件序列 · 右边是 TUI 画面</span>
+      </div>
+      <div class="sse-grid">
+        <pre class="sse-log" id="sse-log" aria-label="ResponseEvent 事件序列示意"></pre>
+        <div class="sse-right">
+          <div class="sse-bubble" id="sse-bubble"><span class="sse-idle">按「播放事件流」，六步看完这条消息的一生。</span><span class="sse-caret" hidden></span></div>
+          <div class="sse-usage" id="sse-usage"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="sse-play" type="button">▶ 播放事件流</button>
+        <button class="btn" id="sse-reset" type="button">↺ 重放</button>
+        <span class="match-readout" id="sse-count" aria-live="polite"></span>
+      </div>
+      <p class="small muted" style="margin:12px 0 0;">
+        这里演的是<b>纯文本收尾</b>的支线：Completed 不带工具调用，needs_follow_up 为 false，直接落到第 13 站。
+        如果 OutputItemDone 带回来的是 function_call，就会拐进第 12 站的沙箱执行——两条岔路在环上都可能出现。
+        事件名与先后顺序依据 <code>ModelClientSession::stream</code> 的重新发布逻辑，报文内容为示意。
+      </p>
+    </section>
+
+    <!-- Turn 沙盒：把第 6–8 站的队列对与占用规则交到你手上 -->
+    <section class="panel" id="sim-panel">
+      <div class="panel-title">
+        <h3>TURN SIMULATOR · 自己开一轮</h3>
+        <span class="readout">状态机演示 · 规则即第 6–8 站</span>
+      </div>
+      <div class="sim-grid">
+        <div class="sim-left">
+          <div class="pipe-k">SESSION STATE</div>
+          <div class="sim-state-row">
+            <span class="sim-chip" id="sim-task">空闲 IDLE · 没有 running task</span>
+            <span class="sim-chip" id="sim-lap">未开始采样</span>
+          </div>
+          <div class="lap-head" style="margin-bottom:7px;">
+            <span class="lap-tag">HISTORY · 当前历史长度（示意刻度）</span>
+            <span class="match-readout">≈ <b id="sim-hist">0</b> 单位</span>
+          </div>
+          <div class="lap-track"><i id="sim-fill" style="width:0%;"></i></div>
+          <div class="sim-actions" style="margin-top:16px;">
+            <button class="btn primary" id="sim-input">✎ 发一条新输入</button>
+            <button class="btn" id="sim-tool" disabled>⚒ 模型调用工具</button>
+            <button class="btn" id="sim-answer" disabled>✓ 模型直接回答</button>
+            <button class="btn" id="sim-steer" disabled>↯ 运行中再插一句</button>
+            <button class="btn" id="sim-reset">重置</button>
+          </div>
+          <p class="small muted" style="margin:12px 0 0;">
+            规则只有三条，全部来自上面的第 6–8 站：同一时刻最多一个 running task；
+            忙碌时来的新输入走 steer，<b>并入当前轮而不是排队</b>；
+            有工具调用就再采样一圈，模型给出纯文本才收束。
+            试试在运行中连发两条输入——它们会先后并进同一个 turn。
+          </p>
+        </div>
+        <div class="sim-log" id="sim-log" aria-live="polite">
+          <p class="sim-empty">// 队列对空转中。发一条输入，看 Submission → Event 两侧怎么动。</p>
+        </div>
+      </div>
+    </section>
+
     <!-- 重采样成本对照 -->
     <section class="cost-demo">
       <h2>为什么改一行代码常常要过两次模型</h2>
       <p class="muted small">
         环每转一圈，历史就更长一点，而下一次采样<b>仍然全量重发</b>（02 第 7 层）。
         不做优化的话，累计发送量按采样次数平方增长；Codex 靠提示缓存命中把重复历史的计费打成约一折，
-        累计成本被压回近似线性。拖动下面的滑杆，自己把环多转几圈看看：
+        累计成本被压回近似线性。
       </p>
+      <div class="bet-row" id="bet-row" role="group" aria-label="先猜后揭：缓存能省多少">
+        <span class="bet-q">先别拉滑杆——猜一下，采样 10 次时，「无缓存」的累计发送量是「缓存命中」的大约几倍？</span>
+        <button class="cq-opt" data-bet="low">差不到一倍半</button>
+        <button class="cq-opt" data-bet="mid">约 4 倍</button>
+        <button class="cq-opt" data-bet="high">接近 10 倍</button>
+      </div>
+      <p class="small muted" id="bet-out"></p>
       <div class="cost-slider">
         <input type="range" id="cost-laps" min="1" max="10" step="1" value="5"
                aria-label="采样次数（环转几圈）">
@@ -273,7 +411,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；个别类型名（如 <code>Op::UserTurn</code> 与 <code>Op::UserInput</code> 的分工）随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图为拓扑示意；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；个别类型名（如 <code>Op::UserTurn</code> 与 <code>Op::UserInput</code> 的分工）随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
     </aside>
 
   </main>
@@ -290,7 +428,7 @@
       body:"你敲的 <b>codex</b> 命令先落在一个 Node 脚本上。它不做任何业务：识别平台与架构，从 optional dependencies 里挑出对应的原生二进制，然后把控制权整个交给 Rust 程序。跨平台支持因此只换二进制，不改逻辑。",
       next:"这一步解释了为什么仓库里同时有 TypeScript 启动器和 Rust 主体两套代码。" },
     { n:"Rust CLI 分发入口", files:["codex-rs/cli/src/main.rs"], ev:["MultitoolCli"],
-      body:"Rust 入口用 clap 解析 MultitoolCli。<b>没有子命令时默认启动 TUI</b>；exec、app-server、mcp-server 等子命令共用同一个原生分发物。一个二进制，多种打开方式——这也是后面所有客户端能共用核心的原因。",
+      body:"Rust 入口用 clap 解析 MultitoolCli。<b>没有子命令时默认启动 TUI</b>；exec、app-server、mcp-server 等子命令共用同一个原生分发物。所有客户端因此能共用同一个核心。",
       next:"注意：从这里开始，交互模式不再影响核心逻辑。" },
     { n:"TUI 挂载内嵌 App Server", files:["codex-rs/tui/src/main.rs"], ev:["AppServerTarget::embedded"],
       body:"TUI 启动时选择 AppServerTarget：本地默认走 <b>embedded</b>——App Server 跑在与 TUI 同一个进程里。即便同进程，概念上也已经被协议边界隔开：TUI 是客户端，核心是服务端。远端模式则走 websocket 连别的机器。",
@@ -303,7 +441,7 @@
       next:"投递路径应读成 turn_start → submit_core_op → submit_with_trace，不是一步直达。" },
     { n:"队列对：Submission 进 Event 出", files:["core/src/session/mod.rs"], ev:["Codex::spawn","submission_loop","Op::Shutdown"],
       body:"核心抽象 <b>Codex 是一个队列对</b>：一边收 Submission/Op，一边吐 Event。spawn 创建 Session 并启动后台 submission_loop 常驻循环，直到收到 Op::Shutdown 才退出。submit 只负责生成 submission id 并入队。",
-      next:"两条异步通道是这个循环系统的循环带——理解了队列对，后面全是它的推论。" },
+      next:"队列对是后面一切的地基：第 7 站的占用检查、第 13 站的历史写回，都发生在这两条通道上。" },
     { n:"会话占用检查", files:["core/src/session/mod.rs"], ev:["user_input_or_turn_inner","steer_input"],
       body:"一个 Session 同一时刻<b>最多只有一个 running task</b>。空闲：新建 turn 并启动 RegularTask。忙碌：尝试 steer_input，把你这句新输入导入正在跑的那一轮。<b>打断不是取消，是并入。</b>",
       next:"这就是为什么连续追问不会排队等上一轮彻底结束。" },
@@ -312,19 +450,19 @@
       next:"一次 turn 包含几次采样，取决于模型要几次才能完成任务。" },
     { n:"build_prompt 组装", files:["core/src（Prompt 构建）"], ev:["ToolRouter::model_visible_specs","base_instructions"],
       body:"每次采样前重新组装 Prompt：<b>history 加本轮新增输入</b>、工具表来自 ToolRouter 的 model_visible_specs()、加上基础指令与 personality。模型看到的是 tool spec；handler 注册表、并发策略、审批和沙箱都在 core 内部维护。",
-      next:"每一层具体装了什么、顺序如何，02 输入组装逐层拆给你看。" },
+      next:"每一层具体装了什么、顺序如何，02 输入组装有逐层开关可以现场试。" },
     { n:"POST /responses · 读 SSE 流", files:["codex-api（HTTP 客户端）"], ev:["POST responses","SSE"],
       body:"向 Responses API 端点发起 HTTP POST：ChatGPT 登录走 chatgpt.com/backend-api/codex/responses，API key 走 api.openai.com/v1/responses，本地模型走 localhost 端点。然后循环读取 SSE 事件流。<b>每次都发送完整历史</b>，不用 previous_response_id——保持请求无状态以兼容零数据保留配置。",
-      next:"发送量确实一圈比一圈大——这笔账怎么算，下面的成本对照现场算给你看。" },
+      next:"发送量确实一圈比一圈大。大多少、怎么省，下面的成本对照按圈在算。" },
     { n:"ResponseEvent 流水线", files:["core/src（ModelClientSession::stream）"], ev:["OutputItemAdded","OutputTextDelta","OutputItemDone","Completed"],
       body:"core 把服务器 SSE 事件重新发布为内部事件对象：<b>OutputItemAdded</b> 表示条目开始（UI 可立即渲染），OutputTextDelta 支持流式输出，<b>OutputItemDone</b> 可能触发工具分发，Completed 带回 token usage 并给出 needs_follow_up 标记。",
       next:"事件驱动意味着 UI 不需要读 core 内部任务状态，只消费 EventMsg。" },
     { n:"function_call → 工具分发", files:["core/src/tools/handlers/*","sandboxing"], ev:["handle_output_item_done","ToolRouter::build_tool_call"],
       body:"handle_output_item_done 用 <b>ToolRouter::build_tool_call</b> 识别工具并创建 in-flight future。只要有工具调用就置 <b>needs_follow_up = true</b>——工具输出还要反馈给模型继续推理。执行发生在沙箱策略之下：macOS Seatbelt、Linux Landlock+bwrap、Windows WFP。",
-      next:"沙箱到底拦什么放什么，03 权限沙箱可以现场判定。" },
+      next:"沙箱到底拦什么放什么，去 03 现场判定。" },
     { n:"写回再采样，或收束", files:["core/src/session（task wrapper）"], ev:["needs_follow_up","EventMsg::TurnComplete"],
       body:"工具输出写进 history，回到第 9 步<b>再次采样</b>——这条回路会转多少圈，取决于任务难度。当模型返回纯 assistant message（没有 tool call），needs_follow_up 为 false，本轮结束。标准的 TurnComplete envelope 由 task wrapper 在任务返回后统一发出，不在 run_turn 内部。",
-      next:"收束后这一轮就封账了。转了几圈、每圈重发了多少，下面的成本对照给了一笔账。" }
+      next:"收束后这一轮就结束了。转了几圈、每圈重发了多少，下面成本对照里都有。" }
   ];
 
   var rail = document.getElementById("rail");
@@ -385,7 +523,7 @@
       st.ev.forEach(function (e) { dEvents.appendChild(chip(e, "amber")); });
     }
     dBody.innerHTML = st.body;
-    dNext.textContent = "看点 · " + st.next;
+    dNext.textContent = st.next;
     curName.textContent = st.n;
     posNow.textContent = pad(i);
     posNum.textContent = pad(i);
@@ -430,6 +568,9 @@
     if (timer) { clearInterval(timer); timer = null; }
     toggleBtn.textContent = "▶ 播放全程";
     playState.textContent = "待机 STANDBY";
+    /* 播放结束后恢复读屏播报 */
+    var live = document.querySelector(".stage-detail");
+    if (live) live.removeAttribute("aria-busy");
   }
 
   function start() {
@@ -438,6 +579,9 @@
     playing = true;
     toggleBtn.textContent = "❚❚ 暂停";
     playState.innerHTML = '运行中 RUNNING · <b>' + speed.toFixed(1) + '×</b>';
+    /* 自动播放时抑制读屏逐站播报，避免连续轰炸 */
+    var live = document.querySelector(".stage-detail");
+    if (live) live.setAttribute("aria-busy", "true");
     timer = setInterval(function () {
       if (cur >= STAGES.length) { stop(); return; }
       setStage(cur + 1, true);
@@ -451,6 +595,12 @@
       laps++;
       setStage(9);
       renderLaps(true);
+      /* 圈数喂给下面的成本对照：转一圈多一次采样 */
+      var ci = document.getElementById("cost-laps");
+      if (ci) {
+        ci.value = Math.min(parseInt(ci.max, 10) || 10, laps + 1);
+        ci.dispatchEvent(new Event("input"));
+      }
     } else {
       setStage(cur + 1);
     }
@@ -726,6 +876,229 @@
     }
   })();
 
+  /* ---------- 先猜后揭：缓存到底省多少 ---------- */
+  (function () {
+    var row = document.getElementById("bet-row");
+    var out = document.getElementById("bet-out");
+    if (!row || !out) return;
+    var ANSWER = "mid";
+    var REVEAL = {
+      low: "不到。全量重发是平方增长，缓存只把重复前缀打到一折——差距比一倍半大得多。",
+      mid: "对了。无缓存累计 10+20+…+100 = 550；缓存命中把旧前缀按一折计，累计 145，约 3.8 倍。",
+      high: "没那么夸张。平方增长是真的，但一折的重复前缀把差距压到了约 3.8 倍（550 vs 145）。"
+    };
+    function pick(btn) {
+      if (row.classList.contains("done")) return;
+      row.classList.add("done");
+      Array.prototype.forEach.call(row.querySelectorAll("[data-bet]"), function (b) {
+        b.disabled = true;
+        if (b.getAttribute("data-bet") === ANSWER) b.classList.add("right");
+        else if (b === btn) b.classList.add("wrong");
+        else b.classList.add("mute");
+      });
+      out.innerHTML = "<b>" + (btn.getAttribute("data-bet") === ANSWER ? "猜中了。" : "差一点。") + "</b> " + REVEAL[btn.getAttribute("data-bet")];
+      /* 把滑杆拉到 10 次，让柱状图当场对答案 */
+      var ci = document.getElementById("cost-laps");
+      if (ci) { ci.value = 10; ci.dispatchEvent(new Event("input")); }
+      try { document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: btn.getAttribute("data-bet") === ANSWER } })); } catch (e) { /* 无伤大雅 */ }
+    }
+    Array.prototype.forEach.call(row.querySelectorAll("[data-bet]"), function (b) {
+      b.addEventListener("click", function () { pick(b); });
+    });
+  })();
+
+  /* ---------- Turn 沙盒：队列对 / 占用 / steer 的可玩模型 ---------- */
+  (function () {
+    var taskChip = document.getElementById("sim-task");
+    var lapChip = document.getElementById("sim-lap");
+    var histNum = document.getElementById("sim-hist");
+    var fillBar = document.getElementById("sim-fill");
+    var logBox = document.getElementById("sim-log");
+    var bInput = document.getElementById("sim-input");
+    var bTool = document.getElementById("sim-tool");
+    var bAnswer = document.getElementById("sim-answer");
+    var bSteer = document.getElementById("sim-steer");
+    var bReset = document.getElementById("sim-reset");
+    if (!logBox || !bInput || !taskChip) return;
+
+    var running = false, laps = 0, hist = 0, seq = 0;
+
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+    function log(html) {
+      var empty = logBox.querySelector(".sim-empty");
+      if (empty) empty.remove();
+      seq++;
+      var p = document.createElement("p");
+      p.innerHTML = '<span class="lg-no">' + pad(seq) + "</span>" + html;
+      p.classList.add("ca-rise");
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function paint() {
+      if (running) {
+        taskChip.textContent = "运行中 RUNNING · 一个 running task";
+        taskChip.className = "sim-chip live";
+        lapChip.textContent = "采样第 " + laps + " 轮" + (laps > 1 ? " · 重采样" : "");
+        lapChip.className = "sim-chip live";
+      } else {
+        taskChip.textContent = hist ? "空闲 IDLE · 上一轮已 TurnComplete" : "空闲 IDLE · 没有 running task";
+        taskChip.className = "sim-chip";
+        lapChip.textContent = hist ? "本轮共采样 " + laps + " 次" : "未开始采样";
+        lapChip.className = "sim-chip" + (hist ? " donechip" : "");
+      }
+      histNum.textContent = hist;
+      fillBar.style.width = Math.min(100, hist) + "%";
+      bTool.disabled = !running;
+      bAnswer.disabled = !running;
+      bSteer.disabled = !running;
+      bInput.disabled = running;   /* 忙碌时的新输入走 steer，用旁边那颗 */
+      bInput.title = running ? "已有 running task——新输入会走 steer_input，点「运行中再插一句」看过程" : "";
+    }
+
+    bInput.addEventListener("click", function () {
+      if (running) return;
+      log('<span class="lg-req">→ Submission</span>　Op::UserInput 入队');
+      running = true; laps = 1; hist += 10;
+      log('<span class="lg-ev">← Event</span>　TaskStarted → TurnStarted');
+      log('<span class="lg-note">build_prompt：历史 ≈' + hist + ' 单位 + 本轮输入，整体重发</span>');
+      log('<span class="lg-req">→ 采样 #1</span>　POST /responses · SSE 开始回流');
+      paint();
+    });
+
+    bSteer.addEventListener("click", function () {
+      if (!running) return;
+      log('<span class="lg-req">→ Submission</span>　Op::UserInput 入队');
+      log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮，不是排队</span>');
+    });
+
+    bTool.addEventListener("click", function () {
+      if (!running) return;
+      hist += 10;
+      log('<span class="lg-ev">← Event</span>　OutputItemDone(function_call) · needs_follow_up = true');
+      log('<span class="lg-note">工具输出写回历史 → 回到 build_prompt 再采样</span>');
+      laps++;
+      log('<span class="lg-req">→ 采样 #' + laps + '</span>　POST /responses · 历史 ≈' + hist + ' 单位');
+      paint();
+    });
+
+    bAnswer.addEventListener("click", function () {
+      if (!running) return;
+      log('<span class="lg-ev">← Event</span>　OutputItemDone(assistant message) · 纯文本，needs_follow_up = false');
+      log('<span class="lg-ok">← Event</span>　<b>TurnComplete</b> · 本轮收束，环断开');
+      running = false;
+      paint();
+    });
+
+    bReset.addEventListener("click", function () {
+      running = false; laps = 0; hist = 0; seq = 0;
+      logBox.innerHTML = '<p class="sim-empty">// 队列对空转中。发一条输入，看 Submission → Event 两侧怎么动。</p>';
+      paint();
+    });
+
+    paint();
+  })();
+
+  /* ---------- 第 11 站现场：SSE 事件瀑布（示意） ---------- */
+  (function () {
+    var log = document.getElementById("sse-log");
+    var bubble = document.getElementById("sse-bubble");
+    var usageEl = document.getElementById("sse-usage");
+    var playBtn = document.getElementById("sse-play");
+    var resetBtn = document.getElementById("sse-reset");
+    var countEl = document.getElementById("sse-count");
+    if (!log || !bubble) return;
+
+    /* 六步 = 第 11 站正文的四个事件 + 纯文本收尾的两个后果 */
+    var STEPS = [
+      { ev: "OutputItemAdded", note: "条目开始 · UI 先出占位", act: "placeholder" },
+      { ev: "OutputTextDelta", note: "「先跑一遍」", act: "text", chunk: "先跑一遍" },
+      { ev: "OutputTextDelta", note: "「测试，看看」", act: "text", chunk: "测试，看看" },
+      { ev: "OutputTextDelta", note: "「哪里红了。」", act: "text", chunk: "哪里红了。" },
+      { ev: "OutputItemDone",  note: "条目落定 · 没有 function_call", act: "done" },
+      { ev: "Completed",       note: "usage 回传 · 无后续", act: "complete",
+        usage: "usage · input 48,211 · 其中 cached 44,120 —— needs_follow_up = false，下一站第 13" }
+    ];
+
+    var timers = [];
+
+    function clearAll() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      log.textContent = "";
+      bubble.innerHTML = '<span class="sse-caret" hidden></span>';
+      usageEl.textContent = "";
+      countEl.textContent = "";
+      bubble.classList.remove("done");
+    }
+
+    function applyStep(i, instant) {
+      var s = STEPS[i];
+      var line = document.createElement("div");
+      line.innerHTML = '<span class="ev-name">ResponseEvent::' + s.ev + "</span> <span class=\"ev-note\">" + s.note + "</span>";
+      if (!instant) line.classList.add("ca-rise");
+      log.appendChild(line);
+      countEl.textContent = "已回放 " + (i + 1) + " / " + STEPS.length + " 个事件";
+
+      var caret = bubble.querySelector(".sse-caret");
+      if (s.act === "placeholder") {
+        caret.hidden = false;
+      } else if (s.act === "text") {
+        caret.hidden = false;
+        var chunk = document.createTextNode("");
+        bubble.insertBefore(chunk, caret);
+        if (instant || window.PrefersReducedMotion) { chunk.textContent = s.chunk; return; }
+        var k = 0;
+        (function tick() {
+          if (k >= s.chunk.length) return;
+          chunk.textContent += s.chunk[k++];
+          timers.push(setTimeout(tick, 34));
+        })();
+      } else if (s.act === "done") {
+        caret.hidden = true;
+        bubble.classList.add("done");
+      } else if (s.act === "complete") {
+        usageEl.textContent = s.usage;
+      }
+    }
+
+    function finish() {
+      playBtn.disabled = false;
+      playBtn.textContent = "▶ 播放事件流";
+      /* 小鳕看见消息流完，蹦一下（只借动画，不动存档） */
+      try { document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: true } })); } catch (e) { }
+    }
+
+    function startPlay() {
+      clearAll();
+      playBtn.disabled = true;
+      playBtn.textContent = "❚❚ 播放中…";
+      if (window.PrefersReducedMotion) {
+        for (var i = 0; i < STEPS.length; i++) applyStep(i, true);
+        finish();
+        return;
+      }
+      STEPS.forEach(function (s, i) {
+        timers.push(setTimeout(function () {
+          applyStep(i, false);
+          if (i === STEPS.length - 1) finish();
+        }, i * 950));
+      });
+    }
+
+    playBtn.addEventListener("click", startPlay);
+    resetBtn.addEventListener("click", clearAll);
+
+    /* 与单步仪联动：停在第 11 站时面板亮边提醒 */
+    var panel = document.getElementById("sse-panel");
+    if (panel) {
+      document.addEventListener("ca:stage", function (ev) {
+        panel.classList.toggle("on-stage", ev.detail.stage === 11);
+      });
+    }
+  })();
+
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
@@ -742,7 +1115,11 @@
     { q: "本地默认启动时，TUI 和核心是什么关系？",
       opts: ["跨进程 websocket 连接", "核心跑在 OpenAI 云端", "同进程（embedded），但概念上已被协议边界隔开"],
       a: 2,
-      why: "第 3 站：AppServerTarget 默认走 embedded。即便同进程，TUI 是客户端、核心是服务端的分工不变——远端模式才走 websocket 连别的机器。" }
+      why: "第 3 站：AppServerTarget 默认走 embedded。即便同进程，TUI 是客户端、核心是服务端的分工不变——远端模式才走 websocket 连别的机器。" },
+    { q: "上一轮还在跑，你又发了一条新输入。Codex 会怎么做？",
+      opts: ["新输入排队，等这轮彻底结束", "走 steer_input 并入正在跑的这轮", "取消当前轮，从头再来"],
+      a: 1,
+      why: "第 7 站的占用检查：一个 Session 同时只有一个 running task，忙碌时的新输入由 steer_input 导入当前轮——打断不是排队也不是取消。下面的 TURN SIMULATOR 可以亲手试一遍。" }
   ]);
 })();
 </script>
