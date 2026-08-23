@@ -278,6 +278,53 @@
       </p>
     </section>
 
+    <!-- 把判定写成配置：config.toml / CLI 片段生成器 -->
+    <section class="panel" id="cfg-panel">
+      <div class="panel-title">
+        <h3>CONFIG BRIDGE · 把判定写成配置</h3>
+        <span class="readout">选组合 · 片段实时生成 · 可直接粘贴</span>
+      </div>
+
+      <div class="cfg-grid">
+        <div>
+          <div class="ctrl-row cfg-ctrl">
+            <div class="ctrl-label">sandbox_mode（写进配置或 --sandbox）</div>
+            <div class="seg" role="group" aria-label="选择沙箱模式">
+              <button data-cm="ro">read-only</button>
+              <button data-cm="ww" class="on">workspace-write</button>
+              <button data-cm="full">danger-full-access</button>
+            </div>
+          </div>
+          <div class="ctrl-row cfg-ctrl">
+            <div class="ctrl-label">approval_policy（写进配置或 --ask-for-approval）</div>
+            <div class="seg" role="group" aria-label="选择审批策略">
+              <button data-cp="untrusted">untrusted</button>
+              <button data-cp="on-failure">on-failure</button>
+              <button data-cp="on-request" class="on">on-request</button>
+              <button data-cp="never">never</button>
+            </div>
+          </div>
+          <div class="ctrl-row cfg-ctrl">
+            <label class="switch-row">
+              <input type="checkbox" id="cfg-net">
+              <span class="sw" aria-hidden="true"></span>
+              <span style="font-family:var(--mono);font-size:12px;">workspace-write 下打开 network_access</span>
+            </label>
+          </div>
+          <p class="small muted" style="margin-bottom:0;">
+            CLI 旗标优先于配置文件。只跑一次不想改配置时，用右边那条命令行。
+          </p>
+        </div>
+
+        <div>
+          <pre class="cfg-pre" id="cfg-toml" aria-live="polite"></pre>
+          <div class="cfg-cli" id="cfg-cli" aria-live="polite"></div>
+          <div id="cfg-notes" aria-live="polite"></div>
+          <div class="cfg-where">配置文件位置：~/.codex/config.toml · 键名出自固定提交下 docs/config.md</div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" style="margin-top:26px;">
       <div id="quiz"></div>
     </section>
@@ -287,7 +334,7 @@
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
       三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
-      审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。本页不运行真实命令，所有判定均为教学演示。
+      审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>)与「CLI 旗标覆盖配置文件」的优先级同出该文档；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
   </main>
@@ -581,6 +628,79 @@
   renderVerdict();
 
   window.addEventListener("hashchange", function () { location.reload(); });
+
+  /* ---------- CONFIG BRIDGE：把当前组合写成配置片段 ---------- */
+  (function () {
+    var MODE_NAME = { ro: "read-only", ww: "workspace-write", full: "danger-full-access" };
+    var curMode = "ww", curPol = "on-request";
+    var tomlBox = document.getElementById("cfg-toml");
+    var cliBox = document.getElementById("cfg-cli");
+    var notesBox = document.getElementById("cfg-notes");
+    var netBox = document.getElementById("cfg-net");
+    if (!tomlBox || !cliBox || !notesBox || !netBox) return;
+
+    function render() {
+      var net = netBox.checked;
+      var L = [];
+      L.push("# ~/.codex/config.toml");
+      L.push('approval_policy = "' + curPol + '"');
+      L.push('sandbox_mode = "' + MODE_NAME[curMode] + '"');
+      if (curMode === "ww") {
+        L.push("", "[sandbox_workspace_write]");
+        L.push("network_access = " + (net ? "true" : "false") +
+          (net ? "   # 默认 false，写出来是显式声明" : "  # 默认即 false"));
+      } else if (curMode === "full") {
+        L.push("", "# danger-full-access 没有子开关：文件系统与网络都不设防");
+      } else {
+        L.push("", "# read-only 无写入也无网络，没有可调的子开关");
+      }
+      tomlBox.textContent = L.join("\n");
+
+      cliBox.innerHTML =
+        '$ codex <b>--sandbox ' + MODE_NAME[curMode] + '</b> <b>--ask-for-approval ' + curPol + '</b>';
+
+      var notes = [];
+      if (curMode === "full") {
+        notes.push(curPol === "never"
+          ? '<p class="cfg-note warn">无人值守 × 全权限：模型拿到的就是你这台机器本身，中间没有任何闸口。想清楚再这么配。</p>'
+          : '<p class="cfg-note caut">全权限模式：审批弹窗是唯一的闸。它之外，系统不再有第二道防线。</p>');
+      } else if (curMode === "ww") {
+        notes.push(net
+          ? '<p class="cfg-note">network_access 打开后，装依赖、调接口都能走；写入范围仍锁在工作目录与临时目录。</p>'
+          : '<p class="cfg-note">日常档位：工作目录与临时目录可写，默认断网。要装依赖时再打开左边的开关。</p>');
+      } else {
+        notes.push('<p class="cfg-note">只读档：适合让它先出方案、别动键盘。要动手时切 workspace-write。</p>');
+      }
+      if (curPol === "untrusted") {
+        notes.push('<p class="cfg-note">untrusted 下白名单外的命令一律先弹窗——包括沙箱内本来能直接跑的那些。</p>');
+      }
+      if (curPol === "never" && curMode === "ww") {
+        notes.push('<p class="cfg-note">跑批参考：<code>codex exec --sandbox workspace-write "任务"</code> 非交互执行；拿不到的权限直接失败，不排队等人。</p>');
+      }
+      notesBox.innerHTML = notes.join("");
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (b) {
+      b.addEventListener("click", function () {
+        curMode = b.getAttribute("data-cm");
+        Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        render();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (b) {
+      b.addEventListener("click", function () {
+        curPol = b.getAttribute("data-cp");
+        Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        render();
+      });
+    });
+    netBox.addEventListener("change", render);
+    render();
+  })();
 
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22

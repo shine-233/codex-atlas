@@ -178,6 +178,7 @@
       <p class="small muted" style="margin:8px 0 0;">
         前 8 站是一条单向的建立段：<b>进程接力</b>（1–3）→ <b>协议下单</b>（4–5）→
         <b>队列与占用</b>（6–7）→ 轮次开闸（8）。第 8 站之后，信号才进入下方那个可循环的采样环。
+        图里的每个方框都能点，点了单步仪就跳到那一站。
       </p>
     </section>
 
@@ -191,7 +192,8 @@
            aria-label="采样回路示意图：阶段九到十二构成循环体，有工具调用就带着增长后的历史回到第九步再次采样，没有工具调用则收束到第十三步"></div>
       <p class="small muted" style="margin:8px 0 0;">
         第 9–12 步是一个可能转多圈的环：<b>只要有工具调用</b>，输出写回历史、Prompt 重新组装、再来一次采样；
-        模型返回纯文本时环才断开，落到 TurnComplete。播放或单步上面的仪器，看信号在这个环上怎么走。
+        模型返回纯文本时环才断开，落到 TurnComplete。播放或单步上面的仪器，看信号在这个环上怎么走——
+        或者反过来，直接点环上的方框，让仪器停在那一步。
       </p>
     </section>
 
@@ -453,19 +455,28 @@
     var eExit  = edge("M 616 128 L 616 202", "lm-dim");
     var eBack  = edge("M 300 172 L 130 172 L 130 88", "lm-dim");
 
-    function node(x, y, w, label) {
-      var g = E("g", { class: "lm-node" });
+    function node(x, y, w, label, stageNo) {
+      var g = E("g", { class: "lm-node clickable" });
       g.appendChild(E("rect", { x: x, y: y, width: w, height: 44, rx: "2" }));
       var t = E("text", { x: x + w / 2, y: y + 27, "text-anchor": "middle", "font-size": "12.5" });
       t.textContent = label;
       g.appendChild(t);
+      /* 可操作：点节点即跳到该站（与上方单步仪联动） */
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", "跳到第 " + stageNo + " 站 · " + label.replace(/^\d+ · /, ""));
+      g.addEventListener("click", function () { stop(); setStage(stageNo); });
+      g.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault(); stop(); setStage(stageNo);
+      });
       svg.appendChild(g); return g;
     }
-    var n9  = node(60, 40, 142, "09 · 组装 Prompt");
-    var n10 = node(280, 40, 182, "10 · POST /responses");
-    var n11 = node(530, 40, 172, "11 · ResponseEvent");
-    var n12 = node(300, 150, 222, "12 · 工具分发（沙箱内）");
-    var n13 = node(520, 206, 200, "13 · TurnComplete 收束");
+    var n9  = node(60, 40, 142, "09 · 组装 Prompt", 9);
+    var n10 = node(280, 40, 182, "10 · POST /responses", 10);
+    var n11 = node(530, 40, 172, "11 · ResponseEvent", 11);
+    var n12 = node(300, 150, 222, "12 · 工具分发（沙箱内）", 12);
+    var n13 = node(520, 206, 200, "13 · TurnComplete 收束", 13);
 
     function lab(x, y, txt, anchor) {
       var t = E("text", { class: "lm-lab", x: x, y: y, "font-size": "10.5", "text-anchor": anchor || "start" });
@@ -522,13 +533,21 @@
           "marker-end": "url(#sm-dim)", "stroke-width": "1.4"
         }));
       }
-      var gE = E("g", { class: "lm-node" });
+      var gE = E("g", { class: "lm-node clickable" });
       gE.appendChild(E("rect", { x: x.toFixed(1), y: Y, width: NW, height: H, rx: "2" }));
       var t1 = E("text", { class: "lm-lab", x: (x + NW / 2).toFixed(1), y: Y + 17, "text-anchor": "middle", "font-size": "9" });
       t1.textContent = "0" + (i + 1);
       var t2 = E("text", { x: (x + NW / 2).toFixed(1), y: Y + 35, "text-anchor": "middle", "font-size": "11.5" });
       t2.textContent = name;
       gE.appendChild(t1); gE.appendChild(t2);
+      gE.setAttribute("tabindex", "0");
+      gE.setAttribute("role", "button");
+      gE.setAttribute("aria-label", "跳到第 " + (i + 1) + " 站 · " + name);
+      gE.addEventListener("click", function () { stop(); setStage(i + 1); });
+      gE.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault(); stop(); setStage(i + 1);
+      });
       svg.appendChild(gE);
       groups.push(gE);
     });

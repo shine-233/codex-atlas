@@ -48,6 +48,15 @@
       <div class="nf-code">4<i>//</i>04</div>
       <p class="nf-sub">这个地址在站内没有落点。可能是链接敲错了，也可能是页面还没建。
         五个入口都在下面，总览里有按问题查路由的表。</p>
+
+      <div class="nf-scope" aria-hidden="true">
+        <span class="nf-scope-tag">SCOPE · 最后一段有效信号</span>
+        <canvas id="scope-cv"></canvas>
+      </div>
+      <p class="small muted" style="margin-top:8px;">
+        波形每六秒塌回直线一次——就像你刚点开的这个地址。
+      </p>
+
       <div class="nf-links">
         <a class="btn primary" href="index.html">◀ 回到总览</a>
         <a class="btn" href="labs/loop.html">01 循环回路</a>
@@ -64,6 +73,7 @@
   </main>
 </div>
 
+<script src="assets/panel.js"></script>
 <script>
 (function () {
   "use strict";
@@ -75,6 +85,57 @@
   if (target && document.querySelector('.nf-links a[href="' + target + '"]')) {
     location.replace(target);
   }
+})();
+
+/* 失联示波器：一段信号每六秒衰减回直线 */
+(function () {
+  "use strict";
+  var cv = document.getElementById("scope-cv");
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext("2d");
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+
+  function size() {
+    var r = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+  }
+
+  function draw(t) {
+    var w = cv.width, h = cv.height, mid = h / 2;
+    ctx.clearRect(0, 0, w, h);
+    var cycle = (t % 6000) / 6000;
+    var env = Math.exp(-cycle * 5);
+    /* 起爆瞬间给一道竖向扫描亮线 */
+    if (env > 0.92 && !reduced) {
+      var sx = (cycle) * w * 14 % w;
+      ctx.fillStyle = "rgba(255,180,84,.10)";
+      ctx.fillRect(sx - 2 * dpr, 0, 4 * dpr, h);
+    }
+    ctx.strokeStyle = "#ffb454";
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.shadowColor = "rgba(255,180,84,.75)";
+    ctx.shadowBlur = 7 * dpr;
+    ctx.beginPath();
+    for (var x = 0; x <= w; x += 3 * dpr) {
+      var n = Math.sin(x * 0.030 / dpr + t * 0.006) *
+              Math.sin(x * 0.009 / dpr - t * 0.0033);
+      var drift = Math.sin(x * 0.0012 + t * 0.0011);
+      var y = mid - (n * h * 0.34 + drift * h * 0.05) * env;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  size();
+  if (reduced) { draw(900); return; }
+  window.addEventListener("resize", function () { size(); });
+  (function frame(ts) {
+    draw(ts || 0);
+    requestAnimationFrame(frame);
+  })(0);
 })();
 </script>
 </body>

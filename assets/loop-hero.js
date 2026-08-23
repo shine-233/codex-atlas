@@ -1,7 +1,9 @@
 /* CODEX ATLAS — 信号回路示波器（签名元素）
    在指定容器里渲染一圈 Agent 循环电路：琥珀点顺时针=请求出站，
    钢青点逆时针=SSE 事件回流。prefers-reduced-motion 时静止显示。
-   opts.interactive 时站点可悬停/聚焦/点击，配合 onHover / onLeave 回调。 */
+   opts.interactive 时站点可悬停/聚焦/点击，配合 onHover / onLeave 回调。
+   标签布局：自动放在走线外侧（上/下边→上下外侧堆叠；左右侧→左右外侧），
+   避免互相碰撞与越界截断；可用站点级 dx / dy / anchor 微调。 */
 (function () {
   "use strict";
 
@@ -22,6 +24,16 @@
     { f: 0.81, label: "App Server 队列", sub: "Op::UserInput", color: "steel" },
     { f: 0.94, label: "TUI 输入", sub: "codex-rs/tui", color: "steel" }
   ];
+
+  /* 估算文本宽度：CJK 按 1 个字宽，拉丁按约半个字宽 */
+  function estTextWidth(text, fs) {
+    var w = 0;
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      w += c > 0x2e7f ? fs : fs * 0.55;
+    }
+    return w;
+  }
 
   function mount(host, opts) {
     opts = opts || {};
@@ -119,19 +131,46 @@
         fill: "transparent", stroke: "none"
       }));
 
+      /* 标签：默认放在走线外侧，避免碰撞与越界；站点可用 dx/dy/anchor 覆盖 */
       if (labeled && !(opts.interactive && st.tipOnly)) {
-        var inward = pt.x > tx + tw / 2 ? -1 : 1;
-        var anchor = inward === -1 ? "end" : "start";
-        var lx = pt.x + inward * 16;
+        /* 判断主导轴：离中心更远的那条轴是所在边 */
+        var verticalEdge = Math.abs(pt.y - (ty + th / 2)) > Math.abs(pt.x - (tx + tw / 2));
+        /* 外侧方向：顶/底边→垂直向外；左右边→水平向外 */
+        var outY = pt.y <= ty + th / 2 ? -1 : 1;
+        var anchorOut = (pt.x > tx + tw / 2) ? "end" : "start";
+        /* 站点级覆盖优先 */
+        var anchor = st.anchor || anchorOut;
+        var lx, t1y, t2y;
+        if (verticalEdge) {
+          /* 上下边：两行标签都堆在走线外侧 */
+          var stackDir = outY;
+          t1y = pt.y + stackDir * 18 + (st.t1dy != null ? st.t1dy : 0);
+          t2y = pt.y + stackDir * 31 + (st.t2dy != null ? st.t2dy : 0);
+          lx = pt.x + (st.dx != null ? st.dx : 0);
+          anchor = st.anchor || (stackDir === -1 ? anchorOut : anchorOut === "end" ? "start" : "end");
+          /* 左右对齐仍按所在半区 */
+          if (st.anchor == null) anchor = anchorOut;
+        } else {
+          /* 左右边：标签并排在水平外侧 */
+          var outX = pt.x <= tx + tw / 2 ? -1 : 1;
+          lx = pt.x + outX * 16 + (st.dx != null ? st.dx : 0);
+          t1y = pt.y - 4 + (st.dy != null ? st.dy : 0);
+          t2y = pt.y + 11 + (st.dy != null ? st.dy : 0);
+        }
+        /* 越界钳制：保证文字完整留在画布内 */
+        var maxW = Math.max(estTextWidth(st.label, 12), estTextWidth(st.sub, 10));
+        if (anchor === "start" && lx + maxW > W - 8) lx = W - 8 - maxW;
+        if (anchor === "end" && lx - maxW < 8) lx = 8 + maxW;
+
         var t1 = el("text", {
-          x: lx, y: pt.y - 3,
+          x: lx, y: t1y,
           fill: "#cdd8e2", "font-size": "11.5",
           "font-family": "'IBM Plex Mono', monospace",
           "text-anchor": anchor
         });
         t1.textContent = st.label;
         var t2 = el("text", {
-          x: lx, y: pt.y + 10,
+          x: lx, y: t2y,
           fill: "#5f6c79", "font-size": "9.5",
           "font-family": "'IBM Plex Mono', monospace",
           "text-anchor": anchor
@@ -190,8 +229,8 @@
     /* 双向脉冲 */
     var paused = false;
     if (L2 && !window.PrefersReducedMotion) {
-      var dotA = el("circle", { r: 3.2, fill: "#ffb454" });   /* 请求：顺时针 */
-      var dotB = el("circle", { r: 3.2, fill: "#8fc7e8" });   /* 事件：逆时针 */
+      var dotA = el("circle", { r: 3.2, fill: "#ffb454" }); /* 请求：顺时针 */
+      var dotB = el("circle", { r: 3.2, fill: "#8fc7e8" }); /* 事件：逆时针 */
       var haloA = el("circle", { r: 7, fill: "none", stroke: "#ffb454", "stroke-opacity": 0.35, "stroke-width": 1 });
       var haloB = el("circle", { r: 7, fill: "none", stroke: "#8fc7e8", "stroke-opacity": 0.35, "stroke-width": 1 });
       [dotA, dotB, haloA, haloB].forEach(function (n) { svg.appendChild(n); });

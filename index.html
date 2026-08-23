@@ -76,7 +76,7 @@
         切换沙箱模式看权限判定，放一遍客户端协议报文，翻 135 个 crate 的分层图谱。
       </p>
       <p class="small muted" style="margin-top:8px;">
-        编号说明：00 是总览，01–05 是五条线路，06 是术语速查。
+        左边那排编号就是目录：00 总览，01–05 五条线路，06 术语速查。
         正文里带 <span style="border-bottom:1px dashed rgba(255,180,84,.55);cursor:help;">虚线下划线</span> 的词，
         悬停或点一下就能看到人话解释。
       </p>
@@ -127,13 +127,14 @@
 
     <!-- 五个线路 -->
     <section>
-      <p class="eyebrow"><span class="tick">03</span>五个线路</p>
+      <p class="eyebrow"><span class="tick">03</span>五个线路
+        <span class="readout" id="qp-sum" style="margin-left:14px;text-transform:none;letter-spacing:.04em;"></span></p>
       <h2 style="margin-top:6px;">每条线路是一台独立仪器</h2>
 
       <div class="panel hot">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">01</span>循环回路</h3>
-          <span class="readout">13 站 · 单步 / 播放 / 键盘 ←→</span>
+          <span class="readout">13 站 · 单步 / 播放 / 键盘 ←→<span class="qp-chip" data-qp="loop.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-flow">
@@ -151,7 +152,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">02</span>输入组装</h3>
-          <span class="readout">7 层开关 · 组装栈 · 32 KiB 演示</span>
+          <span class="readout">7 层开关 · 组装栈 · 32 KiB 演示<span class="qp-chip" data-qp="prompt.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-stack">
@@ -170,7 +171,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">03</span>权限沙箱</h3>
-          <span class="readout">6 动作 × 3 模式 × 审批轴</span>
+          <span class="readout">6 动作 × 3 模式 × 审批轴<span class="qp-chip" data-qp="sandbox.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-cells">
@@ -187,7 +188,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">04</span>协议线路</h3>
-          <span class="readout">16 条报文 · 审批闸口分支</span>
+          <span class="readout">16 条报文 · 审批闸口分支<span class="qp-chip" data-qp="appserver.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-msgs">
@@ -203,7 +204,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">05</span>Crate 图谱</h3>
-          <span class="readout">135 crate · 9 带 · 检索高亮</span>
+          <span class="readout">135 crate · 9 带 · 检索高亮<span class="qp-chip" data-qp="atlas.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-ribbon">
@@ -269,6 +270,26 @@
 
 <script src="assets/panel.js"></script>
 <script src="assets/loop-hero.js"></script>
+<script>
+/* 自检通关徽章：读取各页 CHECKPOINT 的最好成绩 */
+(function () {
+  var data = window.CAProgress ? CAProgress.read() : {};
+  var cleared = 0, answered = 0;
+  document.querySelectorAll(".qp-chip").forEach(function (el) {
+    var rec = data[el.getAttribute("data-qp")];
+    if (!rec || !rec.t) { el.remove(); return; }
+    answered++;
+    el.textContent = "自检 " + rec.c + "/" + rec.t;
+    if (rec.c >= rec.t) { el.classList.add("done"); cleared++; }
+    else el.classList.add("part");
+    el.title = rec.c >= rec.t ? "这条线路的自检已全部答对" : "自检答对 " + rec.c + " 题，还差 " + (rec.t - rec.c) + " 题";
+  });
+  var sum = document.getElementById("qp-sum");
+  if (sum) sum.innerHTML = cleared
+    ? "自检通关 <b>" + cleared + "</b> / 5"
+    : "";
+})();
+</script>
 <script>
 (function () {
   "use strict";
