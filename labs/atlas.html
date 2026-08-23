@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>CH05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS</title>
+<title>05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS</title>
 <meta name="description" content="openai/codex 固定提交下 codex-rs 工作区的 135 个成员，按九条功能带分层陈列：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持检索高亮。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="CH05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS">
+<meta property="og:title" content="05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS">
 <meta property="og:description" content="135 个工作区成员排成九条功能带，带间动线图标出读源码的先后顺序；支持按名字检索高亮，名单可在固定提交下复核。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/atlas.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
@@ -85,19 +85,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="../glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -107,13 +107,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="../index.html">HOME · 总览</a>
-  <a href="loop.html">CH01 · 循环回路</a>
-  <a href="prompt.html">CH02 · 输入组装</a>
-  <a href="sandbox.html">CH03 · 权限沙箱</a>
-  <a href="appserver.html">CH04 · 协议线路</a>
-  <a href="atlas.html">CH05 · Crate 图谱</a>
-  <a href="../glossary.html">REF · 术语速查</a>
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -127,7 +127,7 @@
 
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>CH05 CRATE 图谱</p>
+      <p class="eyebrow"><span class="tick">▮</span>05 CRATE 图谱</p>
       <h1>135 个 crate，<br>九条功能带，一张地图。</h1>
       <p class="lede">
         读大仓库最怕迷路。这份图谱把固定提交下 codex-rs 工作区的全部 135 个成员按职责排成九条带：
@@ -171,10 +171,10 @@
       <h2 style="margin-top:0;">怎么用这张地图读源码</h2>
       <table class="rt">
         <tbody>
-          <tr><td style="width:52%;">想看一轮对话怎么跑起来</td><td>第 2 带 <b>core</b> + 第 1 带 <b>tui / app-server</b>，配合 <a href="loop.html">CH01 循环回路</a></td></tr>
+          <tr><td style="width:52%;">想看一轮对话怎么跑起来</td><td>第 2 带 <b>core</b> + 第 1 带 <b>tui / app-server</b>，配合 <a href="loop.html">01 循环回路</a></td></tr>
           <tr><td>想知道模型改文件的完整链路</td><td>第 2 带 <b>protocol</b> → 第 3 带 <b>tools → apply-patch → shell-command</b></td></tr>
-          <tr><td>想确认命令被谁拦截、放行</td><td>第 4 带 <b>sandboxing / execpolicy</b> + <b>shell-escalation</b>，配合 <a href="sandbox.html">CH03 权限沙箱</a></td></tr>
-          <tr><td>想给 IDE 写自己的客户端</td><td>第 6 带 <b>app-server-*</b> 三件套，配合 <a href="appserver.html">CH04 协议线路</a></td></tr>
+          <tr><td>想确认命令被谁拦截、放行</td><td>第 4 带 <b>sandboxing / execpolicy</b> + <b>shell-escalation</b>，配合 <a href="sandbox.html">03 权限沙箱</a></td></tr>
+          <tr><td>想给 IDE 写自己的客户端</td><td>第 6 带 <b>app-server-*</b> 三件套，配合 <a href="appserver.html">04 协议线路</a></td></tr>
           <tr><td>想接本地模型不开官方 API</td><td>第 5 带 <b>ollama / lmstudio / model-provider-info</b></td></tr>
           <tr><td>想研究记忆系统怎么存取</td><td>第 7 带 <b>memories/read + memories/write</b> 与 ext/memories</td></tr>
           <tr><td>想给 CI 写非交互自动化</td><td>第 1 带 <b>exec</b>：codex exec "任务"，与 TUI 共用同一个核心</td></tr>
@@ -206,26 +206,26 @@
       desc:"用户与外部程序接触 Codex 的地方。同一个核心，多种打开方式。",
       crates:["cli","tui","exec","app-server","app-server-daemon","arg0","install-context","login"],
       notes:{
-        "cli":"clap 参数解析与 MultitoolCli 定义处——CH01 第 2 站的现场。",
-        "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端，走 stdio JSON-RPC（CH04 有它的报文时序）。",
+        "cli":"clap 参数解析与 MultitoolCli 定义处——01 第 2 站的现场。",
+        "tui":"终端交互界面。正在重构为 App Server 的标准子进程客户端，走 stdio JSON-RPC（04 有它的报文时序）。",
         "exec":"非交互式一次性执行入口：codex exec \"任务\"。CI 与脚本场景的主力形态。",
-        "app-server":"JSON-RPC 服务进程。IDE 插件与桌面应用的接入口，见 CH04 报文时间线。",
+        "app-server":"JSON-RPC 服务进程。IDE 插件与桌面应用的接入口，见 04 报文时间线。",
         "login":"ChatGPT 账号登录流程与凭据状态管理。",
         "arg0":"按 argv[0] 分发行为的机制——一个二进制可以伪装成多个命令。",
         "app-server-daemon":"App Server 常驻守护形态。",
         "install-context":"识别当前安装形态（npm / brew / 直装）的上下文位。"
       } },
     { no:"B2", name:"核心引擎", en:"CORE ENGINE", count:14,
-      desc:"Agent 循环、会话状态、轨迹持久化。CH01 十三站的舞台在这带。",
+      desc:"Agent 循环、会话状态、轨迹持久化。01 十三站的舞台在这带。",
       crates:["core","core-api","protocol","codex-client","state","thread-store","rollout","rollout-trace","history","prompts","features","collaboration-mode-templates","context-fragments","codex-experimental-api-macros"],
       notes:{
-        "core":"Agent 循环所在。Codex 队列对、RegularTask、run_turn 都在这里——见 CH01 循环回路。",
+        "core":"Agent 循环所在。Codex 队列对、RegularTask、run_turn 都在这里——见 01 循环回路。",
         "protocol":"EventMsg、Op 等核心事件与协议类型的定义处。",
         "rollout":"会话轨迹落盘：事件历史写进磁盘文件，断线恢复的数据基础。",
         "rollout-trace":"轨迹追踪视图。",
         "thread-store":"Thread 原语的持久化容器。",
         "state":"运行时状态管理。",
-        "prompts":"随 CLI 打包的基础指令文本一族——CH02 输入组装第 1 层的出处。",
+        "prompts":"随 CLI 打包的基础指令文本一族——02 输入组装第 1 层的出处。",
         "history":"对话历史的存取。",
         "codex-client":"面向核心的客户端封装。",
         "features":"特性开关。"
@@ -234,10 +234,10 @@
       desc:"模型能调用的每个动作，在这里落地成受控的系统操作。",
       crates:["tools","apply-patch","shell-command","shell-escalation","file-search","file-watcher","git-utils","code-mode","code-mode-host","code-mode-protocol","code-mode-runtime","v8-poc","exec-server","exec-server-protocol","exec-server/tests/support"],
       notes:{
-        "tools":"工具注册表与 ToolRouter：模型看到的 tool spec 从这里发出（CH01 第 9 站）。",
+        "tools":"工具注册表与 ToolRouter：模型看到的 tool spec 从这里发出（01 第 9 站）。",
         "apply-patch":"Codex 特色补丁工具：模型输出的修改在这里变成磁盘上的变更。",
         "shell-command":"命令解析与受控执行。",
-        "shell-escalation":"审批升级流——CH03 琥珀色「条件放行」走的就是这条路。",
+        "shell-escalation":"审批升级流——03 琥珀色「条件放行」走的就是这条路。",
         "file-search":"快速文件检索工具。",
         "git-utils":"git 操作辅助。",
         "code-mode":"Code Mode 主 crate：V8 里跑模型生成代码的实验模式。",
@@ -245,10 +245,10 @@
         "exec-server":"命令执行服务化拆分。"
       } },
     { no:"B4", name:"沙箱安全", en:"SANDBOX & SECURITY", count:9,
-      desc:"强制执行机制与凭据保管。CH03 判定器的物理基础。固定提交名单里没有独立的 Windows 沙箱 crate——实现位置随版本演进，这正是固定基线的意义。",
+      desc:"强制执行机制与凭据保管。03 判定器的物理基础。固定提交名单里没有独立的 Windows 沙箱 crate——实现位置随版本演进，这正是固定基线的意义。",
       crates:["sandboxing","linux-sandbox","bwrap","execpolicy","process-hardening","secrets","keyring-store","workload-identity","aws-auth"],
       notes:{
-        "sandboxing":"macOS Seatbelt profile 的生成与强制执行（CH03 macOS 一列的实现处）。",
+        "sandboxing":"macOS Seatbelt profile 的生成与强制执行（03 macOS 一列的实现处）。",
         "linux-sandbox":"Landlock + seccomp 路线的沙箱执行器。",
         "bwrap":"bubblewrap 容器路线的替代沙箱。",
         "execpolicy":"执行策略引擎：判定哪些命令免审批直接跑。",
@@ -260,7 +260,7 @@
       desc:"Responses API 客户端、代理与本地模型接入。请求从这里出站。",
       crates:["codex-api","backend-client","http-client","websocket-client","responses-api-proxy","network-proxy","model-provider","model-provider-info","models-manager","lmstudio","ollama","connectors"],
       notes:{
-        "codex-api":"Responses API 类型与客户端封装（CH01 第 10 站的 HTTP 层）。",
+        "codex-api":"Responses API 类型与客户端封装（01 第 10 站的 HTTP 层）。",
         "backend-client":"ChatGPT backend 通道的客户端封装——登录态请求走的另一条路。",
         "http-client":"全站共用的 HTTP 客户端原语。",
         "websocket-client":"websocket 传输客户端，远端 App Server 模式用得上。",
@@ -274,13 +274,13 @@
         "connectors":"外部连接器抽象。"
       } },
     { no:"B6", name:"协议接入", en:"PROTOCOL ADAPTERS", count:10,
-      desc:"MCP 双向集成与 App Server 传输层。CH04 报文的承运人。",
+      desc:"MCP 双向集成与 App Server 传输层。04 报文的承运人。",
       crates:["codex-mcp","mcp-server","rmcp-client","stdio-to-uds","uds","app-server-transport","app-server-client","app-server-protocol","app-server-protocol-noop-macros","app-server-test-client"],
       notes:{
         "rmcp-client":"作为 MCP 客户端去接外部 MCP 服务器。",
         "mcp-server":"把 Codex 自身暴露为一个 MCP server 给别的 agent 用。",
         "codex-mcp":"MCP 子命令与集成逻辑。",
-        "app-server-protocol":"CH04 时间线里那些方法的协议定义本体。",
+        "app-server-protocol":"04 时间线里那些方法的协议定义本体。",
         "app-server-transport":"stdio JSONL / streaming HTTP 传输实现。",
         "app-server-client":"客户端侧绑定。",
         "uds":"Unix domain socket 支持。",
@@ -292,7 +292,7 @@
       notes:{
         "plugin":"插件系统核心机制。",
         "core-plugins":"随 CLI 发布的内置插件集。",
-        "skills":"技能注入：markdown 指令包按需挂进 prompt——CH02 层叠机制的近亲。",
+        "skills":"技能注入：markdown 指令包按需挂进 prompt——02 层叠机制的近亲。",
         "hooks":"生命周期钩子：工具执行前后可插自定义逻辑。",
         "memories/read":"记忆系统读取端。",
         "memories/write":"记忆系统写入端，与 read 成对出现。",
@@ -328,7 +328,7 @@
       notes:{
         "utils/pty":"伪终端封装——TUI 和交互式命令的地基。",
         "utils/fuzzy-match":"模糊匹配：文件检索的手感来源。",
-        "config":"config.toml 解析与校验（CH02 developer_instructions 一层的读取处）。",
+        "config":"config.toml 解析与校验（02 developer_instructions 一层的读取处）。",
         "codex-home":"~/.codex 目录布局管理。",
         "otel":"OpenTelemetry 观测埋点。",
         "analytics":"产品分析埋点——与 otel 的可观测性是两码事。",
@@ -585,7 +585,7 @@
     { q: "想读 Agent 循环的实现本体，先去哪条带？",
       opts: ["B2 核心引擎（core）", "B9 基础设施", "B8 云协作"],
       a: 0,
-      why: "Codex 队列对、RegularTask、run_turn 都在 core 里——CH01 十三站的舞台就在这条带。动线图上它也是主链的第三站。" },
+      why: "Codex 队列对、RegularTask、run_turn 都在 core 里——01 十三站的舞台就在这条带。动线图上它也是主链的第三站。" },
     { q: "「135 个成员」这个数字是怎么来的？",
       opts: ["OpenAI 官方文档宣称", "固定提交下 Cargo.toml workspace members 实测", "GitHub 搜索结果计数"],
       a: 1,

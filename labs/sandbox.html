@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>CH03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS</title>
+<title>03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS</title>
 <meta name="description" content="Codex 的 read-only / workspace-write / danger-full-access 三种沙箱模式下，读文件、写路径、联网分别怎么判？macOS Seatbelt、Linux Landlock、Windows WFP 各自怎么强制执行？">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="CH03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS">
+<meta property="og:title" content="03 权限沙箱 · 三套机制三种模式 — CODEX ATLAS">
 <meta property="og:description" content="选系统、选模式、选动作，当场给出 ALLOW / DENY / 条件放行和执行机制：Seatbelt、Landlock、WFP 三套实现的判定现场。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/sandbox.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
@@ -112,19 +112,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="../glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -134,13 +134,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="../index.html">HOME · 总览</a>
-  <a href="loop.html">CH01 · 循环回路</a>
-  <a href="prompt.html">CH02 · 输入组装</a>
-  <a href="sandbox.html">CH03 · 权限沙箱</a>
-  <a href="appserver.html">CH04 · 协议线路</a>
-  <a href="atlas.html">CH05 · Crate 图谱</a>
-  <a href="../glossary.html">REF · 术语速查</a>
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -153,7 +153,7 @@
 
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>CH03 权限沙箱</p>
+      <p class="eyebrow"><span class="tick">▮</span>03 权限沙箱</p>
       <h1>同一个动作，换个模式就换一个判决。</h1>
       <p class="lede">
         沙箱是 Codex 敢在你机器上跑命令的底气。它有两条独立的轴：
@@ -240,7 +240,7 @@
       <h2>MCP 工具不在保护范围内</h2>
       <div class="panel">
         <p style="margin-bottom:8px;">
-          沙箱声明（CH02 的第 3 层）只描述<b>内置 shell 工具</b>的运行环境。
+          沙箱声明（02 的第 3 层）只描述<b>内置 shell 工具</b>的运行环境。
           经 MCP 服务器接入的工具完全绕开这套 Seatbelt / Landlock / WFP 信封——
           官方博客原话：它们「需自行负责执行其防护措施」。
         </p>

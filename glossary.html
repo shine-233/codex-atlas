@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>REF 术语速查 · 人话版 — CODEX ATLAS</title>
+<title>06 术语速查 · 人话版 — CODEX ATLAS</title>
 <meta name="description" content="本站出现过的英文术语和内部名词，每条配一句人话解释和直达入口。看不懂哪个词就来查哪个词，不用按顺序读。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="REF 术语速查 · 人话版 — CODEX ATLAS">
-<meta property="og:description" content="Agent 循环、SSE、Seatbelt、needs_follow_up……每个术语一句话解释，直达它出现的频道。">
+<meta property="og:title" content="06 术语速查 · 人话版 — CODEX ATLAS">
+<meta property="og:description" content="Agent 循环、SSE、Seatbelt、needs_follow_up……每个术语一句话解释，直达它出现的线路。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/glossary.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -40,19 +40,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="labs/loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="labs/prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="labs/sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="labs/appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="labs/loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="labs/prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="labs/sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="labs/appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -62,13 +62,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="index.html">HOME · 总览</a>
-  <a href="labs/loop.html">CH01 · 循环回路</a>
-  <a href="labs/prompt.html">CH02 · 输入组装</a>
-  <a href="labs/sandbox.html">CH03 · 权限沙箱</a>
-  <a href="labs/appserver.html">CH04 · 协议线路</a>
-  <a href="labs/atlas.html">CH05 · Crate 图谱</a>
-  <a href="glossary.html">REF · 术语速查</a>
+  <a href="index.html">00 · 总览</a>
+  <a href="labs/loop.html">01 · 循环回路</a>
+  <a href="labs/prompt.html">02 · 输入组装</a>
+  <a href="labs/sandbox.html">03 · 权限沙箱</a>
+  <a href="labs/appserver.html">04 · 协议线路</a>
+  <a href="labs/atlas.html">05 · Crate 图谱</a>
+  <a href="glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -80,10 +80,10 @@
     </div>
 
     <header style="padding-top:16px;">
-      <p class="eyebrow"><span class="tick">▮</span>REF 术语速查</p>
+      <p class="eyebrow"><span class="tick">▮</span>06 术语速查</p>
       <h1>看不懂哪个词，<br>就来查哪个词。</h1>
       <p class="lede">
-        这页收录五个频道里出现过的英文术语和内部名词。
+        这页收录五个线路里出现过的英文术语和内部名词。
         每条给一句人话解释和一个直达入口——解释只求帮你继续往下读，
         不求替代定义；要较真，请顺着链接回到源码本身。
       </p>
@@ -110,14 +110,14 @@
       <table class="rt">
         <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody data-cat="会话与事件">
-          <tr data-k="agent loop agent 循环 agent循环 循环 回路"><td><code>Agent 循环</code></td><td>模型不是一问一答就完事：它发一个动作（比如执行命令），拿到结果写回历史，再决定下一步——这个「动作→结果→再决策」的圈就是 agent loop。</td><td><a href="labs/loop.html">CH01</a></td></tr>
-          <tr data-k="turn 轮次 轮 对话"><td><code>turn（轮）</code></td><td>用户一次任务的完整生命周期。一轮里模型可能被调用好几次，数「轮」不等于数请求次数。</td><td><a href="labs/loop.html">CH01</a></td></tr>
-          <tr data-k="run_turn 采样 sampling 采样器"><td><code>run_turn / 采样</code></td><td>核心里负责「向模型要一次回复」的函数。每次被调前都重新组装一遍 Prompt，把完整历史带上。</td><td><a href="labs/loop.html">CH01</a> 第9站</td></tr>
-          <tr data-k="队列对 queue submission event 队列"><td><code>队列对</code></td><td>Codex 核心的骨架：两条异步通道，一边收指令（Submission 进），一边吐事件（Event 出）。整个系统绕着它转。</td><td><a href="labs/loop.html">CH01</a> 第6站</td></tr>
-          <tr data-k="op::userinput op eventmsg 操作 事件 类型"><td><code>Op / EventMsg</code></td><td>核心内部指令和事件的类型前缀。<code>Op::UserInput</code> 是「用户说了一句话」，<code>EventMsg::*</code> 是往外广播的各种消息。</td><td><a href="labs/loop.html">CH01</a> 第6站</td></tr>
-          <tr data-k="needs_follow_up follow up 跟进 标记"><td><code>needs_follow_up</code></td><td>「本轮还没完」的标记。只要这轮出现了工具调用就置 true，历史写回后再采样一圈；纯文本回复时才收束。</td><td><a href="labs/loop.html">CH01</a> 第11–13站</td></tr>
-          <tr data-k="turncomplete 完成 收束 结束"><td><code>TurnComplete</code></td><td>一轮任务正式结束的事件，由 task wrapper 统一发出。看到它，这轮的账就结了。</td><td><a href="labs/loop.html">CH01</a> 第13站</td></tr>
-          <tr data-k="steer_input steer 打断 并入 插话"><td><code>steer_input</code></td><td>你在一轮跑着的时候又发了句话？这个函数把你这句并入正在运行的轮次，而不是排队等它跑完。打断不是取消。</td><td><a href="labs/loop.html">CH01</a> 第7站</td></tr>
+          <tr data-k="agent loop agent 循环 agent循环 循环 回路"><td><code>Agent 循环</code></td><td>模型不是一问一答就完事：它发一个动作（比如执行命令），拿到结果写回历史，再决定下一步——这个「动作→结果→再决策」的圈就是 agent loop。</td><td><a href="labs/loop.html">01</a></td></tr>
+          <tr data-k="turn 轮次 轮 对话"><td><code>turn（轮）</code></td><td>用户一次任务的完整生命周期。一轮里模型可能被调用好几次，数「轮」不等于数请求次数。</td><td><a href="labs/loop.html">01</a></td></tr>
+          <tr data-k="run_turn 采样 sampling 采样器"><td><code>run_turn / 采样</code></td><td>核心里负责「向模型要一次回复」的函数。每次被调前都重新组装一遍 Prompt，把完整历史带上。</td><td><a href="labs/loop.html">01</a> 第9站</td></tr>
+          <tr data-k="队列对 queue submission event 队列"><td><code>队列对</code></td><td>Codex 核心的骨架：两条异步通道，一边收指令（Submission 进），一边吐事件（Event 出）。整个系统绕着它转。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
+          <tr data-k="op::userinput op eventmsg 操作 事件 类型"><td><code>Op / EventMsg</code></td><td>核心内部指令和事件的类型前缀。<code>Op::UserInput</code> 是「用户说了一句话」，<code>EventMsg::*</code> 是往外广播的各种消息。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
+          <tr data-k="needs_follow_up follow up 跟进 标记"><td><code>needs_follow_up</code></td><td>「本轮还没完」的标记。只要这轮出现了工具调用就置 true，历史写回后再采样一圈；纯文本回复时才收束。</td><td><a href="labs/loop.html">01</a> 第11–13站</td></tr>
+          <tr data-k="turncomplete 完成 收束 结束"><td><code>TurnComplete</code></td><td>一轮任务正式结束的事件，由 task wrapper 统一发出。看到它，这轮的账就结了。</td><td><a href="labs/loop.html">01</a> 第13站</td></tr>
+          <tr data-k="steer_input steer 打断 并入 插话"><td><code>steer_input</code></td><td>你在一轮跑着的时候又发了句话？这个函数把你这句并入正在运行的轮次，而不是排队等它跑完。打断不是取消。</td><td><a href="labs/loop.html">01</a> 第7站</td></tr>
         </tbody>
       </table>
     </section>
@@ -126,15 +126,15 @@
       <h2>请求构成</h2>
       <table class="rt">
         <tbody data-cat="请求构成">
-          <tr data-k="responses api 接口 端点 post responses"><td><code>Responses API</code></td><td>OpenAI 的模型 HTTP 接口。Codex 每次采样都向它 POST 一次请求，然后逐条读回流式响应。</td><td><a href="labs/loop.html">CH01</a> 第10站</td></tr>
-          <tr data-k="sse server-sent events 流式 流 推送"><td><code>SSE</code></td><td>Server-Sent Events：服务器往客户端单向推流的 HTTP 机制。模型的字是一个一个流回来的，底层就是它。</td><td><a href="labs/loop.html">CH01</a> 第10–11站</td></tr>
-          <tr data-k="base_instructions 身份 基础指令 system prompt 系统提示"><td><code>base_instructions</code></td><td>随 CLI 打包的模型身份指令（「你是 Codex CLI……」），对应仓库里的 gpt_5_codex_prompt.md。七层负载的第 1 层。</td><td><a href="labs/prompt.html">CH02</a> 第1层</td></tr>
-          <tr data-k="developer_instructions 开发者指令 config.toml 配置"><td><code>developer_instructions</code></td><td>你在 ~/.codex/config.toml 里写的可选指令层。放长期偏好；项目约定请走下一层的 AGENTS.md。</td><td><a href="labs/prompt.html">CH02</a> 第4层</td></tr>
-          <tr data-k="agents.md 层叠 cascade 项目约定 目录"><td><code>AGENTS.md 层叠</code></td><td>从 ~/.codex 沿目录一路读到当前目录的项目约定文件，越近的越具体、覆盖越通用的。总量受 32 KiB 默认上限约束。</td><td><a href="labs/prompt.html">CH02</a> 第5层</td></tr>
-          <tr data-k="previous_response_id 无状态 零数据保留 stateless"><td><code>previous_response_id</code></td><td>官方 API 用来续接会话的参数。Codex 有意不用它：每次全量重发历史，保持请求无状态，零数据保留部署才能兼容。</td><td><a href="labs/loop.html">CH01</a> 第10站</td></tr>
-          <tr data-k="提示缓存 prompt caching 缓存命中 cached 计费 一折"><td><code>提示缓存命中</code></td><td>服务端把重复的历史前缀缓存起来，命中部分按约一折计费。全量重发的账单因此从平方增长被压回近似线性。</td><td><a href="labs/loop.html">CH01</a> 成本对照</td></tr>
-          <tr data-k="auto_compact_limit compact 压缩 历史 超长"><td><code>auto_compact_limit</code></td><td>token 总量超过阈值就自动压缩历史的开关，压缩走 /responses/compact，压完带着加密内容继续对话。</td><td><a href="labs/prompt.html">CH02</a> 答疑表</td></tr>
-          <tr data-k="tool spec 工具清单 tools 工具列表"><td><code>tool spec（工具清单）</code></td><td>发给模型的可用工具说明书：名字、参数形状。模型照着它决定调什么。内置、API 侧、MCP 三类合并成一份。</td><td><a href="labs/prompt.html">CH02</a> 第2层</td></tr>
+          <tr data-k="responses api 接口 端点 post responses"><td><code>Responses API</code></td><td>OpenAI 的模型 HTTP 接口。Codex 每次采样都向它 POST 一次请求，然后逐条读回流式响应。</td><td><a href="labs/loop.html">01</a> 第10站</td></tr>
+          <tr data-k="sse server-sent events 流式 流 推送"><td><code>SSE</code></td><td>Server-Sent Events：服务器往客户端单向推流的 HTTP 机制。模型的字是一个一个流回来的，底层就是它。</td><td><a href="labs/loop.html">01</a> 第10–11站</td></tr>
+          <tr data-k="base_instructions 身份 基础指令 system prompt 系统提示"><td><code>base_instructions</code></td><td>随 CLI 打包的模型身份指令（「你是 Codex CLI……」），对应仓库里的 gpt_5_codex_prompt.md。七层负载的第 1 层。</td><td><a href="labs/prompt.html">02</a> 第1层</td></tr>
+          <tr data-k="developer_instructions 开发者指令 config.toml 配置"><td><code>developer_instructions</code></td><td>你在 ~/.codex/config.toml 里写的可选指令层。放长期偏好；项目约定请走下一层的 AGENTS.md。</td><td><a href="labs/prompt.html">02</a> 第4层</td></tr>
+          <tr data-k="agents.md 层叠 cascade 项目约定 目录"><td><code>AGENTS.md 层叠</code></td><td>从 ~/.codex 沿目录一路读到当前目录的项目约定文件，越近的越具体、覆盖越通用的。总量受 32 KiB 默认上限约束。</td><td><a href="labs/prompt.html">02</a> 第5层</td></tr>
+          <tr data-k="previous_response_id 无状态 零数据保留 stateless"><td><code>previous_response_id</code></td><td>官方 API 用来续接会话的参数。Codex 有意不用它：每次全量重发历史，保持请求无状态，零数据保留部署才能兼容。</td><td><a href="labs/loop.html">01</a> 第10站</td></tr>
+          <tr data-k="提示缓存 prompt caching 缓存命中 cached 计费 一折"><td><code>提示缓存命中</code></td><td>服务端把重复的历史前缀缓存起来，命中部分按约一折计费。全量重发的账单因此从平方增长被压回近似线性。</td><td><a href="labs/loop.html">01</a> 成本对照</td></tr>
+          <tr data-k="auto_compact_limit compact 压缩 历史 超长"><td><code>auto_compact_limit</code></td><td>token 总量超过阈值就自动压缩历史的开关，压缩走 /responses/compact，压完带着加密内容继续对话。</td><td><a href="labs/prompt.html">02</a> 答疑表</td></tr>
+          <tr data-k="tool spec 工具清单 tools 工具列表"><td><code>tool spec（工具清单）</code></td><td>发给模型的可用工具说明书：名字、参数形状。模型照着它决定调什么。内置、API 侧、MCP 三类合并成一份。</td><td><a href="labs/prompt.html">02</a> 第2层</td></tr>
         </tbody>
       </table>
     </section>
@@ -143,15 +143,15 @@
       <h2>权限与沙箱</h2>
       <table class="rt">
         <tbody>
-          <tr data-k="read-only workspace-write danger-full-access 沙箱模式 只读 工作区 全开"><td><code>三档沙箱模式</code></td><td>进程能碰什么的硬边界：read-only 只出主意不动手；workspace-write 工作目录加临时目录可写、默认断网；danger-full-access 全放开。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="untrusted on-failure on-request never 审批策略 批准 弹窗"><td><code>四档审批策略</code></td><td>「什么时候先问你」的软规则：untrusted 全都先问；on-failure 失败才升级；on-request 模型自己申请；never 从不打扰。和沙箱模式是两条独立的轴。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="seatbelt macos 苹果 profile sandbox-exec"><td><code>Seatbelt</code></td><td>macOS 的沙箱强制机制。Codex 为每条命令生成一份 profile 规则，再用 sandbox-exec 套着启动。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="landlock seccomp linux 内核 bwrap bubblewrap"><td><code>Landlock + seccomp</code></td><td>Linux 内核侧的两道闸：Landlock 过滤文件树访问，seccomp 收窄可用系统调用。另有 bwrap 容器路线作备选。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="wfp windows filtering platform 视窗 网络 过滤"><td><code>WFP</code></td><td>Windows Filtering Platform：Windows 上管网络流量的内核框架，Codex 用它做网络层管控。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头就能升级执行一次。拦住它的不是墙，是你的签名。</td><td><a href="labs/sandbox.html">CH03</a></td></tr>
-          <tr data-k="shell-escalation 升级流 审批升级"><td><code>shell-escalation</code></td><td>审批升级流的实现 crate：沙箱内拿不到的权限，经你批准后换一种方式重跑。</td><td><a href="labs/atlas.html">CH05</a> B3</td></tr>
-          <tr data-k="execpolicy 执行策略 白名单 免审批"><td><code>execpolicy</code></td><td>执行策略引擎：判定哪些命令属于安全白名单，可以免审批直接跑。</td><td><a href="labs/atlas.html">CH05</a> B4</td></tr>
-          <tr data-k="mcp model context protocol 工具服务器 豁免 不受管"><td><code>MCP</code></td><td>Model Context Protocol：给模型接外部工具的标准协议。重点：经 MCP 接的工具不在 Codex 沙箱管辖范围内，防护由提供方自己负责。</td><td><a href="labs/sandbox.html">CH03</a> 底部</td></tr>
+          <tr data-k="read-only workspace-write danger-full-access 沙箱模式 只读 工作区 全开"><td><code>三档沙箱模式</code></td><td>进程能碰什么的硬边界：read-only 只出主意不动手；workspace-write 工作目录加临时目录可写、默认断网；danger-full-access 全放开。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="untrusted on-failure on-request never 审批策略 批准 弹窗"><td><code>四档审批策略</code></td><td>「什么时候先问你」的软规则：untrusted 全都先问；on-failure 失败才升级；on-request 模型自己申请；never 从不打扰。和沙箱模式是两条独立的轴。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="seatbelt macos 苹果 profile sandbox-exec"><td><code>Seatbelt</code></td><td>macOS 的沙箱强制机制。Codex 为每条命令生成一份 profile 规则，再用 sandbox-exec 套着启动。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="landlock seccomp linux 内核 bwrap bubblewrap"><td><code>Landlock + seccomp</code></td><td>Linux 内核侧的两道闸：Landlock 过滤文件树访问，seccomp 收窄可用系统调用。另有 bwrap 容器路线作备选。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="wfp windows filtering platform 视窗 网络 过滤"><td><code>WFP</code></td><td>Windows Filtering Platform：Windows 上管网络流量的内核框架，Codex 用它做网络层管控。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="条件放行 cond amber 琥珀 升级"><td><code>条件放行</code></td><td>判定器里的琥珀色格子：沙箱本身不放行，但你的审批策略允许弹窗，点头就能升级执行一次。拦住它的不是墙，是你的签名。</td><td><a href="labs/sandbox.html">03</a></td></tr>
+          <tr data-k="shell-escalation 升级流 审批升级"><td><code>shell-escalation</code></td><td>审批升级流的实现 crate：沙箱内拿不到的权限，经你批准后换一种方式重跑。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
+          <tr data-k="execpolicy 执行策略 白名单 免审批"><td><code>execpolicy</code></td><td>执行策略引擎：判定哪些命令属于安全白名单，可以免审批直接跑。</td><td><a href="labs/atlas.html">05</a> B4</td></tr>
+          <tr data-k="mcp model context protocol 工具服务器 豁免 不受管"><td><code>MCP</code></td><td>Model Context Protocol：给模型接外部工具的标准协议。重点：经 MCP 接的工具不在 Codex 沙箱管辖范围内，防护由提供方自己负责。</td><td><a href="labs/sandbox.html">03</a> 底部</td></tr>
         </tbody>
       </table>
     </section>
@@ -160,13 +160,13 @@
       <h2>协议通道</h2>
       <table class="rt">
         <tbody>
-          <tr data-k="app server 应用服务 json-rpc 服务进程 ide"><td><code>App Server</code></td><td>把 Codex 核心包装成一个 JSON-RPC 服务的进程。IDE 插件、桌面 App、TUI 都是它的客户端。</td><td><a href="labs/appserver.html">CH04</a></td></tr>
-          <tr data-k="embedded 内嵌 同进程 本地 tui"><td><code>embedded 模式</code></td><td>本地默认形态：App Server 和 TUI 跑在同一个进程里。即便同进程，客户端与服务端的协议边界照样存在。</td><td><a href="labs/loop.html">CH01</a> 第3站</td></tr>
-          <tr data-k="stdio jsonl 传输 标准输入输出 行"><td><code>stdio JSONL</code></td><td>主传输方式：在标准输入输出上每行一条 JSON。简单、可调试，IDE 场景够用。</td><td><a href="labs/appserver.html">CH04</a></td></tr>
-          <tr data-k="thread turn item 原语 会话线程"><td><code>Thread / Turn / Item</code></td><td>协议三原语：Thread 是会话容器（可恢复、分叉、归档）；Turn 是由输入发起的一轮工作；Item 是里面最小的条目单位。</td><td><a href="labs/appserver.html">CH04</a></td></tr>
-          <tr data-k="started delta completed 生命周期 占位 打字机"><td><code>started → delta → completed</code></td><td>Item 的生命周期三步：started 到达即可渲染占位，delta 流式补全（打字机效果靠它），completed 落定。</td><td><a href="labs/appserver.html">CH04</a> 第7–9条</td></tr>
-          <tr data-k="commandexecution approval 审批请求 反向 服务端请求 挂起"><td><code>commandExecution/approval</code></td><td>服务端反向发给客户端的审批请求。它到达时整轮暂停，等的是你——双向通道的直接证据。</td><td><a href="labs/appserver.html">CH04</a> 第11条</td></tr>
-          <tr data-k="rollout resume fork 落盘 恢复 断线 重连 分叉 轨迹"><td><code>rollout / resume / fork</code></td><td>轨迹落盘、断线恢复、时间线分叉。事件历史持久化保存之后，客户端随时能接着上次的现场继续。</td><td><a href="labs/appserver.html">CH04</a>; <a href="labs/atlas.html">B2</a></td></tr>
+          <tr data-k="app server 应用服务 json-rpc 服务进程 ide"><td><code>App Server</code></td><td>把 Codex 核心包装成一个 JSON-RPC 服务的进程。IDE 插件、桌面 App、TUI 都是它的客户端。</td><td><a href="labs/appserver.html">04</a></td></tr>
+          <tr data-k="embedded 内嵌 同进程 本地 tui"><td><code>embedded 模式</code></td><td>本地默认形态：App Server 和 TUI 跑在同一个进程里。即便同进程，客户端与服务端的协议边界照样存在。</td><td><a href="labs/loop.html">01</a> 第3站</td></tr>
+          <tr data-k="stdio jsonl 传输 标准输入输出 行"><td><code>stdio JSONL</code></td><td>主传输方式：在标准输入输出上每行一条 JSON。简单、可调试，IDE 场景够用。</td><td><a href="labs/appserver.html">04</a></td></tr>
+          <tr data-k="thread turn item 原语 会话线程"><td><code>Thread / Turn / Item</code></td><td>协议三原语：Thread 是会话容器（可恢复、分叉、归档）；Turn 是由输入发起的一轮工作；Item 是里面最小的条目单位。</td><td><a href="labs/appserver.html">04</a></td></tr>
+          <tr data-k="started delta completed 生命周期 占位 打字机"><td><code>started → delta → completed</code></td><td>Item 的生命周期三步：started 到达即可渲染占位，delta 流式补全（打字机效果靠它），completed 落定。</td><td><a href="labs/appserver.html">04</a> 第7–9条</td></tr>
+          <tr data-k="commandexecution approval 审批请求 反向 服务端请求 挂起"><td><code>commandExecution/approval</code></td><td>服务端反向发给客户端的审批请求。它到达时整轮暂停，等的是你——双向通道的直接证据。</td><td><a href="labs/appserver.html">04</a> 第11条</td></tr>
+          <tr data-k="rollout resume fork 落盘 恢复 断线 重连 分叉 轨迹"><td><code>rollout / resume / fork</code></td><td>轨迹落盘、断线恢复、时间线分叉。事件历史持久化保存之后，客户端随时能接着上次的现场继续。</td><td><a href="labs/appserver.html">04</a>; <a href="labs/atlas.html">B2</a></td></tr>
         </tbody>
       </table>
     </section>
@@ -175,17 +175,17 @@
       <h2>仓库与工程</h2>
       <table class="rt">
         <tbody>
-          <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——135 这个数字的出处。</td><td><a href="labs/atlas.html">CH05</a></td></tr>
-          <tr data-k="codex exec 非交互 ci 脚本 一次性 自动化"><td><code>codex exec</code></td><td>非交互式一次性执行入口：codex exec "任务"。不进终端界面，CI 和脚本场景的主力形态。</td><td><a href="labs/atlas.html">CH05</a> B1</td></tr>
-          <tr data-k="apply_patch apply-patch 补丁 改文件 patch"><td><code>apply_patch</code></td><td>Codex 的特色补丁工具：模型输出的修改以补丁形式描述，由它落成磁盘上的真实变更。</td><td><a href="labs/atlas.html">CH05</a> B3</td></tr>
-          <tr data-k="tui 终端界面 terminal 终端 ui"><td><code>TUI</code></td><td>Terminal UI，终端里的交互界面。正在重构为 App Server 的标准子进程客户端。</td><td><a href="labs/loop.html">CH01</a> 第3站</td></tr>
+          <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——135 这个数字的出处。</td><td><a href="labs/atlas.html">05</a></td></tr>
+          <tr data-k="codex exec 非交互 ci 脚本 一次性 自动化"><td><code>codex exec</code></td><td>非交互式一次性执行入口：codex exec "任务"。不进终端界面，CI 和脚本场景的主力形态。</td><td><a href="labs/atlas.html">05</a> B1</td></tr>
+          <tr data-k="apply_patch apply-patch 补丁 改文件 patch"><td><code>apply_patch</code></td><td>Codex 的特色补丁工具：模型输出的修改以补丁形式描述，由它落成磁盘上的真实变更。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
+          <tr data-k="tui 终端界面 terminal 终端 ui"><td><code>TUI</code></td><td>Terminal UI，终端里的交互界面。正在重构为 App Server 的标准子进程客户端。</td><td><a href="labs/loop.html">01</a> 第3站</td></tr>
         </tbody>
       </table>
     </section>
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      解释按本站五个频道的语境撰写，目标是让你读得下去，不是权威定义；要较真，顺着「在哪看」回到对应频道，再回到固定提交 openai/codex@343074d4 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
+      解释按本站五个线路的语境撰写，目标是让你读得下去，不是权威定义；要较真，顺着「在哪看」回到对应线路，再回到固定提交 openai/codex@343074d4 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
     </aside>
 
   </main>

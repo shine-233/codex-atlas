@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS</title>
+<title>01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS</title>
 <meta name="description" content="从 codex 命令到 TurnComplete：把一轮 Codex 对话拆成 13 个阶段单步走。每一步给出真实文件路径与事件名。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="CH01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS">
+<meta property="og:title" content="01 循环回路 · 一轮对话的单步仪 — CODEX ATLAS">
 <meta property="og:description" content="13 站单步播放：npm 启动器 → 队列对 → Prompt 组装 → SSE 采样 → 工具分发 → TurnComplete，每站给出真实文件路径与事件名。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/loop.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
@@ -76,19 +76,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="../glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -98,13 +98,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="../index.html">HOME · 总览</a>
-  <a href="loop.html">CH01 · 循环回路</a>
-  <a href="prompt.html">CH02 · 输入组装</a>
-  <a href="sandbox.html">CH03 · 权限沙箱</a>
-  <a href="appserver.html">CH04 · 协议线路</a>
-  <a href="atlas.html">CH05 · Crate 图谱</a>
-  <a href="../glossary.html">REF · 术语速查</a>
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -117,7 +117,7 @@
 
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>CH01 循环回路</p>
+      <p class="eyebrow"><span class="tick">▮</span>01 循环回路</p>
       <h1>一轮对话的完整回路，<br>停在任意一步看清楚。</h1>
       <p class="lede">
         从你敲下 <code>codex</code> 到模型吐出最终回答，中间要过十三站。
@@ -199,7 +199,7 @@
     <section class="cost-demo">
       <h2>为什么改一行代码常常要过两次模型</h2>
       <p class="muted small">
-        环每转一圈，历史就更长一点，而下一次采样<b>仍然全量重发</b>（CH02 第 7 层）。
+        环每转一圈，历史就更长一点，而下一次采样<b>仍然全量重发</b>（02 第 7 层）。
         不做优化的话，累计发送量按采样次数平方增长；Codex 靠提示缓存命中把重复历史的计费打成约一折，
         累计成本被压回近似线性。下面是两种情形的对比：
       </p>
@@ -222,9 +222,9 @@
       <h2 style="margin-top:0;">这一站看完，接着去哪</h2>
       <table class="rt">
         <tbody>
-          <tr><td>想看清第 9 步组装出来的请求长什么样</td><td><a href="prompt.html">CH02 输入组装 →</a></td></tr>
-          <tr><td>想确认第 12 步工具执行时被什么策略管着</td><td><a href="sandbox.html">CH03 权限沙箱 →</a></td></tr>
-          <tr><td>想知道 TUI 和核心之间的报文原文形状</td><td><a href="appserver.html">CH04 协议线路 →</a></td></tr>
+          <tr><td>想看清第 9 步组装出来的请求长什么样</td><td><a href="prompt.html">02 输入组装 →</a></td></tr>
+          <tr><td>想确认第 12 步工具执行时被什么策略管着</td><td><a href="sandbox.html">03 权限沙箱 →</a></td></tr>
+          <tr><td>想知道 TUI 和核心之间的报文原文形状</td><td><a href="appserver.html">04 协议线路 →</a></td></tr>
         </tbody>
       </table>
     </section>
@@ -265,7 +265,7 @@
       next:"投递路径应读成 turn_start → submit_core_op → submit_with_trace，不是一步直达。" },
     { n:"队列对：Submission 进 Event 出", files:["core/src/session/mod.rs"], ev:["Codex::spawn","submission_loop","Op::Shutdown"],
       body:"核心抽象 <b>Codex 是一个队列对</b>：一边收 Submission/Op，一边吐 Event。spawn 创建 Session 并启动后台 submission_loop 常驻循环，直到收到 Op::Shutdown 才退出。submit 只负责生成 submission id 并入队。",
-      next:"两条异步 channel 是这个循环系统的循环带——理解了队列对，后面全是它的推论。" },
+      next:"两条异步通道是这个循环系统的循环带——理解了队列对，后面全是它的推论。" },
     { n:"会话占用检查", files:["core/src/session/mod.rs"], ev:["user_input_or_turn_inner","steer_input"],
       body:"一个 Session 同一时刻<b>最多只有一个 running task</b>。空闲：新建 turn 并启动 RegularTask。忙碌：尝试 steer_input，把你这句新输入导入正在跑的那一轮。<b>打断不是取消，是并入。</b>",
       next:"这就是为什么连续追问不会排队等上一轮彻底结束。" },
@@ -274,7 +274,7 @@
       next:"一次 turn 包含几次采样，取决于模型要几次才能完成任务。" },
     { n:"build_prompt 组装", files:["core/src（Prompt 构建）"], ev:["ToolRouter::model_visible_specs","base_instructions"],
       body:"每次采样前重新组装 Prompt：<b>history 加本轮新增输入</b>、工具表来自 ToolRouter 的 model_visible_specs()、加上基础指令与 personality。模型看到的是 tool spec；handler 注册表、并发策略、审批和沙箱都在 core 内部维护。",
-      next:"每一层具体装了什么、顺序如何，CH02 输入组装逐层拆给你看。" },
+      next:"每一层具体装了什么、顺序如何，02 输入组装逐层拆给你看。" },
     { n:"POST /responses · 读 SSE 流", files:["codex-api（HTTP 客户端）"], ev:["POST responses","SSE"],
       body:"向 Responses API 端点发起 HTTP POST：ChatGPT 登录走 chatgpt.com/backend-api/codex/responses，API key 走 api.openai.com/v1/responses，本地模型走 localhost 端点。然后循环读取 SSE 事件流。<b>每次都发送完整历史</b>，不用 previous_response_id——保持请求无状态以兼容零数据保留配置。",
       next:"总量二次增长的直觉是对的；靠提示缓存命中把采样成本压回线性。" },
@@ -283,7 +283,7 @@
       next:"事件驱动意味着 UI 不需要读 core 内部任务状态，只消费 EventMsg。" },
     { n:"function_call → 工具分发", files:["core/src/tools/handlers/*","sandboxing"], ev:["handle_output_item_done","ToolRouter::build_tool_call"],
       body:"handle_output_item_done 用 <b>ToolRouter::build_tool_call</b> 识别工具并创建 in-flight future。只要有工具调用就置 <b>needs_follow_up = true</b>——工具输出还要反馈给模型继续推理。执行发生在沙箱策略之下：macOS Seatbelt、Linux Landlock+bwrap、Windows WFP。",
-      next:"沙箱到底拦什么放什么，CH03 权限沙箱可以现场判定。" },
+      next:"沙箱到底拦什么放什么，03 权限沙箱可以现场判定。" },
     { n:"写回再采样，或收束", files:["core/src/session（task wrapper）"], ev:["needs_follow_up","EventMsg::TurnComplete"],
       body:"工具输出写进 history，回到第 9 步<b>再次采样</b>——这条回路会转多少圈，取决于任务难度。当模型返回纯 assistant message（没有 tool call），needs_follow_up 为 false，本轮结束。标准的 TurnComplete envelope 由 task wrapper 在任务返回后统一发出，不在 run_turn 内部。",
       next:"收束后这一轮就封账了。转了几圈、每圈重发了多少，下面的成本对照给了一笔账。" }

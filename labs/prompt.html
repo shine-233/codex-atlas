@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>CH02 输入组装 · 一次请求的七层构成 — CODEX ATLAS</title>
+<title>02 输入组装 · 一次请求的七层构成 — CODEX ATLAS</title>
 <meta name="description" content="发往 Responses API 的请求里到底有什么？instructions、tools、input 七个组成部分逐层开关，32 KiB 指令上限在哪一层生效。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="CH02 输入组装 · 一次请求的七层构成 — CODEX ATLAS">
+<meta property="og:title" content="02 输入组装 · 一次请求的七层构成 — CODEX ATLAS">
 <meta property="og:description" content="instructions、tools、沙箱声明、AGENTS.md 层叠、环境消息、全量历史：七个组成部分逐层开关，实时拼出请求形状。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/prompt.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
@@ -96,19 +96,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="../glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -118,13 +118,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="../index.html">HOME · 总览</a>
-  <a href="loop.html">CH01 · 循环回路</a>
-  <a href="prompt.html">CH02 · 输入组装</a>
-  <a href="sandbox.html">CH03 · 权限沙箱</a>
-  <a href="appserver.html">CH04 · 协议线路</a>
-  <a href="atlas.html">CH05 · Crate 图谱</a>
-  <a href="../glossary.html">REF · 术语速查</a>
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -138,7 +138,7 @@
 
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>CH02 输入组装</p>
+      <p class="eyebrow"><span class="tick">▮</span>02 输入组装</p>
       <h1>一次请求的七层构成，<br>逐层打开看清楚。</h1>
       <p class="lede">
         你以为发给模型的只是一句话。实际发出去的是一个结构化负载：
@@ -217,8 +217,8 @@
         </tbody>
       </table>
       <p class="small muted">
-        相关线路：<a href="loop.html">CH01 循环回路</a> 第 9–10 步是这些层的装配现场；
-        <a href="sandbox.html">CH03 权限沙箱</a> 解释第 3 层声明的权限到底怎么落地。
+        相关线路：<a href="loop.html">01 循环回路</a> 第 9–10 步是这些层的装配现场；
+        <a href="sandbox.html">03 权限沙箱</a> 解释第 3 层声明的权限到底怎么落地。
       </p>
     </section>
 

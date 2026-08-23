@@ -48,7 +48,7 @@
   window.PrefersReducedMotion = window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* 当前频道高亮（按 pathname 匹配 rail 链接） */
+  /* 当前线路高亮（按 pathname 匹配 rail 链接） */
   ready(function () {
     var path = location.pathname.split("/").pop() || "index.html";
     document.querySelectorAll(".rail-ch, .mobile-nav a").forEach(function (a) {
@@ -57,9 +57,9 @@
         a.setAttribute("aria-current", "page");
       }
     });
-    /* 编号说明：CH 是 channel 的缩写 */
+    /* 编号说明：纯数字导航 */
     document.querySelectorAll(".ch-no").forEach(function (el) {
-      el.title = "CH = channel（频道）：本站每条线路一个编号；REF = 术语速查";
+      el.title = "编号：00 总览 · 01–05 五条线路 · 06 术语速查";
     });
   });
 

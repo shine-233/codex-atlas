@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>CH04 协议线路 · App Server 报文时间线 — CODEX ATLAS</title>
+<title>04 协议线路 · App Server 报文时间线 — CODEX ATLAS</title>
 <meta name="description" content="客户端与 Codex App Server 之间的 JSON-RPC 双向通道：Thread/Turn/Item 三原语、流式增量、以及审批请求怎样把整轮对话挂起。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="CH04 协议线路 · App Server 报文时间线 — CODEX ATLAS">
+<meta property="og:title" content="04 协议线路 · App Server 报文时间线 — CODEX ATLAS">
 <meta property="og:description" content="16 条报文逐步放：双向 JSON-RPC 通道上 Thread/Turn/Item 怎么流动，审批请求到达时整轮如何挂起等你裁决——批准和拒绝是两条不同时间线。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/appserver.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
@@ -83,19 +83,19 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
-<nav class="rail" aria-label="站点频道">
+<nav class="rail" aria-label="站点线路">
   <a class="rail-brand" href="../index.html">
     <span class="sig">CODEX<b>//</b>ATLAS</span>
     <span class="sub">源码交互图鉴</span>
   </a>
   <div class="rail-chs">
-    <a class="rail-ch" href="../index.html"><span class="ch-no">HOME</span>总览</a>
-    <a class="rail-ch" href="loop.html"><span class="ch-no">CH01</span>循环回路</a>
-    <a class="rail-ch" href="prompt.html"><span class="ch-no">CH02</span>输入组装</a>
-    <a class="rail-ch" href="sandbox.html"><span class="ch-no">CH03</span>权限沙箱</a>
-    <a class="rail-ch" href="appserver.html"><span class="ch-no">CH04</span>协议线路</a>
-    <a class="rail-ch" href="atlas.html"><span class="ch-no">CH05</span>Crate 图谱</a>
-    <a class="rail-ch" href="../glossary.html"><span class="ch-no">REF</span>术语速查</a>
+    <a class="rail-ch" href="../index.html"><span class="ch-no">00</span>总览</a>
+    <a class="rail-ch" href="loop.html"><span class="ch-no">01</span>循环回路</a>
+    <a class="rail-ch" href="prompt.html"><span class="ch-no">02</span>输入组装</a>
+    <a class="rail-ch" href="sandbox.html"><span class="ch-no">03</span>权限沙箱</a>
+    <a class="rail-ch" href="appserver.html"><span class="ch-no">04</span>协议线路</a>
+    <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
+    <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -105,13 +105,13 @@
   <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
 </div>
 <div class="mobile-nav" id="mnav">
-  <a href="../index.html">HOME · 总览</a>
-  <a href="loop.html">CH01 · 循环回路</a>
-  <a href="prompt.html">CH02 · 输入组装</a>
-  <a href="sandbox.html">CH03 · 权限沙箱</a>
-  <a href="appserver.html">CH04 · 协议线路</a>
-  <a href="atlas.html">CH05 · Crate 图谱</a>
-  <a href="../glossary.html">REF · 术语速查</a>
+  <a href="../index.html">00 · 总览</a>
+  <a href="loop.html">01 · 循环回路</a>
+  <a href="prompt.html">02 · 输入组装</a>
+  <a href="sandbox.html">03 · 权限沙箱</a>
+  <a href="appserver.html">04 · 协议线路</a>
+  <a href="atlas.html">05 · Crate 图谱</a>
+  <a href="../glossary.html">06 · 术语速查</a>
 </div>
 
 <div class="wrap">
@@ -124,7 +124,7 @@
 
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>CH04 协议线路</p>
+      <p class="eyebrow"><span class="tick">▮</span>04 协议线路</p>
       <h1>一条双向通道，<br>和一次把整轮挂起的请求。</h1>
       <p class="lede">
         VS Code 插件、macOS App 和 TUI 共用同一个核心，靠的是 App Server 暴露的
@@ -196,7 +196,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。<code>Op::UserInput</code> 入队一步依据 CH01 第 5–6 站的源码结构。
+      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。<code>Op::UserInput</code> 入队一步依据 01 第 5–6 站的源码结构。
     </aside>
 
   </main>
@@ -247,7 +247,7 @@
       d:"由你在下面决定。拒绝不是报错：模型会收到反馈并调整方案。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed (command)", branch:"approved",
       j:'{ "method": "item/completed",\n  "params": { "type": "command_execution", "exitCode": 0 } }',
-      d:"命令在沙箱内跑完了。管着它的可能是 Seatbelt、Landlock 或 WFP——取决于你在哪台机器上（见 CH03）。" },
+      d:"命令在沙箱内跑完了。管着它的可能是 Seatbelt、Landlock 或 WFP——取决于你在哪台机器上（见 03）。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"agent_message (调整方案)", branch:"denied",
       j:'{ "method": "item/delta",\n  "params": { "delta": "收到，那我先只读检查测试文件…" } }',
       d:"轮次继续而不是中断。拒绝被当成正常反馈消化掉了。" },
