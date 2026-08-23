@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shine-233.github.io/codex-atlas/sitemap.xml
