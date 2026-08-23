@@ -252,6 +252,7 @@
     '<h3>快捷键速查</h3>' +
     '<p class="kc-sub">全站通用 · 再按 ? 或 Esc 关闭</p>' +
     "<table class=\"rt\"><tbody>" +
+    "<tr><td><span class='kbd'>Ctrl K</span> / <span class='kbd'>/</span></td><td>呼出命令面板，跨页直达任意仪器</td></tr>" +
     "<tr><td><span class='kbd'>?</span></td><td>呼出 / 关闭本表</td></tr>" +
     "<tr><td><span class='kbd'>Esc</span></td><td>关闭弹层；在搜索框里则清空关键词</td></tr>" +
     "<tr><td><span class='kbd'>←</span> <span class='kbd'>→</span></td><td>01 阶段单步 · 04 报文逐条</td></tr>" +
@@ -284,6 +285,137 @@
     else if (e.key === "Escape" && layer.classList.contains("open")) toggleKeys(false);
   });
   layer.addEventListener("click", function (e) { if (e.target === layer) toggleKeys(false); });
+
+  /* ---------- 全站命令面板：Ctrl+K 或 / 呼出，跨页直达任意仪器 ---------- */
+  (function () {
+    var IN_LABS = location.pathname.indexOf("/labs/") !== -1;
+    function P(rel) { return (IN_LABS ? "../" : "") + rel; }
+
+    var CMDS = [
+      { no: "00", name: "总览 · 按问题查路由表", sub: "找入口", href: P("index.html"), kw: "overview 总览 路由 入口 route" },
+      { no: "01", name: "循环回路 · 单步仪", sub: "13 站 · 播放/键盘", href: P("labs/loop.html"), kw: "loop agent turn 阶段 循环 回路" },
+      { name: "↳ 第10站 · POST /responses", sub: "出站与 SSE", href: P("labs/loop.html") + "#s=10", kw: "sse api endpoint 出站 采样" },
+      { name: "↳ 会话建立段 / 重采样回路图", sub: "拓扑联动", href: P("labs/loop.html") + "#setup-panel", kw: "topology 拓扑 setup 建立段" },
+      { no: "02", name: "输入组装 · 组装仪", sub: "七层开关", href: P("labs/prompt.html"), kw: "prompt payload agents 层叠 32kib 负载" },
+      { no: "03", name: "权限沙箱 · 场景判定器", sub: "模式×审批×动作", href: P("labs/sandbox.html"), kw: "sandbox 权限 沙箱 seatbelt landlock wfp 判定 审批" },
+      { name: "↳ CONFIG BRIDGE · 配置片段生成", sub: "", href: P("labs/sandbox.html") + "#cfg-panel", kw: "config toml 配置 cli 片段" },
+      { no: "04", name: "协议线路 · 报文时间线", sub: "16 条 · 审批分支", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
+      { no: "05", name: "Crate 图谱", sub: "135 成员 · 列表/树图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
+      { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
+      { name: "↳ 自测模式 · 翻卡回忆", sub: "记得/忘了存档", href: P("glossary.html") + "#md=drill", kw: "flashcard drill 自测 记忆 翻卡 背题" },
+      { no: "07", name: "深水区 A · 凭据流", sub: "ChatGPT vs API key", href: P("labs/deep.html") + "#mod-a", kw: "auth login 登录 凭据 token oauth auth.json api key" },
+      { name: "深水区 B · 配置系统全貌", sub: "优先级阶梯", href: P("labs/deep.html") + "#mod-b", kw: "config toml profile 配置 优先级 覆盖" },
+      { name: "深水区 C · apply_patch 解剖台", sub: "可编辑可应用", href: P("labs/deep.html") + "#mod-c", kw: "patch 补丁 apply diff hunk 锚点 格式" },
+      { name: "深水区 D · TUI 后台", sub: "事件映射+斜杠命令", href: P("labs/deep.html") + "#mod-d", kw: "tui 终端 slash 命令 界面 渲染" },
+      { name: "深水区 E · 扩展挂点地图", sub: "skills/hooks/memories", href: P("labs/deep.html") + "#mod-e", kw: "skill hook memory 扩展 插件 技能 记忆 钩子" },
+      { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" }
+    ];
+
+    var layer = document.createElement("div");
+    layer.className = "cmdk-layer";
+    layer.setAttribute("role", "dialog");
+    layer.setAttribute("aria-modal", "true");
+    layer.setAttribute("aria-label", "全站命令面板");
+    layer.innerHTML =
+      '<div class="cmdk-card">' +
+      '<input type="text" class="cmdk-input" placeholder="跨页直达：输线路、房间、机制名…（↑↓ 选择 · Enter 打开 · Esc 关闭）" aria-label="搜索站内目的地" autocomplete="off">' +
+      '<div class="cmdk-list" role="listbox" aria-label="目的地列表"></div>' +
+      "</div>";
+    document.body.appendChild(layer);
+
+    var input = layer.querySelector(".cmdk-input");
+    var listBox = layer.querySelector(".cmdk-list");
+    var hot = 0;
+    var shown = [];
+    var lastFocus = null;
+
+    function paintHot() {
+      var items = listBox.querySelectorAll(".cmdk-item");
+      Array.prototype.forEach.call(items, function (el, i) {
+        el.classList.toggle("hot", i === hot);
+        el.setAttribute("aria-selected", i === hot ? "true" : "false");
+      });
+      if (items[hot] && items[hot].scrollIntoView) items[hot].scrollIntoView({ block: "nearest" });
+    }
+
+    function renderList() {
+      var q = input.value.trim().toLowerCase();
+      shown = CMDS.filter(function (c) {
+        return !q || (c.name + " " + c.sub + " " + c.kw + " " + (c.no || "")).toLowerCase().indexOf(q) !== -1;
+      });
+      hot = Math.max(0, Math.min(hot, shown.length - 1));
+      if (!shown.length) {
+        listBox.innerHTML =
+          '<p class="cmdk-empty">没有匹配的目的地。试试：补丁、凭据、树图、自测、审批——<br>或者按 <b style="color:var(--dim);">?</b> 看全部快捷键。</p>';
+        return;
+      }
+      listBox.innerHTML = "";
+      shown.forEach(function (c, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "cmdk-item" + (i === hot ? " hot" : "");
+        b.setAttribute("role", "option");
+        b.setAttribute("aria-selected", i === hot ? "true" : "false");
+        b.innerHTML =
+          '<span class="ck-no">' + (c.no || (c.act ? "?" : "·")) + "</span>" +
+          '<span class="ck-name">' + c.name + "</span>" +
+          '<span class="ck-sub">' + (c.sub || "") + "</span>";
+        b.addEventListener("click", function () { run(i); });
+        b.addEventListener("mousemove", function () { if (hot !== i) { hot = i; paintHot(); } });
+        listBox.appendChild(b);
+      });
+    }
+
+    function run(i) {
+      var c = shown[i];
+      if (!c) return;
+      close();
+      if (c.act === "keys") { toggleKeys(true); return; }
+      if (c.href) location.href = c.href;
+    }
+
+    function open() {
+      lastFocus = document.activeElement;
+      layer.classList.add("open");
+      input.value = "";
+      hot = 0;
+      renderList();
+      setTimeout(function () { input.focus(); }, 0);
+    }
+    function close() {
+      layer.classList.remove("open");
+      if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+      lastFocus = null;
+    }
+    function toggle() { layer.classList.contains("open") ? close() : open(); }
+
+    document.addEventListener("keydown", function (e) {
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        toggle();
+        return;
+      }
+      if (layer.classList.contains("open")) {
+        if (e.key === "Escape") { e.preventDefault(); close(); }
+        else if (e.key === "ArrowDown") { e.preventDefault(); hot = Math.min(shown.length - 1, hot + 1); paintHot(); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); hot = Math.max(0, hot - 1); paintHot(); }
+        else if (e.key === "Enter") { e.preventDefault(); run(hot); }
+        return;
+      }
+      if (e.key === "/" && !typing && !layer.classList.contains("open")) { e.preventDefault(); open(); }
+    });
+    layer.addEventListener("mousedown", function (e) { if (e.target === layer) close(); });
+
+    var fab = document.createElement("button");
+    fab.type = "button";
+    fab.className = "cmdk-fab";
+    fab.setAttribute("aria-label", "打开全站命令面板");
+    fab.title = "全站直达（Ctrl K 或 / ）";
+    fab.textContent = "直达 · Ctrl K";
+    fab.addEventListener("click", open);
+    document.body.appendChild(fab);
+  })();
 
   /* 站宠小鳕：cod 谐音鳕鱼。点它游一圈，顺带给一条真实有用的提示。 */
   var FISH =

@@ -47,7 +47,7 @@
       <p class="eyebrow"><span class="tick">▮</span>SIGNAL LOST</p>
       <div class="nf-code">4<i>//</i>04</div>
       <p class="nf-sub">这个地址在站内没有落点。可能是链接敲错了，也可能是页面还没建。
-        五个入口都在下面，总览里有按问题查路由的表。</p>
+        所有线路的入口都在下面，总览里有按问题查路由的表。</p>
 
       <div class="nf-scope" aria-hidden="true">
         <span class="nf-scope-tag">SCOPE · 最后一段有效信号</span>
@@ -65,6 +65,7 @@
         <a class="btn" href="labs/appserver.html">04 协议线路</a>
         <a class="btn" href="labs/atlas.html">05 Crate 图谱</a>
         <a class="btn" href="glossary.html">06 术语速查</a>
+        <a class="btn" href="labs/deep.html">07 深水区</a>
       </div>
       <p class="small muted" style="margin-top:30px;">
         如果你认为这是一个坏链接，欢迎到仓库提 issue，注明当时的地址。
@@ -78,9 +79,9 @@
 (function () {
   "use strict";
   var path = location.pathname.replace(/\/$/, "");
-  var m = path.match(/(loop|prompt|sandbox|appserver|atlas)\.html$/);
+  var m = path.match(/(loop|prompt|sandbox|appserver|atlas|deep)\.html$/);
   if (!m) return;
-  var map = { loop: "labs/loop.html", prompt: "labs/prompt.html", sandbox: "labs/sandbox.html", appserver: "labs/appserver.html", atlas: "labs/atlas.html" };
+  var map = { loop: "labs/loop.html", prompt: "labs/prompt.html", sandbox: "labs/sandbox.html", appserver: "labs/appserver.html", atlas: "labs/atlas.html", deep: "labs/deep.html" };
   var target = map[m[1]];
   if (target && document.querySelector('.nf-links a[href="' + target + '"]')) {
     location.replace(target);
