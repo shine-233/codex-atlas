@@ -1227,3 +1227,61 @@ table.rt tr.hidden { display: none; }
   .cmdk-card { margin-top: 7vh; }
   .cmdk-list { max-height: 56vh; }
 }
+
+/* ---------- 视觉层 · 材质与光（学自 Linear / Vercel / resend 的公开做法，按终端仪表风收敛） ---------- */
+
+/* 噪点：给深色底一层物性。固定层、5% 透明度、不拦截指针 */
+body::after {
+  content: "";
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none;
+  opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+}
+
+/* 首页主视觉底纹：蓝图网格 + 琥珀辉光，向下渐隐 */
+.hero { position: relative; z-index: 0; }
+.hero::before {
+  content: "";
+  position: absolute; inset: -8px -20px -18px; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(620px 320px at 16% 0%, rgba(255, 180, 84, .10), transparent 70%),
+    radial-gradient(420px 260px at 88% 12%, rgba(143, 199, 232, .06), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(143,199,232,.05) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(143,199,232,.05) 0 1px, transparent 1px 44px);
+  -webkit-mask-image: linear-gradient(#000 52%, transparent);
+  mask-image: linear-gradient(#000 52%, transparent);
+}
+
+/* 大标题墨水：暖白渐入琥珀尾（仅封面；不支持时回退纯色） */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero h1 {
+    background: linear-gradient(168deg, #f4efe6 18%, #eadfc8 55%, var(--amber) 108%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* 面板机加工上缘：一条几乎看不见的高光，让边界有「料」 */
+.panel { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+
+/* 主按钮辉光：琥珀是信号色，信号色可以发光 */
+.btn.primary {
+  box-shadow: 0 0 0 1px rgba(255, 180, 84, .28), 0 6px 22px rgba(255, 180, 84, .16);
+}
+.btn.primary:hover {
+  box-shadow: 0 0 0 1px rgba(255, 180, 84, .4), 0 8px 26px rgba(255, 180, 84, .22);
+}
+
+/* 仪器读数用等宽数字：播放时数字不再抖动 */
+.readout, .pos, .match-readout, .cost-laps-readout, .lap-tag,
+.tui-bar, .ck-no, .band-count, .as-k, .tc-tag {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 表格行悬停：琥珀左标尺提示「这一行是通路」 */
+.rt tbody tr { transition: background .15s var(--ease); }
+.rt tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 rgba(255, 180, 84, .5); }
