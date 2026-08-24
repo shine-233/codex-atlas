@@ -418,6 +418,38 @@ self.input_queue
     .await;
 Ok(active_turn_id.clone())</span></pre>
       </details>
+      <p class="small muted" style="margin:14px 0 0;">上面演的是 steer 成功并入。源码里还要处理 steer <b>输掉竞态</b>的两种情况：轮次已经结束（没有 active turn 可插话），或者缓存里的 turn id 过期——后者会带着服务器当前的真实 id 重试一次。</p>
+      <details class="src-details">
+        <summary>🔍 看真实源码 · steer 竞态的两种败局与恢复</summary>
+        <pre><span class="src-loc">codex-rs/tui/src/app.rs :655-684 · @343074d4 实测</span>
+<span class="src-code">#[derive(Debug, Clone, PartialEq, Eq)]
+enum ActiveTurnSteerRace {
+    Missing,
+    ExpectedTurnMismatch { actual_turn_id: String },
+}
+
+fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveTurnSteerRace&gt; {
+    /* ... */
+    if method != "turn/steer" {
+        return None;
+    }
+    if source.message == "no active turn to steer" {
+        return Some(ActiveTurnSteerRace::Missing);
+    }
+
+    // App-server steer mismatches mean our cached active turn id is stale, but the response
+    // includes the server's current active turn so we can resynchronize and retry once.
+    let mismatch_prefix = "expected active turn id `";
+    let mismatch_separator = "` but found `";
+    let actual_turn_id = source.message
+        .strip_prefix(mismatch_prefix)?
+        .split_once(mismatch_separator)?
+        .1
+        .strip_suffix('`')?
+        .to_string();
+    Some(ActiveTurnSteerRace::ExpectedTurnMismatch { actual_turn_id })
+}</span></pre>
+      </details>
     </section>
 
     <!-- 重采样成本对照 -->
