@@ -412,11 +412,11 @@
     <section class="panel" id="yard-panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>SANDBOX YARD · 沙盘：围墙在哪，命令包往哪走</h3>
-        <span class="readout">随上方判定器联动 · 换动作看包的路线</span>
+        <span class="readout">判定器联动 · 换动作看路线 · <b style="color:var(--amber);">包可以直接抓起来拖</b></span>
       </div>
       <div class="yard-wrap">
         <div id="yard" role="img"
-             aria-label="沙盘示意图：工作区与临时目录在围墙内，家目录与网络在墙外。琥珀色命令包按当前选定的动作移动：放行就到达目标，被拒就撞墙弹回，条件放行会停在墙边等你签字。"></div>
+             aria-label="沙盘示意图：工作区与临时目录在围墙内，家目录与网络在墙外。琥珀色命令包按当前选定的动作移动：放行就到达目标，被拒就撞墙弹回，条件放行会停在墙边等你签字。命令包也可以用指针直接抓起来，拖到任意位置松手，当场看该位置的判定结果。"></div>
         <div class="yard-ask" id="yard-ask">
           <span>越墙写入 <b style="font-family:var(--mono);">~/.bashrc</b>？</span>
           <button type="button" class="yes" id="yard-yes">批准</button>
@@ -427,6 +427,7 @@
         琥珀小包就是你选的那条命令。虚线围墙圈住 workspace-write 的可写白名单（工作目录 + 临时目录）；
         切到 read-only，围墙变红墙——一个字节都出不去；danger-full-access 直接把墙拆了。
         选「改写墙外路径」时，小包会停在墙边等你签字：批准开门、拒绝退回。
+        <b style="color:var(--ink);">也可以直接抓住小包拖到任何位置松手</b>：墙内放行、撞红墙弹回、workspace-write 停墙边等签字、甩到云区走出网规则——松手的位置就是你要验证的那条规则。
         读取永远穿墙——全盘可读是设计取舍，不是漏洞。
       </p>
     </section>
@@ -1532,6 +1533,83 @@ async fn create_elicitation(
       try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: "deny" } })); } catch (e) { }
       walk([POS.fenceMid, POS.home], function () { showTag(POS.home, "没批 · 模型自己换思路", "deny"); });
     });
+
+    /* 深化：命令包可以自己抓起来拖。松手的位置决定触发哪条规则——
+     * 围墙内放行；撞红墙按模式弹回 / 停墙边等签字 / 直接穿过；甩进云区走出网规则。 */
+    (function () {
+      var svg = host.querySelector("svg");
+      if (!svg || !window.PointerEvent) return;
+      svg.style.touchAction = "none";
+      var grabbed = false;
+      function toView(e) {
+        var r = svg.getBoundingClientRect();
+        return [
+          Math.max(10, Math.min(750, (e.clientX - r.left) / r.width * 760)),
+          Math.max(10, Math.min(320, (e.clientY - r.top) / r.height * 330))
+        ];
+      }
+      function near(p, q, d) { return Math.hypot(p[0] - q[0], p[1] - q[1]) < d; }
+      svg.addEventListener("pointerdown", function (e) {
+        var p = toView(e);
+        if (!near(p, [+dot.getAttribute("cx"), +dot.getAttribute("cy")], 22)) return;
+        grabbed = true;
+        if (walkRaf) { cancelAnimationFrame(walkRaf); walkRaf = 0; }
+        hideAsk();
+        hideTag();
+        dot.setAttribute("r", "9");
+        svg.style.cursor = "grabbing";
+        try { svg.setPointerCapture(e.pointerId); } catch (err) { }
+        e.preventDefault();
+      });
+      svg.addEventListener("pointermove", function (e) {
+        if (grabbed) setDot(toView(e));
+      });
+      svg.addEventListener("pointerup", function (e) {
+        if (!grabbed) return;
+        grabbed = false;
+        dot.setAttribute("r", "7");
+        svg.style.cursor = "default";
+        resolveDrop(toView(e));
+      });
+      svg.addEventListener("pointercancel", function () {
+        if (!grabbed) return;
+        grabbed = false;
+        dot.setAttribute("r", "7");
+        svg.style.cursor = "default";
+      });
+
+      function resolveDrop(p) {
+        var inFence = p[0] < 532 && p[1] > 88 && p[1] < 292;
+        var inCloud = Math.hypot(p[0] - 650, p[1] - 44) < 58;
+        var beyondNet = p[0] > 560 && p[1] < 88;
+        if (inFence) {
+          showTag(p, curMode === "ro" ? "工作区内：读随便读，写仍走判定" : "白名单内 · 放行", "allow");
+          return;
+        }
+        if (inCloud || beyondNet) {
+          if (curMode === "full") {
+            showTag([Math.min(700, p[0]), Math.max(24, p[1])], "出网放行 · 毫无阻拦", "allow");
+          } else {
+            walk([p, POS.netGate], function () {
+              shake();
+              showTag(POS.netGate, curMode === "ww" ? "默认断网 · 审批或配置可升级" : "断网：read-only 不给出网", curMode === "ww" ? "cond" : "deny");
+            });
+          }
+          return;
+        }
+        var edge = [532, Math.max(96, Math.min(284, p[1]))];
+        if (curMode === "full") {
+          showTag(p, "全放开 · 毫无阻拦", "allow");
+        } else if (curMode === "ww") {
+          walk([p, edge], function () { placeAsk(edge); });
+        } else {
+          walk([p, edge], function () {
+            shake();
+            showTag(edge, "红墙：一个字节都不写", "deny");
+          });
+        }
+      }
+    })();
 
     window.__yardRender = render;
     render(curAct ? effVerdict(curAct, curMode) : null);

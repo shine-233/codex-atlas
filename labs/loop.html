@@ -156,6 +156,9 @@
   }
   .sse-log .ev-name { color: var(--steel); }
   .sse-log .ev-note { color: var(--faint); }
+  .sse-log > div { cursor: pointer; padding: 1px 5px; border-left: 2px solid transparent; transition: background var(--t-fast) ease, border-color var(--t-fast) ease; }
+  .sse-log > div:hover { background: var(--amber-dim); border-left-color: var(--amber); }
+  .sse-log > div.past { border-left-color: rgba(143, 199, 232, .4); }
   .sse-right { display: flex; flex-direction: column; gap: 10px; }
   .sse-bubble {
     background: var(--bg2); border: 1px dashed var(--line-strong);
@@ -341,6 +344,9 @@
       <div class="controls">
         <button class="btn primary" id="sse-play" type="button">▶ 播放事件流</button>
         <button class="btn" id="sse-reset" type="button">↺ 重放</button>
+        <input type="range" id="sse-seek" min="0" max="6" step="1" value="0"
+               aria-label="事件回放进度：拖动或点任意事件行跳转"
+               style="flex:1;min-width:110px;max-width:260px;">
         <span class="match-readout" id="sse-count" aria-live="polite"></span>
       </div>
       <p class="small muted" style="margin:12px 0 0;">
@@ -1386,7 +1392,8 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     })();
   })();
 
-  /* ---------- 第 11 站现场：SSE 事件瀑布（示意） ---------- */
+
+  /* ---------- SSE 瀑布 · 深化版：索引驱动，可点行跳转 / 拖进度 / 暂停续播 ---------- */
   (function () {
     var log = document.getElementById("sse-log");
     var bubble = document.getElementById("sse-bubble");
@@ -1394,9 +1401,9 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     var playBtn = document.getElementById("sse-play");
     var resetBtn = document.getElementById("sse-reset");
     var countEl = document.getElementById("sse-count");
-    if (!log || !bubble) return;
+    var seek = document.getElementById("sse-seek");
+    if (!log || !bubble || !seek) return;
 
-    /* 六步 = 第 11 站正文的四个事件 + 纯文本收尾的两个后果 */
     var STEPS = [
       { ev: "OutputItemAdded", note: "条目开始 · UI 先出占位", act: "placeholder" },
       { ev: "OutputTextDelta", note: "「先跑一遍」", act: "text", chunk: "先跑一遍" },
@@ -1407,25 +1414,37 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         usage: "usage · input 48,211 · 其中 cached 44,120 —— needs_follow_up = false，下一站第 13" }
     ];
 
-    var timers = [];
+    var played = 0, playing = false, stepTimer = null, charTimers = [];
 
-    function clearAll() {
-      timers.forEach(clearTimeout);
-      timers = [];
-      log.textContent = "";
+    function clearCharTimers() { charTimers.forEach(clearTimeout); charTimers = []; }
+    function resetBubble() {
       bubble.innerHTML = '<span class="sse-caret" hidden></span>';
-      usageEl.textContent = "";
-      countEl.textContent = "";
       bubble.classList.remove("done");
+      usageEl.textContent = "";
+    }
+    function hardClear() {
+      if (stepTimer) { clearTimeout(stepTimer); stepTimer = null; }
+      clearCharTimers();
+      playing = false;
+      played = 0;
+      log.textContent = "";
+      resetBubble();
+      countEl.textContent = "";
+      seek.value = 0;
+      playBtn.disabled = false;
+      playBtn.textContent = "▶ 播放事件流";
     }
 
     function applyStep(i, instant) {
       var s = STEPS[i];
       var line = document.createElement("div");
+      line.setAttribute("data-i", i);
       line.innerHTML = '<span class="ev-name">ResponseEvent::' + s.ev + "</span> <span class=\"ev-note\">" + s.note + "</span>";
       if (!instant) line.classList.add("ca-rise");
       log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
       countEl.textContent = "已回放 " + (i + 1) + " / " + STEPS.length + " 个事件";
+      seek.value = i + 1;
 
       var caret = bubble.querySelector(".sse-caret");
       if (s.act === "placeholder") {
@@ -1439,7 +1458,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         (function tick() {
           if (k >= s.chunk.length) return;
           chunk.textContent += s.chunk[k++];
-          timers.push(setTimeout(tick, 34));
+          charTimers.push(setTimeout(tick, 34));
         })();
       } else if (s.act === "done") {
         caret.hidden = true;
@@ -1449,40 +1468,65 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       }
     }
 
+    function markPast() {
+      Array.prototype.forEach.call(log.children, function (d, i) {
+        d.classList.toggle("past", i < played - 1);
+      });
+    }
+
     function finish() {
-      playBtn.disabled = false;
-      playBtn.textContent = "▶ 播放事件流";
-      /* 小鳕看见消息流完，蹦一下（只借动画，不动存档） */
+      playing = false;
+      playBtn.textContent = "▶ 再播一遍";
       try { document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: true } })); } catch (e) { }
     }
 
+    function stepNext() {
+      if (!playing || played >= STEPS.length) { if (played >= STEPS.length) finish(); return; }
+      applyStep(played, false);
+      played++;
+      markPast();
+      if (played >= STEPS.length) { finish(); return; }
+      stepTimer = setTimeout(stepNext, 950);
+    }
+
+    /* 跳到第 n 步（已应用 0..n-1）：瞬间重建，不播打字动画 */
+    function seekTo(n) {
+      n = Math.max(0, Math.min(STEPS.length, n));
+      if (stepTimer) { clearTimeout(stepTimer); stepTimer = null; }
+      clearCharTimers();
+      playing = false;
+      log.textContent = "";
+      resetBubble();
+      for (var i = 0; i < n; i++) applyStep(i, true);
+      played = n;
+      markPast();
+      playBtn.disabled = false;
+      playBtn.textContent = n >= STEPS.length ? "▶ 再播一遍" : (n > 0 ? "▶ 从第 " + (n + 1) + " 条续播" : "▶ 播放事件流");
+      if (n >= STEPS.length) finish();
+    }
+
     function startPlay() {
-      clearAll();
-      playBtn.disabled = true;
-      playBtn.textContent = "❚❚ 播放中…";
-      if (window.PrefersReducedMotion) {
-        for (var i = 0; i < STEPS.length; i++) applyStep(i, true);
-        finish();
+      if (playing) {   /* 播放中点击 = 暂停 */
+        playing = false;
+        if (stepTimer) { clearTimeout(stepTimer); stepTimer = null; }
+        playBtn.textContent = "▶ 从第 " + (played + 1) + " 条续播";
         return;
       }
-      STEPS.forEach(function (s, i) {
-        timers.push(setTimeout(function () {
-          applyStep(i, false);
-          if (i === STEPS.length - 1) finish();
-        }, i * 950));
-      });
+      clearCharTimers();
+      if (played >= STEPS.length) { hardClear(); }
+      playing = true;
+      playBtn.textContent = "❚❚ 暂停";
+      stepNext();
     }
 
     playBtn.addEventListener("click", startPlay);
-    resetBtn.addEventListener("click", clearAll);
-
-    /* 与单步仪联动：停在第 11 站时面板亮边提醒 */
-    var panel = document.getElementById("sse-panel");
-    if (panel) {
-      document.addEventListener("ca:stage", function (ev) {
-        panel.classList.toggle("on-stage", ev.detail.stage === 11);
-      });
-    }
+    resetBtn.addEventListener("click", hardClear);
+    seek.addEventListener("input", function () { seekTo(parseInt(seek.value, 10)); });
+    log.addEventListener("click", function (e) {
+      var line = e.target && e.target.closest ? e.target.closest("[data-i]") : null;
+      if (!line) return;
+      seekTo(parseInt(line.getAttribute("data-i"), 10) + 1);
+    });
   })();
 
   LoopScope.mount(document.getElementById("miniscope"), {
