@@ -1158,7 +1158,7 @@
     /* 区域 */
     function zone(x, y, w, h, label) {
       svg.appendChild(E("rect", { class: "yard-zone", x: x, y: y, width: w, height: h }));
-      var t = E("text", { class: "yard-zone-label", x: x + 8, y: y - 8 });
+      var t = E("text", { class: "yard-zone-label", x: x + 8, y: y + 18 });
       t.textContent = label;
       svg.appendChild(t);
     }
