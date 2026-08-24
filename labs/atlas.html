@@ -1501,7 +1501,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
           var dx = a.x - b.x, dy = a.y - b.y;
           var d2 = dx * dx + dy * dy;
           if (d2 > 34000 || d2 === 0) continue;
-          var f = 1500 * alpha / d2;
+          var f = 2400 * alpha / d2;
           var d = Math.sqrt(d2);
           fx = dx / d * f; fy = dy / d * f;
           a.vx += fx; a.vy += fy;
@@ -1513,7 +1513,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         a = NODES[LINKS[i][0]]; b = NODES[LINKS[i][1]];
         var ldx = b.x - a.x, ldy = b.y - a.y;
         var ld = Math.sqrt(ldx * ldx + ldy * ldy) || 1;
-        var rest = 46 + (radius(a) + radius(b)) * 0.9;
+        var rest = 62 + (radius(a) + radius(b)) * 0.9;
         var g = (ld - rest) * 0.028 * alpha;
         var ux = ldx / ld * g, uy = ldy / ld * g;
         a.vx += ux; a.vy += uy;
@@ -1609,20 +1609,25 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
-        if ((a.deg >= 16 || isHov || isNb || isSel ||
+        if ((a.deg >= 24 || isHov || isNb || isSel ||
             (bandFocus !== null && a.bi === bandFocus && a.deg >= 6)) && f > 0.35) {
           lab.push([a, f]);
         }
       }
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.textBaseline = "middle";
+      /* 文字底下垫一圈底色描边，密集区也读得清 */
+      ctx.strokeStyle = light ? "rgba(240,236,225,0.85)" : "rgba(16,20,24,0.8)";
+      ctx.lineWidth = 3;
       var shown = lab.slice(0, 42);
       for (i = 0; i < shown.length; i++) {
         var n = shown[i][0], lf = shown[i][1];
+        var lx = sx(n.x) + radius(n) * S + 4, ly = sy(n.y);
+        ctx.strokeText(n.name, lx, ly);
         ctx.fillStyle = light
-          ? "rgba(34,48,60," + (0.78 * lf).toFixed(2) + ")"
-          : "rgba(" + INKRGB + "," + (0.72 * lf).toFixed(2) + ")";
-        ctx.fillText(n.name, sx(n.x) + radius(n) * S + 4, sy(n.y));
+          ? "rgba(34,48,60," + (0.82 * lf).toFixed(2) + ")"
+          : "rgba(" + INKRGB + "," + (0.75 * lf).toFixed(2) + ")";
+        ctx.fillText(n.name, lx, ly);
       }
     }
 
