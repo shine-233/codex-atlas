@@ -1010,7 +1010,7 @@
       merged++;
       hist += 6;   /* 插话也进历史：下一次采样会带上它 */
       log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）· 第 ' + merged + ' 句插话');
-      log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮——不排队，下一轮采样就能看到这句</span>');
+      log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮（协议侧真实 wire 名 turn/steer）——不排队，下一轮采样就能看到这句</span>');
       persist();
       paint();
     });

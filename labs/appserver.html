@@ -221,7 +221,8 @@
         </div>
         <div id="a2-seq" aria-live="polite" style="margin-top:8px;"></div>
         <p class="small muted" style="margin:14px 0 0;">
-          方法名与字段为<b>示意形状</b>；resume / fork 能力出自官方博客《Unlocking the Codex harness》。
+          wire 名（thread/resume、thread/fork、turn/interrupt、thread/archive）已对固定提交下
+          <code>app-server-protocol/src/protocol/</code> 的 wire 注册表逐一核实；字段嵌套仍为<b>示意形状</b>。
           点任意已送达的行，结构显示在上方「报文形状」面板。
         </p>
       </div>
@@ -303,7 +304,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
+      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。2026-08-24 追加实证：全部 wire 方法名已对固定提交下 <code>app-server-protocol/src/protocol/common.rs</code> 的 wire 注册表逐条核对——thread/new 实为 thread/start，审批反向请求实为 item/commandExecution/requestApproval（旧称来自社区早期分析），agent 正文增量的真实通道是 item/agentMessage/delta。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
     </aside>
 
   </main>
@@ -330,9 +331,9 @@
     { dir:"s2c", who:"SERVER", k:"response", m:"initialize 返回",
       j:'{ "result": { "serverInfo": { "name": "codex-app-server" },\n           "capabilities": { … } } }',
       d:"能力协商完成，通道就绪。" },
-    { dir:"c2s", who:"CLIENT", k:"request", m:"newThread",
-      j:'{ "id": 2, "method": "thread/new", "params": {} }',
-      d:"开一条新线程。线程是会话容器：可创建、恢复、分叉、归档。" },
+    { dir:"c2s", who:"CLIENT", k:"request", m:"thread/start",
+      j:'{ "id": 2, "method": "thread/start", "params": {} }',
+      d:"开一条新线程。真实 wire 名是 thread/start（不是字面的 thread/new）。线程是会话容器：可创建、恢复、分叉、归档。" },
     { dir:"s2c", who:"SERVER", k:"response", m:"newThread 返回",
       j:'{ "result": { "threadId": "t_9f3a…" } }',
       d:"句柄到手。事件历史已经持久化在磁盘上——之后断线重连，还能恢复出同一时间线。" },
@@ -344,18 +345,18 @@
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/started",
       j:'{ "method": "item/started",\n  "params": { "type": "agent_message", "itemId": "i_01…" } }',
       d:"started 先到：UI 可以立刻渲染占位，不必等完整内容。" },
-    { dir:"s2c", who:"SERVER", k:"notification", m:"item/delta ×N",
-      j:'{ "method": "item/delta",\n  "params": { "delta": "我先跑一遍测试，看看哪里红了…" } }',
-      d:"流式增量按序追加。打字机效果的协议基础就是这一条。" },
+    { dir:"s2c", who:"SERVER", k:"notification", m:"item/agentMessage/delta ×N",
+      j:'{ "method": "item/agentMessage/delta",\n  "params": { "delta": "我先跑一遍测试，看看哪里红了…" } }',
+      d:"流式增量按序追加——delta 按条目类型分通道，agent 正文走 agentMessage/delta，reasoning 和命令输出各有自己的 delta 名。打字机效果的协议基础就是这一条。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed",
       j:'{ "method": "item/completed", "params": { "type": "agent_message" } }',
       d:"这条消息落定，可以被后续引用或检索。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/started (command)",
       j:'{ "method": "item/started",\n  "params": { "type": "command_execution",\n              "command": "cargo test --all" } }',
       d:"模型要执行命令了。命令本身先亮出来给你看。" },
-    { dir:"gate", who:"SERVER", k:"server request", m:"commandExecution/approval", gate:true,
-      j:'{ "jsonrpc": "2.0", "id": 77,\n  "method": "commandExecution/approval",\n  "params": { "threadId": "t_9f3a…", "itemId": "i_07…",\n              "command": "cargo test --all",\n              "cwd": "~/proj/api",\n              "reason": "在沙箱限制之外运行需要授权" } }',
-      d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等客户端给一个应答。" },
+    { dir:"gate", who:"SERVER", k:"server request", m:"item/commandExecution/requestApproval", gate:true,
+      j:'{ "jsonrpc": "2.0", "id": 77,\n  "method": "item/commandExecution/requestApproval",\n  "params": { "threadId": "t_9f3a…", "itemId": "i_07…",\n              "command": "cargo test --all",\n              "cwd": "~/proj/api",\n              "reason": "在沙箱限制之外运行需要授权" } }',
+      d:"注意方向：这次是服务端发请求。JSON-RPC 的双向在这里兑现——核心线程整个暂停，等客户端给一个应答。社区资料里的旧称 commandExecution/approval 已被此名取代。" },
     { dir:"c2s", who:"CLIENT", k:"decision", m:"approval 应答", br:true,
       j:'/* 批准 */\n{ "id": 77, "result": { "decision": "approved" } }\n\n/* 拒绝同样是有效应答 */\n{ "id": 77, "result": { "decision": "denied" } }',
       d:"由你在下面决定。批准和拒绝都是有效应答，区别只是模型接下来是执行还是改道。" },
@@ -908,10 +909,10 @@
   })();
 
   CAQuiz.mount(document.getElementById("quiz"), [
-    { q: "commandExecution/approval 这种审批请求，是从哪边发往哪边的？",
+    { q: "item/commandExecution/requestApproval 这种审批请求，是从哪边发往哪边的？",
       opts: ["客户端 → 服务端", "服务端 → 客户端", "两边同时向对方发"],
       a: 1,
-      why: "时间线第 11 条标红了方向：这次是服务端发请求，JSON-RPC 的「双向」在这里兑现。核心线程整个暂停，等客户端给一个应答——审批权在你手里。" },
+      why: "时间线第 11 条标红了方向：这次是服务端发请求，JSON-RPC 的「双向」在这里兑现。核心线程整个暂停，等客户端给一个应答——审批权在你手里。方法名已对 protocol crate 的 wire 注册表核实。" },
     { q: "Item 的生命周期顺序是？",
       opts: ["started → delta → completed", "completed → delta → started", "没有固定顺序，随实现变化"],
       a: 0,
