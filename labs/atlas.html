@@ -669,7 +669,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
 
     var defs = E("defs", {});
     var mkA = E("marker", { id: "fp-a", viewBox: "0 0 8 8", refX: "7", refY: "4", markerWidth: "7", markerHeight: "7", orient: "auto" });
-    mkA.appendChild(E("path", { d: "M0 0 L8 4 L0 8 z", fill: "#34424f" }));
+    mkA.appendChild(E("path", { d: "M0 0 L8 4 L0 8 z", fill: (window.CATheme ? CATheme.get("--line-strong", "#34424f") : "#34424f") }));
     defs.appendChild(mkA);
     svg.appendChild(defs);
 
@@ -870,7 +870,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
           var aCell = 0.30 + RIBBON_ALPHA[bi] * 0.62;
           btn.style.background = "rgba(255,180,84," + aCell.toFixed(2) + ")";
           if (aCell >= 0.58) btn.style.color = "rgba(23,18,7,.85)";
-          else btn.style.color = "#f3e7d3";
+          else btn.style.color = (window.CATheme && CATheme.isLight()) ? "#22303c" : "#f3e7d3";
           btn.addEventListener("click", function () { selectCrate(band, name, btn); });
           tmBox.appendChild(btn);
         });
@@ -942,7 +942,9 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     if (!ctx) return;
 
     var REDUCED = window.PrefersReducedMotion === true;
-    var AMBER = "255,180,84", STEEL = "143,199,232", INK = "231,237,243";
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+    var INK = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
     var FOV = 3.4;
 
     /* 确定性随机：种子取自基线提交号前缀 */
@@ -1606,6 +1608,17 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
   ]);
 })();
 </script>
+
+<script>
+window.CATOUR_STEPS = [
+  { sel: "#q", title: "检索与定位", text: "中英文都能搜：试试 mcp、记忆、沙箱。命中的成员高亮，其余暗化——三个视图联动。" },
+  { sel: "#ribbon", title: "构成比例带", text: "段宽 = 该带成员数占比（合计 135）。点段跳到对应带。" },
+  { sel: "#flowmap", title: "带间依赖动线", text: "本站归纳的调用方向：入口 → 协议接入 → 核心引擎 → 工具执行 → 沙箱安全。点节点跳带。" },
+  { sel: ".view-row", title: "三种视图", text: "列表 / 面积树图 / 3D 星系。星系支持拖拽旋转、缩放、带聚焦、自动导览，固定种子可复现。" },
+  { sel: "#repo-tree", title: "仓库全景", text: "本站管到哪一层、哪些明确不管——覆盖粒度三级：crate 级 / 文件级 / 函数级。" }
+];
+</script>
+
 <script src="../assets/terms.js"></script>
 </body>
 </html>

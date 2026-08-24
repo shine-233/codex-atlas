@@ -1565,6 +1565,19 @@
   });
 })();
 </script>
+
+<script>
+window.CATOUR_STEPS = [
+  { sel: "#verdict-grid", title: "场景判定器", text: "选操作系统、模式、审批策略，再点一个具体动作：结论、理由、内核机制当场给出。" },
+  { sel: ".cmd-block", title: "FREE CONSOLE", text: "敲一条你自己的命令，按关键词归类到六种场景做判定——sed 带不带 -i 都分得清。" },
+  { sel: "#pipe", title: "判定管线", text: "命令包逐段穿过五道闸：策略 → 沙箱墙 → 内核机制 → 结果。颜色即判定。" },
+  { sel: "#yard-panel", title: "空间沙盘", text: "围墙画出来了：workspace-write 是琥珀虚线，read-only 是红墙，full 直接拆墙。命令包走位、撞墙、停在墙边等你签字。" },
+  { sel: "#mcp-lane-panel", title: "MCP 双路径", text: "上路内置工具穿墙，下路 MCP 工具直接绕墙——围墙对它视而不见。这就是「MCP 不在沙箱内」的空间解释。" },
+  { sel: ".approve-mock", title: "审批弹窗", text: "真的能点：批准一次、本轮内允许、拒绝，三种结局各不相同。" },
+  { sel: "#cfg-panel", title: "CONFIG BRIDGE", text: "把当前组合写成 config.toml 与 CLI 命令，可直接复制粘贴。network_access 开关会真实改变 net 动作的判定。" }
+];
+</script>
+
 <script src="../assets/terms.js"></script>
 </body>
 </html>

@@ -1184,6 +1184,18 @@
   ]);
 })();
 </script>
+
+<script>
+window.CATOUR_STEPS = [
+  { sel: ".panel.hot", title: "单步仪 · 本页主仪器", text: "13 个阶段从 codex 命令到 TurnComplete。左右方向键逐步，空格播放全程，滑杆随意跳站——每站都给真实文件路径与事件名。" },
+  { sel: "#setup-panel", title: "会话建立段", text: "前 8 站是一条单向链：进程接力 → 协议下单 → 队列与占用。图里的方框都能点，点了单步仪就跳过去。" },
+  { sel: "#loopmap-panel", title: "重采样回路", text: "第 9–12 步是个会转圈的环：有工具调用就再来一次采样。停在第 13 站再按「下一步」，亲眼看环转回去、历史条长一格。" },
+  { sel: "#sse-panel", title: "SSE 事件瀑布", text: "第 11 站现场：一条回答是怎么一个事件一个事件流回来的。播放后右边 TUI 会跟着打字。" },
+  { sel: "#sim-panel", title: "TURN SIMULATOR", text: "自己开一轮：发输入、调工具、试试运行中插话——steer 会把你的新输入并进当前轮，不是排队。" },
+  { sel: ".cost-demo", title: "成本对照", text: "先猜无缓存是缓存的几倍，再拉滑杆对答案。全量重发是平方增长，缓存命中把它压回近似线性。" }
+];
+</script>
+
 <script src="../assets/terms.js"></script>
 </body>
 </html>

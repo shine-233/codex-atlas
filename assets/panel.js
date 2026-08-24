@@ -20,6 +20,9 @@
     });
   });
 
+  /* 主题：尽早应用，避免首帧闪错色 */
+  try { if (localStorage.getItem("ca-theme") === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) { /* 忽略 */ }
+
   /* hash 状态：#s=3&x=1 形式的键值对读写 */
   window.PanelState = {
     read: function () {
@@ -46,6 +49,24 @@
       var s = parts.length ? "#" + parts.join("&") : "";
       history.replaceState(null, "", location.pathname + location.search + s);
     }
+  };
+
+  /* 主题读取助手：canvas / SVG 从 token 取色，浅深主题共用一套绘制代码 */
+  window.CATheme = {
+    get: function (name, fallback) {
+      try {
+        var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return v || fallback;
+      } catch (e) { return fallback; }
+    },
+    rgb: function (name, fallback) {
+      var hex = this.get(name, "").replace("#", "");
+      if (hex.length === 6) {
+        return parseInt(hex.slice(0, 2), 16) + "," + parseInt(hex.slice(2, 4), 16) + "," + parseInt(hex.slice(4, 6), 16);
+      }
+      return fallback;
+    },
+    isLight: function () { return document.documentElement.getAttribute("data-theme") === "light"; }
   };
 
   /* 动效偏好 */
@@ -232,6 +253,100 @@
   "use strict";
   var reduced = window.PrefersReducedMotion === true;
 
+  /* ---------- 聚光导览引擎：CATour.start(steps)
+     steps: [{ sel, title, text }]。聚光框 + 遮罩 + 步骤卡，←→ 翻页，Esc 退出。 ---------- */
+  var tourLayer = null, tourIdx = 0, tourSteps = null, tourSpot = null;
+  function tourClear() {
+    if (tourLayer) { tourLayer.remove(); tourLayer = null; }
+    tourSteps = null;
+    window.removeEventListener("resize", tourPaint);
+    window.removeEventListener("scroll", tourPaint, true);
+    document.removeEventListener("keydown", tourKeys);
+  }
+  function tourPaint() {
+    if (!tourSteps || !tourSpot) return;
+    var st = tourSteps[tourIdx];
+    var el = st.sel ? document.querySelector(st.sel) : null;
+    if (!el) { tourNext(1); return; }
+    var r = el.getBoundingClientRect();
+    var pad = 10;
+    tourSpot.style.top = (r.top - pad) + "px";
+    tourSpot.style.left = (r.left - pad) + "px";
+    tourSpot.style.width = (r.width + pad * 2) + "px";
+    tourSpot.style.height = (r.height + pad * 2) + "px";
+    var card = tourLayer.querySelector(".tour-card");
+    var below = r.bottom + 16 + 190 < window.innerHeight;
+    card.style.top = below ? (r.bottom + 16) + "px" : "";
+    card.style.bottom = below ? "" : (window.innerHeight - r.top + 16) + "px";
+    card.style.left = Math.max(12, Math.min(window.innerWidth - 372, r.left)) + "px";
+  }
+  function tourRender() {
+    var st = tourSteps[tourIdx];
+    tourPaint();
+    var card = tourLayer.querySelector(".tour-card");
+    card.innerHTML =
+      '<div class="tc-step">' + (tourIdx + 1) + " / " + tourSteps.length + (st.badge ? " · " + st.badge : "") + "</div>" +
+      "<h4>" + st.title + "</h4>" +
+      "<p>" + st.text + "</p>" +
+      '<div class="tc-nav">' +
+      '<button type="button" class="btn" id="tour-prev"' + (tourIdx === 0 ? " disabled" : "") + ">◀ 上一步</button>" +
+      '<button type="button" class="btn primary" id="tour-next">' + (tourIdx === tourSteps.length - 1 ? "完成 ✓" : "下一步 ▶") + "</button>" +
+      "</div>";
+    card.querySelector("#tour-prev").addEventListener("click", function () { tourNext(-1); });
+    card.querySelector("#tour-next").addEventListener("click", function () {
+      if (tourIdx === tourSteps.length - 1) tourClear();
+      else tourNext(1);
+    });
+    if (st.sel) {
+      var el = document.querySelector(st.sel);
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
+    }
+  }
+  function tourNext(d) {
+    tourIdx = Math.max(0, Math.min(tourSteps.length - 1, tourIdx + d));
+    tourRender();
+  }
+  function tourKeys(e) {
+    if (e.key === "Escape") tourClear();
+    else if (e.key === "ArrowRight") tourNext(1);
+    else if (e.key === "ArrowLeft") tourNext(-1);
+  }
+  window.CATour = {
+    start: function (steps) {
+      if (!steps || !steps.length) return;
+      tourClear();
+      tourSteps = steps;
+      tourIdx = 0;
+      tourLayer = document.createElement("div");
+      tourLayer.className = "tour-layer";
+      tourLayer.innerHTML =
+        '<div class="tour-spot"></div>' +
+        '<div class="tour-card"></div>';
+      document.body.appendChild(tourLayer);
+      tourSpot = tourLayer.querySelector(".tour-spot");
+      tourLayer.addEventListener("click", function (e) {
+        if (e.target === tourLayer || e.target === tourSpot) tourClear();
+      });
+      document.addEventListener("keydown", tourKeys);
+      window.addEventListener("resize", tourPaint);
+      window.addEventListener("scroll", tourPaint, true);
+      tourRender();
+      if (window.CASound) CASound.play("pop");
+    }
+  };
+  /* 页面在 load 前定义 window.CATOUR_STEPS 即自动获得「▶ 导览」按钮 */
+  window.addEventListener("load", function () {
+    if (typeof window.CATOUR_STEPS !== "object" || !window.CATOUR_STEPS.length) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tour-fab";
+    btn.textContent = "▶ 导览";
+    btn.title = "聚光导览：逐步介绍本页每台仪器（←→ 翻页，Esc 退出）";
+    btn.setAttribute("aria-label", "开始本页聚光导览");
+    btn.addEventListener("click", function () { window.CATour.start(window.CATOUR_STEPS); });
+    document.body.appendChild(btn);
+  });
+
   /* 内容闪示：目标元素重放一次琥珀底光，标出"刚才的操作改了这里" */
   window.CAFlash = function (el) {
     if (!el || reduced) return;
@@ -387,7 +502,7 @@
       var dpr = Math.min(2, window.devicePixelRatio || 1);
       cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
       ctx.scale(dpr, dpr);
-      var COLORS = ["#ffb454", "#8fc7e8", "#7bc98b", "#e7edf3", "#f0796a"];
+      var COLORS = [CATheme.get("--amber", "#ffb454"), CATheme.get("--steel", "#8fc7e8"), CATheme.get("--ok", "#7bc98b"), CATheme.get("--ink", "#e7edf3"), CATheme.get("--deny", "#f0796a")];
       var pieces = [];
       var n = big ? 190 : 130;
       for (var i = 0; i < n; i++) {
@@ -972,6 +1087,32 @@
       pet.classList.remove("pet-happy", "pet-ouch");
     }, 900);
   });
+
+  /* 主题切换钮：持久化 ca-theme，刷新一次让 canvas/SVG 按新色重绘 */
+  (function () {
+    var tbtn = document.createElement("button");
+    tbtn.type = "button";
+    tbtn.className = "theme-toggle";
+    function paintTheme() {
+      var light = document.documentElement.getAttribute("data-theme") === "light";
+      tbtn.textContent = light ? "\u263E" : "\u2600";
+      tbtn.setAttribute("aria-pressed", light ? "true" : "false");
+      tbtn.setAttribute("aria-label", light ? "切回深色主题" : "切换浅色图纸主题");
+      tbtn.title = light ? "切回深色主题" : "浅色图纸主题（会刷新一次页面）";
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", light ? "#f0ece1" : "#101418");
+    }
+    paintTheme();
+    tbtn.addEventListener("click", function () {
+      var light = document.documentElement.getAttribute("data-theme") === "light";
+      try { localStorage.setItem("ca-theme", light ? "dark" : "light"); } catch (e) { /* 忽略 */ }
+      if (light) document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", "light");
+      paintTheme();
+      setTimeout(function () { location.reload(); }, 60);
+    });
+    document.body.appendChild(tbtn);
+  })();
 
   /* Web 字体就绪后重排一遍 SVG 文本：个别在回退字体下完成首排的节点，
      字体交换后不重新量宽，拉丁词会以零宽度消失（Chromium 实测）。 */

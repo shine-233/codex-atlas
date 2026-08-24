@@ -28,7 +28,8 @@
     if (!ctx) return;
 
     var W = 0, H = 0, dpr = 1;
-    var AMBER = "255,180,84", STEEL = "143,199,232";
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
     var parts = [];
     var sparks = [];   /* 点击爆裂：tsParticles 的 onclick burst 手写版 */
     var mouse = { x: -999, y: -999 };

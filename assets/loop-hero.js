@@ -5,7 +5,18 @@
    标签布局：自动放在走线外侧（上/下边→上下外侧堆叠；左右侧→左右外侧），
    避免互相碰撞与越界截断；可用站点级 dx / dy / anchor 微调。 */
 (function () {
-  "use strict";
+  
+  var C = window.CATheme || { get: function (n, f) { return f; } };
+  var C_BG0 = C.get("--bg0", C_BG0);
+  var C_LINE = C.get("--line", C_LINE);
+  var C_LINE_STRONG = C.get("--line-strong", C_LINE_STRONG);
+  var C_GRID = C.get("--line", C_GRID);
+  var C_AMBER = C.get("--amber", C_AMBER);
+  var C_STEEL = C.get("--steel", C_STEEL);
+  var C_INK = C.get("--ink", C_INK);
+  var C_FAINT = C.get("--faint", C_FAINT);
+  var C_DIM = C.get("--dim", C_DIM);
+"use strict";
 
   var NS = "http://www.w3.org/2000/svg";
 
@@ -60,7 +71,7 @@
 
     /* 底层网格刻度 */
     if (!opts.plain) {
-      var grid = el("g", { stroke: "#1c242e", "stroke-width": "1" });
+      var grid = el("g", { stroke: C_GRID, "stroke-width": "1" });
       for (var gx = tx; gx <= tx + tw; gx += tw / 12) {
         grid.appendChild(el("line", { x1: gx, y1: ty - 18, x2: gx, y2: ty + th + 18, "stroke-dasharray": "1 7" }));
       }
@@ -79,7 +90,7 @@
     var trace = el("rect", {
       x: tx, y: ty, width: tw, height: th, rx: rx, ry: rx,
       fill: "none",
-      stroke: "#33424f",
+      stroke: C_LINE_STRONG,
       "stroke-width": "1.6"
     });
     svg.appendChild(trace);
@@ -99,12 +110,12 @@
         ticks.appendChild(el("line", {
           x1: p.x + nx * 4, y1: p.y + ny * 4,
           x2: p.x + nx * 9, y2: p.y + ny * 9,
-          stroke: "#263140", "stroke-width": "1"
+          stroke: C_LINE, "stroke-width": "1"
         }));
         ticks.appendChild(el("line", {
           x1: p.x - nx * 4, y1: p.y - ny * 4,
           x2: p.x - nx * 9, y2: p.y - ny * 9,
-          stroke: "#263140", "stroke-width": "1"
+          stroke: C_LINE, "stroke-width": "1"
         }));
       }
     } catch (e) { /* getTotalLength 不可用时静默跳过装饰 */ }
@@ -115,7 +126,7 @@
     stations.forEach(function (st) {
       if (!L2) return;
       var pt = trace.getPointAtLength(st.f * L2);
-      var c = st.color === "amber" ? "#ffb454" : "#8fc7e8";
+      var c = st.color === "amber" ? C_AMBER : C_STEEL;
       var g = el("g", opts.interactive ? { class: "ls-station" } : {});
       if (opts.interactive) {
         g.setAttribute("tabindex", "0");
@@ -126,7 +137,7 @@
       var ring = el("circle", {
         class: "ls-ring",
         cx: pt.x, cy: pt.y, r: labeled ? 5 : 4,
-        fill: "#101418", stroke: c, "stroke-width": "1.6",
+        fill: C_BG0, stroke: c, "stroke-width": "1.6",
         style: "transition:r .15s;"
       });
       g.appendChild(ring);
@@ -172,14 +183,14 @@
 
         var t1 = el("text", {
           x: lx, y: t1y,
-          fill: "#cdd8e2", "font-size": "11.5",
+          fill: C_INK, "font-size": "11.5",
           "font-family": "'IBM Plex Mono', monospace",
           "text-anchor": anchor
         });
         t1.textContent = st.label;
         var t2 = el("text", {
           x: lx, y: t2y,
-          fill: "#5f6c79", "font-size": "9.5",
+          fill: C_FAINT, "font-size": "9.5",
           "font-family": "'IBM Plex Mono', monospace",
           "text-anchor": anchor
         });
@@ -225,7 +236,7 @@
     if (labeled && opts.centerLabel !== false) {
       var ct = el("text", {
         x: W / 2, y: H / 2 - 4,
-        fill: "#39434e", "font-size": "12",
+        fill: C_DIM, "font-size": "12",
         "font-family": "'IBM Plex Mono', monospace",
         "letter-spacing": "0.35em",
         "text-anchor": "middle"
@@ -246,8 +257,8 @@
         });
         return arr;
       }
-      var trailA = mkTrail("#ffb454");
-      var trailB = mkTrail("#8fc7e8");
+      var trailA = mkTrail(C_AMBER);
+      var trailB = mkTrail(C_STEEL);
       var histA = [], histB = [];
       function pushHist(hist, p) {
         hist.unshift(p);
@@ -260,10 +271,10 @@
         }
       }
 
-      var dotA = el("circle", { r: 3.2, fill: "#ffb454" }); /* 请求：顺时针 */
-      var dotB = el("circle", { r: 3.2, fill: "#8fc7e8" }); /* 事件：逆时针 */
-      var haloA = el("circle", { r: 7, fill: "none", stroke: "#ffb454", "stroke-opacity": 0.35, "stroke-width": 1 });
-      var haloB = el("circle", { r: 7, fill: "none", stroke: "#8fc7e8", "stroke-opacity": 0.35, "stroke-width": 1 });
+      var dotA = el("circle", { r: 3.2, fill: C_AMBER }); /* 请求：顺时针 */
+      var dotB = el("circle", { r: 3.2, fill: C_STEEL }); /* 事件：逆时针 */
+      var haloA = el("circle", { r: 7, fill: "none", stroke: C_AMBER, "stroke-opacity": 0.35, "stroke-width": 1 });
+      var haloB = el("circle", { r: 7, fill: "none", stroke: C_STEEL, "stroke-opacity": 0.35, "stroke-width": 1 });
       [dotA, dotB, haloA, haloB].forEach(function (n) { svg.appendChild(n); });
 
       var speed = opts.speed || 42; /* px per frame-ish */
@@ -300,7 +311,7 @@
     function setActiveByFraction(f) {
       stationNodes.forEach(function (n) {
         var near = Math.abs(n.st.f - f) < 0.06;
-        n.ring.setAttribute("stroke", near ? "#e7edf3" : (n.st.color === "amber" ? "#ffb454" : "#8fc7e8"));
+        n.ring.setAttribute("stroke", near ? "#e7edf3" : (n.st.color === "amber" ? C_AMBER : C_STEEL));
         n.ring.setAttribute("stroke-width", near ? "2.4" : "1.6");
       });
     }

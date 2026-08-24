@@ -316,6 +316,12 @@
 (function () {
   "use strict";
 
+  var TK_AMBER = (window.CATheme ? CATheme.get("--amber", "#ffb454") : "#ffb454");
+  var TK_STEEL = (window.CATheme ? CATheme.get("--steel", "#8fc7e8") : "#8fc7e8");
+  var TK_DENY = (window.CATheme ? CATheme.get("--deny", "#f0796a") : "#f0796a");
+  var TK_OK = (window.CATheme ? CATheme.get("--ok", "#7bc98b") : "#7bc98b");
+  var TK_DIM = (window.CATheme ? CATheme.get("--faint", "#5f6c79") : "#5f6c79");
+
   /* br: both=两条分支都有 / approved / denied */
   var MSGS = [
     { dir:"c2s", who:"CLIENT", k:"request", m:"initialize",
@@ -479,10 +485,10 @@
   function sgEl(n, a) { var x = document.createElementNS(SG_NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
 
   function sgColor(m) {
-    if (m.dir === "int") return "#5f6c79";
-    if (m.gate) return "#f0796a";
-    if (m.k === "decision") return branch === "denied" ? "#f0796a" : "#7bc98b";
-    return m.dir === "c2s" ? "#8fc7e8" : "#ffb454";
+    if (m.dir === "int") return TK_DIM;
+    if (m.gate) return TK_DENY;
+    if (m.k === "decision") return branch === "denied" ? TK_DENY : TK_OK;
+    return m.dir === "c2s" ? TK_STEEL : TK_AMBER;
   }
 
   function rebuildSeq(list) {
@@ -496,7 +502,7 @@
     });
 
     var defs = sgEl("defs", {});
-    [["sg-steel", "#8fc7e8"], ["sg-amber", "#ffb454"], ["sg-deny", "#f0796a"], ["sg-ok", "#7bc98b"], ["sg-dim", "#5f6c79"]]
+    [["sg-steel", TK_STEEL], ["sg-amber", TK_AMBER], ["sg-deny", TK_DENY], ["sg-ok", TK_OK], ["sg-dim", TK_DIM]]
       .forEach(function (p) {
         var mk = sgEl("marker", { id: p[0], viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6.5", markerHeight: "6.5", orient: "auto-start-reverse" });
         mk.appendChild(sgEl("path", { d: "M0 0 L10 5 L0 10 z", fill: p[1] }));
@@ -552,7 +558,7 @@
       if (state === "cur") {
         var ox = m.dir === "s2c" || m.dir === "gate" ? LANE_SX : LANE_CX;
         if (m.dir === "int") ox = LANE_SX;
-        g.appendChild(sgEl("circle", { cx: ox, cy: y, r: 3.4, fill: col === "#5f6c79" ? "#9aa7b4" : col }));
+        g.appendChild(sgEl("circle", { cx: ox, cy: y, r: 3.4, fill: col === TK_DIM ? "#9aa7b4" : col }));
       }
 
       if (state !== "ghost") {
@@ -917,6 +923,17 @@
   ]);
 })();
 </script>
+
+<script>
+window.CATOUR_STEPS = [
+  { sel: ".seqwrap", title: "报文时间线 + 时序图", text: "播放整段对话协议。第 11 条是服务端反向发来的审批请求——整轮挂起等你裁决，批准和拒绝是两段剧情。" },
+  { sel: "#act2-panel", title: "ACT II · 断线之后", text: "resume / fork / interrupt 三条支线时间线：断线重连、分叉试验、Esc 打断。" },
+  { sel: "#act3-panel", title: "ACT III · rollout 解剖", text: "落盘的 JSONL 长什么样：逐行点开看角色，文件名生成器演示回滚线程怎么命名（规则实测自源码）。" },
+  { sel: ".detail-json", title: "报文形状", text: "点任意已送达的报文，这里显示它的 JSON 结构（示意形状）与说明。" },
+  { sel: "#gate-zone", title: "裁决框", text: "走到审批请求时它会自己弹出来。跳过了闸口它也会追上来——两条分支都在等你。" }
+];
+</script>
+
 <script src="../assets/terms.js"></script>
 </body>
 </html>

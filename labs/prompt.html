@@ -305,6 +305,26 @@
       </p>
     </section>
 
+    <!-- 手拼请求挑战 -->
+    <section class="panel" id="order-game" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>ORDER CHALLENGE · 手拼一次请求</h3>
+        <span class="readout">拖拽排序 · 校验 · 弄错也不扣分</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
+        七层被打乱了。把它们<b style="color:var(--ink);">拖成真实请求的字段顺序</b>，点校验——
+        每层会告诉你站在第几层、对不对。提示：developer_instructions 是可选层；对话历史只在第二轮起出现。
+      </p>
+      <div style="padding:0 24px 20px;">
+        <div class="ord-board" id="ord-board"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;">
+          <button class="btn primary" id="ord-check" type="button">✓ 校验顺序</button>
+          <button class="btn" id="ord-reset" type="button">↺ 重新打乱</button>
+          <span class="match-readout" id="ord-out" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" style="margin-top:26px;">
       <div id="quiz"></div>
     </section>
@@ -755,6 +775,101 @@
   });
   if (window.CACopyAttach) CACopyAttach(pjPre);
 
+  /* ---------- ORDER CHALLENGE：拖拽手拼真实请求顺序 ---------- */
+  (function () {
+    var board = document.getElementById("ord-board");
+    var out = document.getElementById("ord-out");
+    if (!board) return;
+    var TRUE_ORDER = ["instr", "tools", "sandbox", "devinstr", "agents", "env", "history"];
+    var LABELS = {
+      instr: "base_instructions · 模型身份", tools: "tools · 工具清单",
+      sandbox: "developer message · 沙箱声明", devinstr: "developer_instructions（可选）",
+      agents: "user instructions · AGENTS.md 层叠", env: "environment context · 环境消息",
+      history: "conversation history · 全量历史"
+    };
+    var dragEl = null;
+
+    function shuffled() {
+      var ids = TRUE_ORDER.slice();
+      do {
+        for (var i = ids.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+        }
+      } while (ids.join() === TRUE_ORDER.join());
+      return ids;
+    }
+    function build() {
+      board.innerHTML = "";
+      out.textContent = "";
+      shuffled().forEach(function (id) {
+        var d = document.createElement("div");
+        d.className = "ord-chip";
+        d.dataset.id = id;
+        d.innerHTML = '<span class="oc-grip">⠿</span><span>' + LABELS[id] + "</span>" +
+          '<span class="oc-verdict" hidden></span>';
+        board.appendChild(d);
+      });
+    }
+    function order() {
+      return Array.prototype.map.call(board.children, function (c) { return c.dataset.id; });
+    }
+
+    board.addEventListener("pointerdown", function (e) {
+      var chip = e.target.closest(".ord-chip");
+      if (!chip || dragEl) return;
+      dragEl = chip;
+      chip.classList.add("dragging");
+      chip.setPointerCapture(e.pointerId);
+      var move = function (ev) {
+        var siblings = Array.prototype.filter.call(board.children, function (c) { return c !== dragEl; });
+        var next = null;
+        for (var i = 0; i < siblings.length; i++) {
+          var r = siblings[i].getBoundingClientRect();
+          if (ev.clientY < r.top + r.height / 2) { next = siblings[i]; break; }
+        }
+        if (next) board.insertBefore(dragEl, next);
+        else board.appendChild(dragEl);
+      };
+      var up = function () {
+        chip.classList.remove("dragging");
+        chip.removeEventListener("pointermove", move);
+        chip.removeEventListener("pointerup", up);
+        chip.removeEventListener("pointercancel", up);
+        dragEl = null;
+      };
+      chip.addEventListener("pointermove", move);
+      chip.addEventListener("pointerup", up);
+      chip.addEventListener("pointercancel", up);
+      e.preventDefault();
+    });
+
+    document.getElementById("ord-check").addEventListener("click", function () {
+      var ord = order();
+      var allOk = true;
+      Array.prototype.forEach.call(board.children, function (chip, i) {
+        var ok = chip.dataset.id === TRUE_ORDER[i];
+        allOk = allOk && ok;
+        chip.classList.toggle("pos-ok", ok);
+        chip.classList.toggle("pos-bad", !ok);
+        var v = chip.querySelector(".oc-verdict");
+        v.hidden = false;
+        v.className = "oc-verdict " + (ok ? "ok" : "bad");
+        v.textContent = ok ? "第 " + (i + 1) + " 层 ✓" : "第 " + (i + 1) + " 层 ✗ 应在第 " + (TRUE_ORDER.indexOf(chip.dataset.id) + 1) + " 层";
+      });
+      out.innerHTML = allOk
+        ? "<b style='color:var(--ok);'>全对。</b>这就是发往 Responses API 的字段顺序。"
+        : "有层站错位了——对照上方组装栈再看一眼。";
+      try { document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: allOk } })); } catch (e) { }
+      if (allOk && window.CAFlash) CAFlash(board);
+    });
+    document.getElementById("ord-reset").addEventListener("click", function () {
+      build();
+      if (window.CASound) CASound.play("click");
+    });
+    build();
+  })();
+
   /* ---------- COMPACT 演示：历史爬升 → 触顶 → 压成加密摘要 → 继续对话 ---------- */
   (function () {
     var slider = document.getElementById("cd-slider");
@@ -904,6 +1019,18 @@
   })();
 })();
 </script>
+
+<script>
+window.CATOUR_STEPS = [
+  { sel: ".layer-controls", title: "七层开关", text: "按真实请求字段顺序排列。每层都能单独关掉——instructions 和 tools 在真实请求里关不掉，这里允许关闭只是为了看清结构。" },
+  { sel: ".stack-wrap", title: "组装栈", text: "右边按当前开关实时拼装。点任意一层看它的来源、路径与证据类别；悬停一层，下方负载预览里对应段会亮。" },
+  { sel: ".payload-view", title: "负载形状预览", text: "JSON 形状随开关实时变化，可一键复制。悬停预览里的段，上面的层也会亮——双向互亮。" },
+  { sel: "#s3d-toggle", title: "立方视图", text: "把组装栈变成 3D 层叠：按住拖动环视，关掉的层塌回底面。触屏也能用。" },
+  { sel: ".compact-demo", title: "COMPACT 演示", text: "拖滑杆模拟一轮轮聊下去：token 摸到阈值，自动压缩成一段加密摘要，上下文掉头向下。" },
+  { sel: "#order-game", title: "手拼请求挑战", text: "七层被打乱了——拖拽把它们排成真实请求顺序，校验看你对请求结构的理解。" }
+];
+</script>
+
 <script src="../assets/terms.js"></script>
 </body>
 </html>

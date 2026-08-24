@@ -28,6 +28,57 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ---------- 浅色「图纸」主题：右下角 ☀ 切换，持久化在 ca-theme，切换刷新一次 ---------- */
+html[data-theme="light"] {
+  --bg0: #f0ece1;
+  --bg1: #f7f4ea;
+  --bg2: #e9e4d5;
+  --ink: #22303c;
+  --dim: #4e5d69;
+  --faint: #6e7d8a;
+  --amber: #a35e00;
+  --amber-dim: rgba(163, 94, 0, 0.10);
+  --steel: #1d6a8c;
+  --steel-dim: rgba(29, 106, 140, 0.10);
+  --line: #d8d1bf;
+  --line-strong: #c0b8a2;
+  --ok: #2e7d43;
+  --ok-dim: rgba(46, 125, 67, 0.12);
+  --deny: #b23c2e;
+  --deny-dim: rgba(178, 60, 46, 0.10);
+  color-scheme: light;
+}
+html[data-theme="light"] body::after { opacity: 0.04; filter: invert(1); }
+html[data-theme="light"] .hero::before {
+  background:
+    radial-gradient(620px 320px at 16% 0%, rgba(163, 94, 0, 0.08), transparent 70%),
+    radial-gradient(420px 260px at 88% 12%, rgba(29, 106, 140, 0.07), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(29, 106, 140, 0.07) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(29, 106, 140, 0.07) 0 1px, transparent 1px 44px);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  html[data-theme="light"] .hero h1 {
+    background: linear-gradient(168deg, #22303c 18%, #44586c 55%, #a35e00 108%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+html[data-theme="light"] .panel { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75); }
+html[data-theme="light"] .btn.primary {
+  box-shadow: 0 0 0 1px rgba(163, 94, 0, 0.3), 0 6px 22px rgba(163, 94, 0, 0.14);
+}
+
+/* 主题切换钮：与音效钮同族，竖排在其上方 */
+.theme-toggle {
+  position: fixed; right: 68px; bottom: 52px; z-index: 88;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line-strong); background: var(--bg2);
+  color: var(--dim); font-size: 17px; line-height: 1; cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.theme-toggle:hover { border-color: var(--amber); color: var(--amber); }
+
+
 /* 控制行共享基样式：各仪器页可在此基础上加页内覆盖 */
 .controls {
   display: flex;
@@ -1631,3 +1682,56 @@ body::after {
 .sr-final .big { font-family: var(--mono); font-size: 40px; color: var(--amber); letter-spacing: .04em; }
 .sr-final .sub { color: var(--dim); font-size: 13px; margin-top: 6px; }
 .sr-best { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: .08em; }
+
+/* ---------- 聚光导览 ---------- */
+.tour-layer { position: fixed; inset: 0; z-index: 95; }
+.tour-spot {
+  position: fixed; z-index: 1;
+  border: 2px solid var(--amber); border-radius: 3px;
+  box-shadow: 0 0 0 9999px rgba(6, 8, 11, .78), 0 0 18px rgba(255, 180, 84, .35);
+  pointer-events: none;
+  transition: top .25s var(--ease), left .25s var(--ease), width .25s var(--ease), height .25s var(--ease);
+}
+.tour-card {
+  position: fixed; z-index: 2;
+  width: 360px; max-width: calc(100vw - 24px);
+  background: var(--bg1); border: 1px solid var(--amber);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+  padding: 14px 16px;
+}
+.tour-card .tc-step { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--faint); margin-bottom: 6px; }
+.tour-card h4 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+.tour-card p { margin: 0 0 12px; font-size: 12.5px; color: var(--dim); line-height: 1.75; }
+.tour-card .tc-nav { display: flex; gap: 8px; justify-content: flex-end; }
+.tour-fab {
+  position: fixed; right: 68px; bottom: 56px; z-index: 85;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  color: var(--faint); background: var(--bg1);
+  border: 1px solid var(--line-strong); padding: 4px 10px;
+  cursor: pointer; transition: color .15s, border-color .15s;
+}
+.tour-fab:hover { color: var(--amber); border-color: var(--amber); }
+.tour-fab:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- 拖拽排序挑战 ---------- */
+.ord-board { display: flex; flex-direction: column; gap: 6px; max-width: 560px; }
+.ord-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg2); border: 1px solid var(--line-strong);
+  padding: 9px 13px; cursor: grab; user-select: none;
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+  transition: border-color .15s, box-shadow .15s, opacity .15s;
+  touch-action: none;
+}
+.ord-chip .oc-grip { color: var(--faint); letter-spacing: 2px; }
+.ord-chip .oc-verdict { margin-left: auto; font-size: 11px; }
+.ord-chip .oc-verdict.ok { color: var(--ok); }
+.ord-chip .oc-verdict.bad { color: var(--deny); }
+.ord-chip.dragging {
+  opacity: .85; cursor: grabbing;
+  border-color: var(--amber); box-shadow: 0 8px 22px rgba(0, 0, 0, .5);
+  position: relative; z-index: 5;
+}
+.ord-chip.dropzone { border-top: 2px solid var(--amber); }
+.ord-chip.pos-ok { border-color: rgba(123, 201, 139, .6); }
+.ord-chip.pos-bad { border-color: rgba(240, 121, 106, .6); }
