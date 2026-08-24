@@ -268,7 +268,7 @@
       <p class="small muted" style="margin:8px 0 0;">
         前 8 站是一条单向的建立段：<b>进程接力</b>（1–3）→ <b>协议下单</b>（4–5）→
         <b>队列与占用</b>（6–7）→ 轮次开闸（8）。第 8 站之后，信号才进入下方那个可循环的采样环。
-        图里的每个方框都能点，点了单步仪就跳到那一站。
+        图里的每个方框都能点，点了单步仪就跳到那一站；图太小就滚轮缩放、拖拽平移，双击复位。
       </p>
     </section>
 
@@ -785,6 +785,12 @@
     document.addEventListener("ca:stage", sync);
     sync({ detail: { stage: cur } });
   })();
+
+  /* 地图手势：拖拽平移 · 滚轮缩放 · 双击复位（移动端字太小就捏一把） */
+  if (window.CAPanZoom) {
+    CAPanZoom(document.getElementById("setupmap"));
+    CAPanZoom(document.getElementById("loopmap"));
+  }
 
   /* ---------- 重采样成本对照（示意刻度 · 采样次数可调） ---------- */
   (function () {
