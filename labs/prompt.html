@@ -114,6 +114,11 @@
     color: var(--faint); letter-spacing: .06em;
     margin: -4px 0 12px;
   }
+
+  /* 层 ⇄ 负载预览 双向悬停互亮（Stripe 文档惯例） */
+  .pj-seg { -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background .15s, box-shadow .15s; }
+  .pj-seg.hl { background: rgba(255, 180, 84, .13); box-shadow: inset 2px 0 0 var(--amber); }
+  .lyr.hl { border-color: var(--amber); }
 </style>
 </head>
 <body>
@@ -403,6 +408,7 @@
       groups[g].forEach(function (L) {
         var d = document.createElement("div");
         d.className = "lyr" + (L.on ? "" : " off") + (selLayer === L.id ? " sel" : "");
+        d.dataset.l = L.id;
         layerEls[L.id] = d;
         d.setAttribute("tabindex", "0");
         d.setAttribute("role", "button");
@@ -537,54 +543,57 @@
     budgetTotal.textContent = Math.round(totalW);
   }
 
-  /* 负载形状预览：按当前开关拼出 JSON 形状（示意） */
+  /* 负载形状预览：按当前开关拼出 JSON 形状（示意）。
+     每段包进 .pj-seg 并标 data-l，供「层 ⇄ 预览」双向悬停互亮（Stripe 文档惯例）。 */
+  function pjEsc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function pjColorize(block) {
+    return pjEsc(block).split("\n").map(function (line) {
+      if (line.trim().indexOf("//") === 0 || line.trim() === "…") return '<span class="pj-cmt">' + line + "</span>";
+      return line;
+    }).join("\n");
+  }
+  function pjSeg(id, block) {
+    return '<span class="pj-seg" data-l="' + id + '">' + pjColorize(block) + "</span>";
+  }
   function renderPreview() {
     function isOn(id) {
       var L = LAYERS.filter(function (x) { return x.id === id; })[0];
       return L && L.on;
     }
     var rows = [];
-    rows.push(isOn("instr") ? '  "instructions": "«base_instructions · 随 CLI 打包»"' : '  // instructions 层关闭');
-    rows.push(isOn("tools") ? '  "tools": [ "shell", "apply_patch", "«MCP 工具…»" ]' : '  // tools 层关闭');
+    rows.push(pjSeg("instr", isOn("instr") ? '  "instructions": "«base_instructions · 随 CLI 打包»"' : '  // instructions 层关闭'));
+    rows.push(pjSeg("tools", isOn("tools") ? '  "tools": [ "shell", "apply_patch", "«MCP 工具…»" ]' : '  // tools 层关闭'));
 
     var items = [];
-    items.push(isOn("sandbox")
+    items.push(pjSeg("sandbox", isOn("sandbox")
       ? '    { "role": "developer", "content": "«沙箱声明：当前权限范围»" }'
-      : '    // 沙箱声明层关闭');
-    items.push(isOn("devinstr")
+      : '    // 沙箱声明层关闭'));
+    items.push(pjSeg("devinstr", isOn("devinstr")
       ? '    { "role": "developer", "content": "«config.toml 里的开发者指令»" }'
-      : '    // developer_instructions 未配置');
+      : '    // developer_instructions 未配置'));
     if (isOn("agents")) {
       var ag = LAYERS.filter(function (x) { return x.id === "agents"; })[0];
       var nOn = ag.subs.filter(function (s) { return s.on; }).length;
       var capped = nOn === ag.subs.length;
-      items.push('    { "role": "user", "content": "«AGENTS.md 层叠 · ' + nOn + ' 个目录位' +
-        (capped ? ' · 已触 32 KiB 上限截断' : '') + '»" }');
+      items.push(pjSeg("agents", '    { "role": "user", "content": "«AGENTS.md 层叠 · ' + nOn + ' 个目录位' +
+        (capped ? ' · 已触 32 KiB 上限截断' : '') + '»" }'));
     } else {
-      items.push('    // 无 AGENTS.md 注入');
+      items.push(pjSeg("agents", '    // 无 AGENTS.md 注入'));
     }
-    items.push(isOn("env")
+    items.push(pjSeg("env", isOn("env")
       ? '    { "role": "user", "content": "«环境上下文：cwd、shell»" }'
-      : '    // 环境上下文层关闭');
-    items.push(isOn("history")
+      : '    // 环境上下文层关闭'));
+    items.push(pjSeg("history", isOn("history")
       ? '    …\n    // 历史条目的形状（第二轮起逐条回放）：\n    { "role": "user", "content": "«上一轮的用户输入»" },\n    { "type": "reasoning", "encrypted_content": "«推理摘要»" },\n    { "type": "function_call", "name": "shell", "arguments": "«cargo test»" },\n    { "type": "function_call_output", "output": "«命令输出»" }'
-      : '    // 第一轮没有历史');
+      : '    // 第一轮没有历史'));
 
-    var text =
+    pjPre.innerHTML =
       "{\n" +
-      rows.filter(Boolean).join(",\n") + ",\n" +
+      rows.join(",\n") + ",\n" +
       '  "input": [\n' +
       items.join(",\n") +
       "\n  ]\n" +
       "}";
-
-    pjPre.innerHTML = text.split("\n").map(function (line) {
-      var t = line.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-      if (t.trim().indexOf("//") === 0 || t.trim() === "…" ) {
-        return '<span class="pj-cmt">' + t + "</span>";
-      }
-      return t;
-    }).join("\n");
   }
 
   function syncToggleChecks() {
@@ -674,6 +683,31 @@
   }
 
   restoreState();
+
+  /* 层 ⇄ 负载预览：悬停组装栈的层，预览里对应段亮起；反过来悬停预览段，层亮边 */
+  function hlSegs(id, on) {
+    if (!pjPre) return;
+    Array.prototype.forEach.call(pjPre.querySelectorAll('.pj-seg[data-l="' + id + '"]'), function (s) {
+      s.classList.toggle("hl", on);
+    });
+  }
+  stack.addEventListener("mouseover", function (e) {
+    var lyr = e.target.closest(".lyr");
+    if (lyr && lyr.dataset.l) hlSegs(lyr.dataset.l, true);
+  });
+  stack.addEventListener("mouseout", function (e) {
+    var lyr = e.target.closest(".lyr");
+    if (lyr && lyr.dataset.l) hlSegs(lyr.dataset.l, false);
+  });
+  pjPre.addEventListener("mouseover", function (e) {
+    var sg = e.target.closest(".pj-seg");
+    if (sg && sg.dataset.l && layerEls[sg.dataset.l]) layerEls[sg.dataset.l].classList.add("hl");
+  });
+  pjPre.addEventListener("mouseout", function (e) {
+    var sg = e.target.closest(".pj-seg");
+    if (sg && sg.dataset.l && layerEls[sg.dataset.l]) layerEls[sg.dataset.l].classList.remove("hl");
+  });
+  if (window.CACopyAttach) CACopyAttach(pjPre);
 
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22

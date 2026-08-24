@@ -627,6 +627,7 @@
     var keysBox = document.getElementById("ck-keys");
     var tomlPre = document.getElementById("ck-toml");
     if (!keysBox || !tomlPre) return;
+    if (window.CACopyAttach) CACopyAttach(tomlPre);
 
     KEYS.forEach(function (K) {
       var lab = document.createElement("label");

@@ -213,6 +213,43 @@
     el.classList.add("fx-flash");
   };
 
+  /* ---------- 代码片段一键复制：给 pre 挂悬浮 ⧉ 按钮（Stripe 文档惯例） ---------- */
+  window.CACopyAttach = function (pre) {
+    if (!pre || pre.__caCopy) return;
+    pre.__caCopy = true;
+    var wrap = document.createElement("div");
+    wrap.className = "ca-copywrap";
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ca-copybtn";
+    btn.textContent = "⧉ 复制";
+    btn.addEventListener("click", function () {
+      var text = pre.textContent;
+      function done() {
+        btn.textContent = "已复制 ✓";
+        if (window.CASound) CASound.play("pop");
+        setTimeout(function () { btn.textContent = "⧉ 复制"; }, 1500);
+      }
+      function fallback() {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) { /* 尽力而为 */ }
+        ta.remove();
+        done();
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else fallback();
+    });
+    wrap.appendChild(btn);
+  };
+
   /* 聚光倾斜卡：指针进入时轻微 3D 倾斜，高光跟随光标（零依赖微交互）。
      触屏与 reduced-motion 环境自动跳过；配合 styles.css 的 ::after 高光层使用。 */
   window.CATilt = function (els) {

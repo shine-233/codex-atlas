@@ -976,6 +976,7 @@
     var notesBox = document.getElementById("cfg-notes");
     var netBox = document.getElementById("cfg-net");
     if (!tomlBox || !cliBox || !notesBox || !netBox) return;
+    if (window.CACopyAttach) CACopyAttach(tomlBox);
 
     function render() {
       var net = netBox.checked;

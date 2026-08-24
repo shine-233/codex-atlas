@@ -1563,3 +1563,23 @@ body::after {
 .prof-meter i { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(255, 180, 84, .75); }
 .prof-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .btn.danger { border-color: var(--deny); color: var(--deny); }
+
+/* ---------- 代码片段复制按钮（Stripe 文档惯例） ---------- */
+.ca-copywrap { position: relative; }
+.ca-copybtn {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 5;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  color: var(--faint);
+  background: var(--bg1);
+  border: 1px solid var(--line-strong);
+  padding: 3px 9px;
+  cursor: pointer;
+  opacity: .72;
+  transition: color .15s, border-color .15s, opacity .15s;
+}
+.ca-copybtn:hover { color: var(--amber); border-color: var(--amber); opacity: 1; }
+.ca-copybtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
