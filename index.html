@@ -146,7 +146,7 @@
             <b class="a"></b><b class="b"></b>
           </div>
         </div>
-        <p style="margin-bottom:12px;">用户敲下一句话之后，Codex 内部发生了什么？为什么改一行代码常常要过两次模型？工具调用的结果又从哪条路回到上下文里？</p>
+        <p style="margin-bottom:12px;">改一行代码为什么常常要过两次模型？因为第一次采样里，模型多半只是在说「我要跑个测试」。单步仪把从输入进队到 TurnComplete 的 13 站全摊开——每站停在哪个文件、哪条事件上，随时可以停下来看。</p>
         <p class="small muted">13 个阶段可单步停留。每一步给出对应的真实文件路径与事件名，如 <code>core/src/session/mod.rs</code> 的队列对、<code>ResponseEvent::OutputItemDone</code>。</p>
         <p style="margin:14px 0 0;"><a class="btn on" href="labs/loop.html">进入 01 →</a></p>
       </div>
@@ -164,7 +164,7 @@
             <i style="width:38%;animation-delay:1.5s;"></i>
           </div>
         </div>
-        <p style="margin-bottom:12px;">发往 Responses API 的那次请求里到底有什么？base_instructions、config.toml 里的开发者指令、沿目录层叠的 AGENTS.md、环境消息、工具清单——各占哪一层，谁覆盖谁，32 KiB 上限卡在哪。</p>
+        <p style="margin-bottom:12px;">发往 Responses API 的一次请求，是七层叠出来的载荷：base_instructions 垫底，config.toml 里的开发者指令和沿目录层叠的 AGENTS.md 依次压上，环境消息与工具清单收尾。谁压着谁、32 KiB 上限卡在哪，把开关一层层拨上去就看清了。</p>
         <p class="small muted">每层开关可独立启停；体积为示意刻度，非实测 token 数，出处见页面脚注。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/prompt.html">进入 02 →</a></p>
       </div>
@@ -180,7 +180,7 @@
             <i class="g" style="animation-delay:1.2s;"></i><i class="r" style="animation-delay:1.6s;"></i><i class="y" style="animation-delay:2s;"></i>
           </div>
         </div>
-        <p style="margin-bottom:12px;">read-only / workspace-write / danger-full-access 三种模式分别放行什么？macOS 用 Seatbelt、Linux 用 Landlock+bwrap、Windows 用 WFP——同一动作在三套机制下怎么判？为什么 MCP 工具不在 Codex 沙箱的管辖范围内？</p>
+        <p style="margin-bottom:12px;">同一个动作，三种模式三个下场：read-only 连临时目录都不给写，workspace-write 放行工作区但拦下越界路径，danger-full-access 直接裸跑。判定器底下压着三套真实的内核机制——Seatbelt、Landlock+bwrap、WFP——选平台、选模式、点动作，结论和理由当场给。</p>
         <p class="small muted">选系统、选模式、选一个具体动作，直接给判定和理由。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/sandbox.html">进入 03 →</a></p>
       </div>
@@ -195,7 +195,7 @@
             <i></i><i class="s2c" style="animation-delay:.45s;"></i><i style="animation-delay:.9s;"></i><i class="s2c" style="animation-delay:1.35s;"></i>
           </div>
         </div>
-        <p style="margin-bottom:12px;">VS Code 插件、macOS App 和 TUI 是怎么共用同一个核心的？JSON-RPC 双向通道上，Thread/Turn/Item 三原语的生命周期怎样流动？审批请求为什么能把整轮对话挂起，等的是谁？</p>
+        <p style="margin-bottom:12px;">VS Code 插件、macOS App 和 TUI 共用同一个核心，中间隔着一条 JSON-RPC 双向通道。报文时间线播到第 11 条会自己停下来：那是一次审批请求，整轮对话挂起等你裁决——批准和拒绝，后面是两段不同的剧情。</p>
         <p class="small muted">报文序列可整段播放，也可点击任意一条查看结构示例（标注为示意形状）。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/appserver.html">进入 04 →</a></p>
       </div>
@@ -283,6 +283,7 @@
 </div>
 
 <script src="assets/panel.js"></script>
+<script src="assets/sound.js"></script>
 <script src="assets/fx.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>

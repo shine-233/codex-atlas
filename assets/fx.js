@@ -273,10 +273,148 @@
     });
   }
 
+  /* ---------- 6 · 全局光标聚光（获奖站标配的低配版：缓动跟随的琥珀微光） ---------- */
+  function cursorGlow() {
+    if (!CAN_HOVER || REDUCED) return;
+    var glow = document.createElement("div");
+    glow.className = "fx-cursor-glow";
+    glow.setAttribute("aria-hidden", "true");
+    document.body.appendChild(glow);
+    var x = -400, y = -400, tx = x, ty = y, raf = 0;
+    function loop() {
+      x += (tx - x) * 0.16;
+      y += (ty - y) * 0.16;
+      glow.style.transform = "translate(" + (x - 160).toFixed(1) + "px," + (y - 160).toFixed(1) + "px)";
+      if (Math.abs(tx - x) > 0.3 || Math.abs(ty - y) > 0.3) raf = requestAnimationFrame(loop);
+      else raf = 0;
+    }
+    document.addEventListener("pointermove", function (e) {
+      tx = e.clientX; ty = e.clientY;
+      if (!raf) raf = requestAnimationFrame(loop);
+    }, { passive: true });
+  }
+
+  /* ---------- 7 · 弹性动力标题（kinetic-typography 的 ELASTIC 手写版：
+     字符被光标斥开，弹簧回位；br 与既有 span 原样保留） ---------- */
+  function kineticHeadline(h1) {
+    if (!h1 || !CAN_HOVER || REDUCED || h1.__fxKinetic) return;
+    h1.__fxKinetic = true;
+    var chars = [];
+    var nodes = Array.prototype.slice.call(h1.childNodes);
+    nodes.forEach(function (n) {
+      if (n.nodeType !== 3) return;               /* 只拆文本节点 */
+      var frag = document.createDocumentFragment();
+      var text = n.textContent;
+      for (var i = 0; i < text.length; i++) {
+        var ch = text[i];
+        if (ch === " ") { frag.appendChild(document.createTextNode(" ")); continue; }
+        var s = document.createElement("span");
+        s.className = "fx-ch";
+        s.textContent = ch;
+        frag.appendChild(s);
+        chars.push({ el: s, x: 0, y: 0, r: 0, tx: 0, ty: 0, tr: 0 });
+      }
+      h1.replaceChild(frag, n);
+    });
+    if (!chars.length) return;
+
+    var mx = -9999, my = -9999, inside = false, raf = 0;
+    var hero = h1.closest("section") || h1.parentElement;
+
+    /* 渐变墨水修复：h1 用 background-clip:text 上色，拆字后字符继承
+       text-fill:transparent 却没有背景 → 全隐形。把 h1 的渐变按字符
+       切片（每字携带自己那一段墨水），光标块给实色。
+       渐变只捕获一次：重跑 paintInk 时 h1 自身已被清空。 */
+    var inkGrad = null, inkChecked = false;
+    function paintInk() {
+      if (!inkChecked) {
+        var grad = getComputedStyle(h1).backgroundImage;
+        inkGrad = (grad && grad !== "none") ? grad : null;
+        inkChecked = true;
+        if (inkGrad) h1.style.backgroundImage = "none";
+      }
+      var hr = h1.getBoundingClientRect();
+      chars.forEach(function (c) {
+        var r = c.el.getBoundingClientRect();
+        var left = r.left - c.x, top = r.top - c.y;
+        if (inkGrad) {
+          c.el.style.backgroundImage = inkGrad;
+          c.el.style.backgroundClip = "text";
+          c.el.style.webkitBackgroundClip = "text";
+          c.el.style.color = "transparent";
+          c.el.style.webkitTextFillColor = "transparent";
+          c.el.style.backgroundRepeat = "no-repeat";
+          c.el.style.backgroundSize = hr.width + "px " + hr.height + "px";
+          c.el.style.backgroundPosition = (hr.left - left).toFixed(1) + "px " + (hr.top - top).toFixed(1) + "px";
+        } else {
+          c.el.style.color = "var(--ink)";
+          c.el.style.webkitTextFillColor = "var(--ink)";
+        }
+      });
+      var cur = h1.querySelector(".cursor-blink");
+      if (cur) {
+        cur.style.color = "var(--ink)";
+        cur.style.webkitTextFillColor = "var(--ink)";
+      }
+    }
+    paintInk();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { paintInk(); });
+    window.addEventListener("load", paintInk);
+    var pikT = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(pikT);
+      pikT = setTimeout(paintInk, 180);
+    });
+
+    function tick() {
+      var busy = false;
+      for (var i = 0; i < chars.length; i++) {
+        var c = chars[i];
+        var rect = c.el.getBoundingClientRect();
+        /* rect 含当前位移：减掉它得到未变形的基准中心 */
+        var bcx = rect.left + rect.width / 2 - c.x;
+        var bcy = rect.top + rect.height / 2 - c.y;
+        var dx = bcx - mx, dy = bcy - my;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        var R = 130;
+        if (inside && d < R && d > 0.01) {
+          var f = (1 - d / R);
+          var f2 = f * f;
+          c.tx = (dx / d) * f2 * 22;
+          c.ty = (dy / d) * f2 * 16;
+          c.tr = (dx / d) * f2 * 9;
+        } else { c.tx = 0; c.ty = 0; c.tr = 0; }
+        c.x += (c.tx - c.x) * 0.14;
+        c.y += (c.ty - c.y) * 0.14;
+        c.r += (c.tr - c.r) * 0.14;
+        if (Math.abs(c.x) > 0.05 || Math.abs(c.y) > 0.05 || Math.abs(c.r) > 0.05 ||
+            Math.abs(c.tx) > 0.05 || Math.abs(c.ty) > 0.05) {
+          c.el.style.transform = "translate(" + c.x.toFixed(2) + "px," + c.y.toFixed(2) + "px) rotate(" + c.r.toFixed(2) + "deg)";
+          busy = true;
+        } else if (c.el.style.transform) {
+          c.el.style.transform = "";
+        }
+      }
+      if (busy || inside) raf = requestAnimationFrame(tick);
+      else raf = 0;
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(tick); }
+
+    hero.addEventListener("pointermove", function (e) {
+      mx = e.clientX; my = e.clientY; inside = true; kick();
+    }, { passive: true });
+    hero.addEventListener("pointerleave", function () {
+      inside = false; mx = -9999; my = -9999; kick();
+    });
+  }
+
   /* ---------- 装配 ---------- */
   ready(function () {
     var fieldHost = document.getElementById("hero-field");
     if (fieldHost) mountField(fieldHost);
+
+    cursorGlow();
+    kineticHeadline(document.querySelector(".hero h1"));
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-decode]"), function (el) {
       if ("IntersectionObserver" in window) {

@@ -90,6 +90,30 @@
   }
   .detail-card h4 { margin: 0 0 8px; font-size: 15px; }
   .detail-card p { color: var(--dim); font-size: 13.5px; max-width: 44em; }
+
+  /* 立方视图：#stack 变成可环视的 3D 层叠（--srx/--sry 由拖拽写入） */
+  .stack-wrap.s3d #stack {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--srx, 14deg)) rotateY(var(--sry, 0deg));
+    transition: transform .5s var(--ease);
+    padding: 26px 10px 12px;
+  }
+  .stack-wrap.s3d #stack.dragging { transition: none; cursor: grabbing; }
+  .stack-wrap.s3d #stack .field-group,
+  .stack-wrap.s3d #stack .lyr { transform-style: preserve-3d; }
+  .stack-wrap.s3d #stack .fg-label { opacity: 0.5; }
+  .stack-wrap.s3d #stack .lyr {
+    transition: opacity .18s, border-color .18s, box-shadow .18s, transform .45s var(--ease);
+  }
+  .stack-wrap.s3d #stack .lyr.off { background: rgba(16, 20, 24, .72); }
+  .s3d-hint { display: none; }
+  .stack-wrap.s3d .s3d-hint {
+    display: block;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--faint); letter-spacing: .06em;
+    margin: -4px 0 12px;
+  }
 </style>
 </head>
 <body>
@@ -188,6 +212,11 @@
             <div class="budget-track" id="budget-track"></div>
           </div>
 
+          <div style="display:flex;align-items:center;gap:12px;margin:2px 0 10px;">
+            <button class="btn" id="s3d-toggle" type="button" hidden aria-pressed="false" style="padding:3px 10px;font-size:11px;">立方视图</button>
+          </div>
+          <p class="s3d-hint" aria-hidden="true">按住拖动可环视 · 每层抬升一个 Z 台阶，关掉的层塌回底面 · 点层看明细（拖拽不算点选）</p>
+
           <div id="stack"></div>
 
           <div class="detail-card" id="detail" aria-live="polite">
@@ -239,6 +268,7 @@
 </div>
 
 <script src="../assets/panel.js"></script>
+<script src="../assets/sound.js"></script>
 <script src="../assets/loop-hero.js"></script>
 <script>
 (function () {
@@ -457,6 +487,8 @@
       });
       stack.appendChild(fg);
     });
+    /* 立方视图开着时：重建后重新分配各层的 Z 台阶（模块后注册也生效） */
+    if (window.__s3dAssignZ) window.__s3dAssignZ();
   }
 
   function render() {
@@ -661,6 +693,87 @@
       a: 0,
       why: "它是用户在 config.toml 里写的开发者指令，存在才注入；项目级约定走 AGENTS.md 层叠，模型身份则来自 base_instructions——三层别混。" }
   ]);
+
+  /* ---------- 立方视图：拖拽环游 3D 分层模型 ----------
+     桌面与触屏都可用（reduced-motion 除外）；拖拽写 --srx/--sry（rAF 节流），
+     位移超 6px 判为拖拽、吞掉随后的 click。触屏下该区域在立方模式里接管手势
+     （touch-action:none），关回平面视图即还给页面滚动。 */
+  (function () {
+    var btn = document.getElementById("s3d-toggle");
+    var stackWrap = document.querySelector(".stack-wrap");
+    if (!btn || !stackWrap || !stack) return;
+    if (window.PrefersReducedMotion === true) return;
+
+    btn.hidden = false;
+    var on = false, rx = 14, ry = 0;
+    var dragging = false, moved = 0, sx = 0, sy = 0, baseRx = 14, baseRy = 0, raf = 0;
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    /* 每个可见层抬一个 Z 台阶；关掉的层塌回底面 */
+    function assignZ() {
+      var step = 14, z = 0;
+      Array.prototype.forEach.call(stack.querySelectorAll(".lyr"), function (d) {
+        if (d.classList.contains("off")) d.style.transform = "translateZ(0px)";
+        else { z += step; d.style.transform = "translateZ(" + z + "px)"; }
+      });
+    }
+    window.__s3dAssignZ = function () { if (on) assignZ(); };
+
+    function paint() {
+      raf = 0;
+      stack.style.setProperty("--srx", rx.toFixed(2) + "deg");
+      stack.style.setProperty("--sry", ry.toFixed(2) + "deg");
+    }
+    function schedule() { if (!raf) raf = requestAnimationFrame(paint); }
+
+    function setMode(v) {
+      on = v;
+      stackWrap.classList.toggle("s3d", on);
+      btn.textContent = on ? "平面视图" : "立方视图";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.classList.toggle("on", on);
+      if (on) { rx = 14; ry = 0; assignZ(); paint(); stack.style.touchAction = "none"; }
+      else {
+        Array.prototype.forEach.call(stack.querySelectorAll(".lyr"), function (d) { d.style.transform = ""; });
+        stack.style.removeProperty("--srx");
+        stack.style.removeProperty("--sry");
+        stack.style.touchAction = "";
+      }
+    }
+    btn.addEventListener("click", function () { setMode(!on); });
+
+    stack.addEventListener("pointerdown", function (e) {
+      if (!on || e.button !== 0) return;
+      dragging = true; moved = 0; sx = e.clientX; sy = e.clientY;
+      baseRx = rx; baseRy = ry;
+      stack.classList.add("dragging");
+      try { stack.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器跳过 */ }
+    });
+    stack.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+      ry = clamp(baseRy + dx * 0.12, -22, 22);
+      rx = clamp(baseRx + dy * 0.10, 4, 30);
+      schedule();
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      stack.classList.remove("dragging");
+    }
+    stack.addEventListener("pointerup", endDrag);
+    stack.addEventListener("pointercancel", endDrag);
+    /* 拖过就不算点选：捕获阶段拦一次 click，防止误开明细卡 */
+    stack.addEventListener("click", function (e) {
+      if (moved > 6) {
+        e.stopPropagation();
+        e.preventDefault();
+        moved = 0;
+      }
+    }, true);
+  })();
 })();
 </script>
 <script src="../assets/terms.js"></script>

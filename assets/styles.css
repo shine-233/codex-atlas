@@ -163,6 +163,9 @@ pre code { background: none; border: none; padding: 0; font-size: 0.88em; }
   color: var(--faint);
 }
 .rail-foot a { color: var(--dim); }
+/* 学习档案入口：抬高避开左下角固定定位的「直达」按钮（cmdk-fab），并留出点击空间 */
+.rail-foot { padding-bottom: 46px; }
+.rail-profile { position: relative; z-index: 86; }
 
 /* ---------- 顶部状态条（仅移动端显示为导航条） ---------- */
 
@@ -301,6 +304,50 @@ p { margin: 0 0 14px; }
     transparent 62%
   );
 }
+
+/* 全局光标聚光（fx.js 在首页挂载）：缓动跟随的琥珀微光 */
+.fx-cursor-glow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    circle,
+    rgba(255, 180, 84, 0.07),
+    rgba(255, 180, 84, 0.02) 45%,
+    transparent 65%
+  );
+  mix-blend-mode: screen;
+}
+
+/* 彩纸画布（通关庆祝，CAConfetti 挂载） */
+.ca-confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* 主仪器面板的呼吸微光：极低强度，6 秒一息 */
+.panel.hot { animation: hotPulse 6s var(--ease) infinite; }
+@keyframes hotPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 180, 84, 0); }
+  50% { box-shadow: 0 0 36px rgba(255, 180, 84, 0.09); }
+}
+
+/* 标题遮罩揭示（panel.js 包裹）：进视口后从遮罩里升起 */
+.ca-mr-h { overflow: hidden; padding-bottom: 0.14em; margin-bottom: -0.14em; }
+.ca-mr { display: inline-block; transform: translateY(118%); transition: transform 0.8s var(--ease); will-change: transform; }
+.ca-mr.on { transform: translateY(0); }
+
+/* 弹性动力标题字符（fx.js 拆字） */
+.fx-ch { display: inline-block; will-change: transform; }
 
 .panel-title {
   display: flex;
@@ -1396,3 +1443,79 @@ body::after {
 
 /* 解码 churn 与数字滚动：等宽 + tabular 已由全局 mono/readout 保证 */
 [data-decode] { white-space: nowrap; }
+
+/* ---------- 音效开关（右下角，站宠旁边；默认关，偏好存 ca-sound） ---------- */
+.snd-toggle {
+  position: fixed;
+  right: 68px; bottom: 16px;
+  z-index: 85;
+  width: 32px; height: 32px;
+  background: var(--bg1);
+  border: 1px solid var(--line-strong);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.snd-toggle:hover { color: var(--ink); border-color: var(--dim); }
+.snd-toggle.on { color: var(--amber); border-color: rgba(255, 180, 84, .55); box-shadow: 0 0 10px rgba(255, 180, 84, .18); }
+.snd-toggle:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- 审批弹窗 mock：选项是真按钮 + 结局回显（03 页内联样式之外的部分） ---------- */
+.am-opt {
+  background: none;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s, transform .1s;
+}
+.am-opt:hover { border-color: var(--ink); color: var(--ink); background: rgba(231, 237, 243, .05); }
+.am-opt.on:hover { border-color: var(--ok); color: var(--ok); background: var(--ok-dim); }
+.am-opt.deny:hover { border-color: var(--deny); color: var(--deny); background: rgba(240, 121, 106, .12); }
+.am-opt:active { transform: translateY(1px); }
+.am-opt:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.am-result {
+  display: none;
+  margin: 2px 16px 14px;
+  padding: 9px 11px;
+  border-left: 2px solid var(--line-strong);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--dim);
+}
+.am-result.show { display: block; animation: ca-rise .2s ease-out both; }
+.am-result.ok { border-left-color: var(--ok); }
+.am-result.ok b { color: var(--ok); font-weight: 500; }
+.am-result.deny { border-left-color: var(--deny); }
+.am-result.deny b { color: var(--deny); font-weight: 500; }
+
+/* ---------- 学习档案入口与弹层内容 ---------- */
+.rail-profile {
+  margin-top: 10px;
+  background: none;
+  border: 1px solid var(--line-strong);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.rail-profile:hover { color: var(--amber); border-color: var(--amber); }
+.rail-profile:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.prof-meter {
+  display: inline-block;
+  vertical-align: middle;
+  width: 76px; height: 6px;
+  margin-left: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.prof-meter i { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(255, 180, 84, .75); }
+.prof-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.btn.danger { border-color: var(--deny); color: var(--deny); }

@@ -241,6 +241,132 @@
     } catch (e) { /* 老浏览器跳过 */ }
   };
 
+  /* SVG 地图手势：拖拽平移 · 滚轮缩放（锚定光标）· 双击复位。
+     touch-action: pan-y —— 纵向滚动仍留给页面，横向拖拽归地图。 */
+  window.CAPanZoom = function (host) {
+    var svg = host.querySelector("svg");
+    if (!svg || host.__caPz) return;
+    host.__caPz = true;
+    var base = null, vb = null;
+    var dragging = false, lx = 0, ly = 0;
+
+    function readBase() {
+      if (base) return;   /* 基准只在首次捕获：之后 viewBox 被缩放也不能污染它 */
+      var b = svg.viewBox.baseVal;
+      base = [b.x, b.y, b.width, b.height];
+      if (!vb) vb = base.slice();
+    }
+    function write() {
+      svg.setAttribute("viewBox", vb[0] + " " + vb[1] + " " + vb[2] + " " + vb[3]);
+    }
+    function clamp() {
+      var minW = base[2] * 0.3;
+      if (vb[2] < minW) { vb[2] = minW; vb[3] = base[3] * (minW / base[2]); }
+      if (vb[2] > base[2]) { vb[2] = base[2]; vb[3] = base[3]; }
+      if (vb[0] < 0) vb[0] = 0;
+      if (vb[1] < 0) vb[1] = 0;
+      if (vb[0] + vb[2] > base[2]) vb[0] = base[2] - vb[2];
+      if (vb[1] + vb[3] > base[3]) vb[1] = base[3] - vb[3];
+    }
+    function at(clientX, clientY) {
+      var r = svg.getBoundingClientRect();
+      return [(clientX - r.left) / r.width * vb[2] + vb[0],
+              (clientY - r.top) / r.height * vb[3] + vb[1]];
+    }
+
+    host.addEventListener("wheel", function (e) {
+      readBase();
+      var k = e.deltaY < 0 ? 0.86 : 1.16;
+      var p = at(e.clientX, e.clientY);
+      var nw = Math.max(base[2] * 0.3, Math.min(base[2], vb[2] * k));
+      var nk = nw / vb[2];
+      vb[0] = p[0] - (p[0] - vb[0]) * nk;
+      vb[1] = p[1] - (p[1] - vb[1]) * nk;
+      vb[2] *= nk; vb[3] *= nk;
+      clamp(); write();
+      e.preventDefault();
+    }, { passive: false });
+
+    host.addEventListener("pointerdown", function (e) {
+      readBase();
+      dragging = true; lx = e.clientX; ly = e.clientY;
+      host.style.cursor = "grabbing";
+    });
+    host.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var r = host.getBoundingClientRect();
+      vb[0] -= (e.clientX - lx) / r.width * vb[2];
+      vb[1] -= (e.clientY - ly) / r.height * vb[3];
+      lx = e.clientX; ly = e.clientY;
+      clamp(); write();
+    });
+    function up() { dragging = false; host.style.cursor = "grab"; }
+    host.addEventListener("pointerup", up);
+    host.addEventListener("pointercancel", up);
+    host.addEventListener("dblclick", function () {
+      readBase(); vb = base.slice(); write();
+    });
+    host.style.cursor = "grab";
+    host.style.touchAction = "pan-y";
+  };
+
+  /* 彩纸：通关庆祝用。一次性 canvas，重力 + 旋转 + 淡出，结束自清理。 */
+  window.CAConfetti = {
+    fire: function (big) {
+      if (reduced || !window.requestAnimationFrame) return;
+      var cv = document.createElement("canvas");
+      cv.className = "ca-confetti";
+      cv.setAttribute("aria-hidden", "true");
+      document.body.appendChild(cv);
+      var ctx = cv.getContext("2d");
+      if (!ctx) { cv.remove(); return; }
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+      var COLORS = ["#ffb454", "#8fc7e8", "#7bc98b", "#e7edf3", "#f0796a"];
+      var pieces = [];
+      var n = big ? 190 : 130;
+      for (var i = 0; i < n; i++) {
+        var fromLeft = i % 2 === 0;
+        pieces.push({
+          x: fromLeft ? -12 : innerWidth + 12,
+          y: innerHeight * (0.55 + Math.random() * 0.3),
+          vx: (fromLeft ? 1 : -1) * (5 + Math.random() * 7) * (big ? 1.15 : 1),
+          vy: -(8 + Math.random() * 7),
+          w: 5 + Math.random() * 6, h: 8 + Math.random() * 8,
+          rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3,
+          c: COLORS[(Math.random() * COLORS.length) | 0],
+          life: 1
+        });
+      }
+      var t0 = null;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var el = ts - t0;
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        var alive = 0;
+        for (var j = 0; j < pieces.length; j++) {
+          var p = pieces[j];
+          if (p.life <= 0) continue;
+          alive++;
+          p.vy += 0.22; p.vx *= 0.992;
+          p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          if (el > 1500) p.life -= 0.03;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.c;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        }
+        if (alive > 0 && el < 4200) requestAnimationFrame(step);
+        else cv.remove();
+      }
+      requestAnimationFrame(step);
+    }
+  };
+
   /* 阅读进度：顶部 2px 琥珀条 */
   var bar = document.createElement("div");
   bar.id = "ca-progress";
@@ -266,6 +392,31 @@
         el.classList.add("rv");
         io.observe(el);
       }
+    });
+  }
+
+  /* 标题遮罩揭示：h1/h2 进入视口时从遮罩里升起来（SplitText 整块版）。
+     只包一层 span，不拆字，中文换行不受影响；reduced-motion 与无 JS 环境保持静态。 */
+  if (!reduced && "IntersectionObserver" in window) {
+    var mrIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          en.target.querySelector(".ca-mr").classList.add("on");
+          mrIO.unobserve(en.target);
+        }
+      });
+    }, { rootMargin: "0px 0px -6% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("#main h1, #main h2"), function (h) {
+      if (h.__caMr || h.closest(".no-mr")) return;
+      /* 首页 hero h1 让给 fx.js 的弹性动力标题：遮罩的 overflow:hidden 会剪掉被斥开的字符 */
+      if (h.tagName === "H1" && h.closest(".hero")) return;
+      h.__caMr = true;
+      var inner = document.createElement("span");
+      inner.className = "ca-mr";
+      while (h.firstChild) inner.appendChild(h.firstChild);
+      h.appendChild(inner);
+      h.classList.add("ca-mr-h");
+      mrIO.observe(h);
     });
   }
 
@@ -314,6 +465,134 @@
   });
   layer.addEventListener("click", function (e) { if (e.target === layer) toggleKeys(false); });
 
+  /* ---------- 学习档案：本机进度总览 · 导出 · 重置 ----------
+     数据全部在 localStorage（ca-*），这里只做汇总展示与清理；
+     音效偏好（ca-sound）在重置时保留。 */
+  var profLayer = document.createElement("div");
+  profLayer.className = "kbd-layer";
+  profLayer.setAttribute("role", "dialog");
+  profLayer.setAttribute("aria-modal", "true");
+  profLayer.setAttribute("aria-label", "学习档案");
+  profLayer.innerHTML = '<div class="kbd-card" id="prof-card"></div>';
+  document.body.appendChild(profLayer);
+  var profLastFocus = null, profArmReset = false, profResetTimer = null;
+
+  function profClose() {
+    profLayer.classList.remove("open");
+    if (profLastFocus && typeof profLastFocus.focus === "function") profLastFocus.focus();
+    profLastFocus = null;
+  }
+
+  function openProfile() {
+    profLastFocus = document.activeElement;
+    var card = document.getElementById("prof-card");
+
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem("ca-seen") || "{}"); } catch (e) { /* 忽略 */ }
+    var ALLPAGES = ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html"];
+    var PNAME = {
+      "loop.html": "01 循环回路", "prompt.html": "02 输入组装", "sandbox.html": "03 权限沙箱",
+      "appserver.html": "04 协议线路", "atlas.html": "05 Crate 图谱", "deep.html": "07 深水区"
+    };
+    var seenCount = ALLPAGES.filter(function (p) { return seen[p]; }).length;
+
+    var quiz = window.CAProgress ? CAProgress.read() : {};
+    var quizRows = "", cleared = 0;
+    ALLPAGES.forEach(function (p) {
+      if (!PNAME[p]) return;
+      var rec = quiz[p];
+      var pct = rec && rec.t ? Math.round(rec.c / rec.t * 100) : 0;
+      if (rec && rec.t && rec.c >= rec.t) cleared++;
+      quizRows += "<tr><td>" + PNAME[p] + "</td><td>" +
+        (rec ? "答对 <b>" + rec.c + "</b> / " + rec.t : "<span style='color:var(--faint);'>还没做过</span>") +
+        '<span class="prof-meter" aria-hidden="true"><i style="width:' + pct + '%;"></i></span></td></tr>';
+    });
+
+    var flash = 0;
+    try {
+      var f = JSON.parse(localStorage.getItem("ca-flash-glossary") || "{}");
+      Object.keys(f).forEach(function (k) { if (f[k] === true) flash++; });
+    } catch (e) { /* 忽略 */ }
+
+    card.innerHTML =
+      "<h3>学习档案</h3>" +
+      '<p class="kc-sub">只存在这台浏览器的 localStorage 里 · 不上传任何数据</p>' +
+      "<table class=\"rt\"><tbody>" +
+      "<tr><td>线路足迹</td><td>读过 <b>" + seenCount + "</b> / " + ALLPAGES.length + " 页</td></tr>" +
+      "<tr><td>自检通关</td><td><b>" + cleared + "</b> / 5 条主线全对</td></tr>" +
+      quizRows +
+      "<tr><td>翻卡记忆</td><td>已记牢 <b>" + flash + "</b> 个术语</td></tr>" +
+      "</tbody></table>" +
+      '<div class="prof-actions">' +
+      '<button type="button" class="btn" id="prof-copy">复制档案 JSON</button>' +
+      '<button type="button" class="btn" id="prof-reset">重置全部进度</button>' +
+      "</div>" +
+      '<p class="small muted">「复制」把上面这些打成一段 JSON，换设备前可以留个底。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
+
+    card.querySelector("#prof-copy").addEventListener("click", function () {
+      var payload = { site: "codex-atlas", exportedAt: new Date().toISOString(), pagesSeen: seenCount, quiz: quiz, flashcardsKnown: flash };
+      var text = JSON.stringify(payload, null, 2);
+      var btn2 = this;
+      function done() {
+        btn2.textContent = "已复制 ✓";
+        showToast("<b>小鳕</b> · 档案进剪贴板了。贴到备忘录里就能带走。");
+        setTimeout(function () { btn2.textContent = "复制档案 JSON"; }, 1800);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else { fallbackCopy(text); done(); }
+    });
+
+    var resetBtn = card.querySelector("#prof-reset");
+    resetBtn.addEventListener("click", function () {
+      if (!profArmReset) {
+        profArmReset = true;
+        resetBtn.textContent = "再点一次，确认清空";
+        resetBtn.classList.add("danger");
+        if (profResetTimer) clearTimeout(profResetTimer);
+        profResetTimer = setTimeout(function () {
+          profArmReset = false;
+          resetBtn.textContent = "重置全部进度";
+          resetBtn.classList.remove("danger");
+        }, 3200);
+        return;
+      }
+      try {
+        var kill = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k.indexOf("ca-") === 0 && k !== "ca-sound") kill.push(k);
+        }
+        kill.forEach(function (k) { localStorage.removeItem(k); });
+      } catch (e) { /* 存储不可用就没什么可清的 */ }
+      location.reload();
+    });
+
+    profArmReset = false;
+    if (profResetTimer) clearTimeout(profResetTimer);
+    profLayer.classList.add("open");
+    card.setAttribute("tabindex", "-1");
+    card.focus();
+  }
+  window.CAProfileOpen = openProfile;
+
+  profLayer.addEventListener("keydown", function (e) { if (e.key === "Tab") e.preventDefault(); });
+  profLayer.addEventListener("click", function (e) { if (e.target === profLayer) profClose(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && profLayer.classList.contains("open")) profClose();
+  });
+
+  /* 左栏底部入口（移动端走 Ctrl K 命令面板） */
+  Array.prototype.forEach.call(document.querySelectorAll(".rail-foot"), function (foot) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rail-profile";
+    b.textContent = "学习档案";
+    b.title = "自检成绩 · 翻卡进度 · 导出 / 重置（仅存本机）";
+    b.addEventListener("click", openProfile);
+    foot.appendChild(b);
+  });
+
   /* ---------- 全站命令面板：Ctrl+K 或 / 呼出，跨页直达任意仪器 ---------- */
   (function () {
     var IN_LABS = location.pathname.indexOf("/labs/") !== -1;
@@ -337,7 +616,8 @@
       { name: "深水区 C · apply_patch 解剖台", sub: "可编辑可应用", href: P("labs/deep.html") + "#mod-c", kw: "patch 补丁 apply diff hunk 锚点 格式" },
       { name: "深水区 D · TUI 后台", sub: "事件映射+斜杠命令", href: P("labs/deep.html") + "#mod-d", kw: "tui 终端 slash 命令 界面 渲染" },
       { name: "深水区 E · 扩展挂点地图", sub: "skills/hooks/memories", href: P("labs/deep.html") + "#mod-e", kw: "skill hook memory 扩展 插件 技能 记忆 钩子" },
-      { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" }
+      { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" },
+      { act: "profile", no: "◆", name: "学习档案 · 成绩与重置", sub: "左栏底部也有入口", href: "", kw: "progress 档案 进度 重置 reset 导出 export 成绩 分数" }
     ];
 
     var layer = document.createElement("div");
@@ -354,6 +634,8 @@
 
     var input = layer.querySelector(".cmdk-input");
     var listBox = layer.querySelector(".cmdk-list");
+    /* 输入即过滤：没有这一句，搜索框就是死的（Enter 永远跳第一项） */
+    input.addEventListener("input", function () { hot = 0; renderList(); });
     var hot = 0;
     var shown = [];
     var lastFocus = null;
@@ -400,6 +682,7 @@
       if (!c) return;
       close();
       if (c.act === "keys") { toggleKeys(true); return; }
+      if (c.act === "profile") { openProfile(); return; }
       if (c.href) location.href = c.href;
     }
 
@@ -467,7 +750,10 @@
     "每台仪器的状态写在地址栏里，刷新或分享链接都不丢。",
     "首页的回路图能悬停：琥珀点是请求出站，钢青点是事件回流。",
     "01 下方的 TURN SIMULATOR 能自己开一轮：运行中再插话，看 steer 怎么并入。",
-    "成本对照上面有个小赌局——先猜缓存能省几倍，再拉滑杆对答案。"
+    "成本对照上面有个小赌局——先猜缓存能省几倍，再拉滑杆对答案。",
+    "右下角的 ♪ 打开后，盖章、答对、通关都会响。默认是关的，不打扰。",
+    "左栏底部有「学习档案」：自检成绩和翻卡进度都在里面，能导出也能一键清空。",
+    "03 底部那个审批弹窗是真的能点的——批准一次、本轮允许和拒绝，给的结果各不相同。"
   ];
   var tipIdx = -1;
   function nextTip() {
@@ -538,7 +824,8 @@
     "今天也想通关。",
     "别忘了我底下还藏着彩蛋。",
     "有工具调用才会转第二圈哦。",
-    "累了就按 ? 歇一会儿。"
+    "累了就按 ? 歇一会儿。",
+    "♪ 开了的话，我游泳也有水泡声。"
   ];
   var bubble = document.createElement("div");
   bubble.className = "cod-bubble";
@@ -573,8 +860,9 @@
     }, 50000 + Math.floor(Math.random() * 40000));
   })();
 
-  /* 自检通关时，小鳕游过屏幕庆祝一下 */
+  /* 自检通关时，小鳕游过屏幕庆祝一下 + 一把彩纸 */
   document.addEventListener("ca:allclear", function () {
+    CAConfetti.fire(false);
     var done2 = false;
     swimOnce(function () {
       if (done2) return;
@@ -584,9 +872,10 @@
     if (!reduced) setTimeout(swimOnce, 700);
   });
 
-  /* 五条线路全部通关（仅首次达成时由首页广播）：双倍游庆祝 */
+  /* 五条线路全部通关（仅首次达成时由首页广播）：双倍游 + 大把彩纸 */
   document.addEventListener("ca:grandclear", function () {
     showToast("<b>小鳕</b> · 五条线路全部通关！从队列对到 WFP，这张地图现在归你了。");
+    CAConfetti.fire(true);
     swimOnce(function () {});
     if (!reduced) setTimeout(function () { swimOnce(function () {}); }, 800);
   });

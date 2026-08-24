@@ -221,11 +221,11 @@
       <p class="eyebrow"><span class="tick">▮</span>03 权限沙箱</p>
       <h1>同一个动作，换个模式就换一个判决。</h1>
       <p class="lede">
-        凭什么让模型在你机器上跑命令？沙箱就是这道题的答案。它有两条独立的轴：
+        模型凭什么能在你机器上跑命令？因为每条命令都要过两道闸：
         <b style="color:var(--ink);">沙箱模式</b>决定进程能碰什么，
         <b style="color:var(--ink);">审批策略</b>决定什么时候先问你。
-        这台判定器把两条轴拆开：选操作系统、选模式、选一个具体动作，看它落在哪一边——
-        以及是哪个内核机制在执行这道判决。
+        下面这台判定器把两道闸拆开给你看：选操作系统、选模式、选一个具体动作，
+        结论、理由和执行判决的内核机制当场给出。
       </p>
     </header>
 
@@ -369,20 +369,21 @@
       <p class="muted small">
         琥珀色的「条件放行」最终会落到你面前的一个确认框。判定器里点
         <button type="button" class="btn" id="demo-approve-act" style="padding:2px 12px;font-size:12px;">$ touch ~/x</button>
-        再切到 workspace-write，然后想象屏幕上出现这个：
+        再切到 workspace-write，然后到下面这个弹窗里亲手批一次——它是真的能点的：
       </p>
       <div class="approve-mock">
         <div class="am-bar"><i></i>approval requested · codex</div>
         <pre class="am-cmd">$ touch ~/x</pre>
         <p class="am-why">这条命令要写入工作目录之外的路径。批准后仅本次有效；沙箱本身仍然挡着其余的越界动作。</p>
         <div class="am-opts">
-          <span class="am-opt on">批准一次</span>
-          <span class="am-opt">本轮内允许</span>
-          <span class="am-opt deny">拒绝</span>
+          <button type="button" class="am-opt on" data-am="once">批准一次</button>
+          <button type="button" class="am-opt on" data-am="session">本轮内允许</button>
+          <button type="button" class="am-opt deny" data-am="deny">拒绝</button>
         </div>
+        <div class="am-result" id="am-result" role="status"></div>
       </div>
       <p class="small muted">
-        按键与文案随版本、客户端各有画法（TUI 和 IDE 插件不长一样），这里给的是形状不是截图。
+        按键与文案随版本、客户端各有画法（TUI 和 IDE 插件不长一样），这里给的是能点的形状，不是截图。
         这类请求在线上的样子是 <a href="appserver.html">04 协议线路</a> 第 11 条——服务端反向请求，整轮挂起等你应答。
         选「拒绝」也不会中断回合：模型收到的是「没批」，自己换思路。
       </p>
@@ -451,6 +452,7 @@
 </div>
 
 <script src="../assets/panel.js"></script>
+<script src="../assets/sound.js"></script>
 <script src="../assets/loop-hero.js"></script>
 <script>
 (function () {
@@ -598,6 +600,8 @@
     var eff = effVerdict(curAct, curMode);
     var cls = chipCls(eff.v);
     stampWrap.innerHTML = '<span class="v-stamp ' + cls[1] + ' stamp-in">' + cls[0] + "</span>";
+    /* 盖章音效（sound.js 在场且开关打开时才会真的响） */
+    try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: eff.v } })); } catch (e) { /* 忽略 */ }
     vWhy.innerHTML = "<b>" + curAct.name + "</b> · " + curAct.why;
     renderMech(curAct, eff);
     comboReadout.innerHTML =
@@ -1024,6 +1028,39 @@
       a: 2,
       why: "矩阵里切到 never 看得最清楚：琥珀格全部压成 DENY。无人值守跑批选它——宁可失败也不弹窗。" }
   ]);
+})();
+
+/* ---------- 审批弹窗 mock：三个选项真的能点，各给一种结局 ---------- */
+(function () {
+  "use strict";
+  var result = document.getElementById("am-result");
+  if (!result) return;
+  var box = result.parentElement;
+
+  var OUTCOMES = {
+    once: {
+      cls: "ok",
+      html: "<b>$ touch ~/x</b> → ✓ 本次放行，命令执行完毕。沙箱对其余越界路径的拦截照旧——你签的是这一条，不是整面墙。"
+    },
+    session: {
+      cls: "ok",
+      html: "<b>本轮内放行。</b>同一类升级请求在这个回合里不再重复打扰；新回合一开始，这道闸重新关上。"
+    },
+    deny: {
+      cls: "deny",
+      html: "<b>✗ 未获批准。</b>回合不中断：模型收到的是「没批」，接下来要么换个不越界的做法，要么把原因讲给你听。"
+    }
+  };
+
+  Array.prototype.forEach.call(box.querySelectorAll(".am-opt"), function (btnEl) {
+    btnEl.addEventListener("click", function () {
+      var o = OUTCOMES[btnEl.getAttribute("data-am")];
+      if (!o) return;
+      result.className = "am-result show " + o.cls;
+      result.innerHTML = o.html;
+      try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: btnEl.getAttribute("data-am") === "deny" ? "deny" : "cond" } })); } catch (e) { /* 忽略 */ }
+    });
+  });
 })();
 </script>
 <script src="../assets/terms.js"></script>

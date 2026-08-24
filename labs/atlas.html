@@ -245,6 +245,7 @@
 </div>
 
 <script src="../assets/panel.js"></script>
+<script src="../assets/sound.js"></script>
 <script src="../assets/loop-hero.js"></script>
 <script>
 (function () {
@@ -947,6 +948,7 @@
       size();
       frame(performance.now());
     }
+    var viewOn = true;   /* 页面可见性（visibilitychange 唤醒/休眠） */
     var inView = true;
     function sync() {
       if (!viewOn || !inView) { stop(); return; }
