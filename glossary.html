@@ -76,6 +76,14 @@
   .deck-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .deck-actions .grow { flex: 1; }
   .deck-tip { margin-top: 10px; }
+  /* 配对游戏：canvas 连线 */
+  .mg-wrap {
+    position: relative; height: 330px; margin-top: 4px;
+    border: 1px solid var(--line); background: var(--bg0);
+    overflow: hidden;
+  }
+  .mg-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  @media (max-width: 720px) { .mg-wrap { height: 380px; } }
 </style>
 </head>
 <body>
@@ -152,6 +160,7 @@
         <div class="seg" role="group" aria-label="模式切换">
           <button data-md="look" class="on">速查</button>
           <button data-md="drill">自测</button>
+          <button data-md="match">配对</button>
         </div>
         <span class="match-readout" id="drill-out" aria-live="polite"></span>
       </div>
@@ -180,6 +189,19 @@
         <p class="small muted deck-tip">
           先看术语自己回忆，再翻面对答案。「记得 / 忘了」会记进本机存档——下次打开，先给你推没记牢的那些。键盘：空格翻面，← → 换张。
           <span class="swipe-hint">手机上也可以直接滑卡片：<b>右滑 = 记得，左滑 = 忘了</b>。</span>
+        </p>
+      </div>
+
+      <div class="deck" id="match-deck" hidden>
+        <div class="deck-bar">
+          <span class="match-readout" id="mg-stat" aria-live="polite"></span>
+          <span style="flex:1;"></span>
+          <button class="btn" id="mg-redeal" type="button">↻ 换一批</button>
+        </div>
+        <div class="mg-wrap" id="mg-wrap"></div>
+        <p class="small muted deck-tip">
+          按住左边的术语，拖到右边它的人话短句上松手。连错会晃一下弹回；五条全连对收一轮，失误最少的纪录存在本机。
+          短句是浓缩版，完整解释都在下面速查表里。
         </p>
       </div>
     </section>
@@ -328,6 +350,7 @@
   });
 
   var deck = document.getElementById("deck");
+  var matchDeck = document.getElementById("match-deck");
   if (!deck || !CARDS.length) return;
   var cats = Array.prototype.slice.call(document.querySelectorAll(".gl-cat"));
   var searchRow = document.querySelector(".search-row");
@@ -453,13 +476,16 @@
 
   function setMode(m) {
     var drill = m === "drill";
+    var match = m === "match";
     Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (x) {
       x.classList.toggle("on", x.getAttribute("data-md") === m);
     });
     deck.hidden = !drill;
-    cats.forEach(function (s) { s.style.display = drill ? "none" : ""; });
-    if (searchRow) searchRow.style.display = drill ? "none" : "";
-    PanelState.write({ md: drill ? "drill" : "" });
+    if (matchDeck) matchDeck.hidden = !match;
+    cats.forEach(function (s) { s.style.display = (drill || match) ? "none" : ""; });
+    if (searchRow) searchRow.style.display = (drill || match) ? "none" : "";
+    PanelState.write({ md: drill ? "drill" : (match ? "match" : "") });
+    if (match && window.CAMatch) CAMatch.wake();
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (b) {
@@ -479,17 +505,308 @@
   });
 
   if (PanelState.read().md === "drill") setMode("drill");
+  else if (PanelState.read().md === "match") setMode("match");
   render();
 })();
 </script>
 
 <script>
-/* ---------- 本页聚光导览 ---------- */
 window.CATOUR_STEPS = [
   { sel: "#q", title: "检索", text: "中文英文都能匹配，命中数实时显示。看不懂正文里的虚线词时，回来这里敲一下最快。" },
   { sel: "#deck", title: "翻卡记忆", text: "41 张卡，正面术语、背面人话。会与不会各标一边，进度存本机，首页线路图的 06 站外圈就是这个进度。" },
+  { sel: "#match-deck", title: "连线配对", text: "按住术语拖到人话短句上松手：连对锁琥珀线，连错晃一下弹回。五条全对收一轮，失误纪录存本机。" },
   { sel: ".rail-profile", title: "学习档案", text: "全站自检成绩和翻卡进度都在左栏这份档案里，能一键导出带走，也能整体清空重来。" }
 ];
+</script>
+
+<script>
+/* ---------- 配对模式：术语 ⇄ 人话短句，canvas 拖线连接。
+     短句为本站从速查表内容手写浓缩（非机械截断）；
+     一轮五条，失误最少的纪录存本机。 ---------- */
+(function () {
+  "use strict";
+
+  var PAIRS = [
+    ["队列对", "一进一出的两条异步通道"],
+    ["needs_follow_up", "有工具调用就再转一圈"],
+    ["steer_input", "插话并入正在跑的轮次"],
+    ["SSE", "服务器单向推流"],
+    ["AGENTS.md 层叠", "越近的目录越具体"],
+    ["提示缓存命中", "重复前缀约一折计费"],
+    ["TurnComplete", "一轮任务正式收束的事件"],
+    ["rollout", "会话轨迹落盘成 JSONL"],
+    ["Seatbelt", "macOS 的沙箱强制执行"],
+    ["Landlock", "Linux 内核级访问控制"],
+    ["MCP", "接外部工具的标准协议"],
+    ["斜杠命令", "客户端本地处理"],
+    ["crate", "Rust 的编译单元"],
+    ["apply_patch", "模型改文件的补丁格式"],
+    ["refresh_token", "静默换一对新令牌"],
+    ["Code Mode", "V8 里跑模型生成的代码"]
+  ];
+
+  var wrap = document.getElementById("mg-wrap");
+  if (!wrap || !window.CanvasRenderingContext2D) return;
+  var stat = document.getElementById("mg-stat");
+  var redealBtn = document.getElementById("mg-redeal");
+  var canvas = document.createElement("canvas");
+  wrap.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var REDUCED = window.PrefersReducedMotion === true;
+  var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+  var DENY = (window.CATheme ? CATheme.rgb("--deny", "240,121,106") : "240,121,106");
+  var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+  var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+  var W = 1, H = 1, dpr = 1;
+  function size() {
+    var r = wrap.getBoundingClientRect();
+    if (r.width < 4) return false;
+    W = Math.round(r.width); H = Math.round(r.height);
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  var pool = [], round = null, misses = 0, roundsDone = 0;
+  var BEST = "ca-match-best";
+  function best() {
+    try { return JSON.parse(localStorage.getItem(BEST) || "null"); } catch (e) { return null; }
+  }
+  function paintStat(extra) {
+    var b = best();
+    stat.innerHTML = "第 <b>" + (roundsDone + 1) + "</b> 轮 · 本轮失误 <b>" + misses + "</b>" +
+      (b ? " · 纪录：一轮只错 <b>" + b.miss + "</b> 次" : " · 还没有纪录") + (extra || "");
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function redeal() {
+    if (pool.length < 5) pool = shuffle(PAIRS.slice());
+    var picked = pool.splice(0, 5);
+    round = {
+      left: picked.map(function (p) { return { term: p[0], phrase: p[1], done: false, shakeT: 0 }; }),
+      right: shuffle(picked.map(function (p) { return { phrase: p[1], done: false, shakeT: 0 }; })),
+      links: [],
+      drag: null,
+      wrong: null
+    };
+    misses = 0;
+    layout();
+    paintStat("");
+    draw();
+  }
+
+  var NW = 0, PW = 0;
+  function layout() {
+    NW = Math.min(186, W * 0.38);
+    PW = Math.min(238, W * 0.46);
+    var lx = 16 + NW / 2, rx = W - 16 - PW / 2;
+    var n = round.left.length;
+    round.left.forEach(function (nd, i) { nd.x = lx; nd.y = H * (i + 0.5) / n; nd.w = NW; });
+    round.right.forEach(function (nd, i) { nd.x = rx; nd.y = H * (i + 0.5) / n; nd.w = PW; });
+  }
+
+  function nodeAt(x, y) {
+    var i, nd;
+    for (i = 0; i < round.left.length; i++) {
+      nd = round.left[i];
+      if (!nd.done && Math.abs(x - nd.x) < nd.w / 2 + 6 && Math.abs(y - nd.y) < 22) return nd;
+    }
+    for (i = 0; i < round.right.length; i++) {
+      nd = round.right[i];
+      if (!nd.done && Math.abs(x - nd.x) < nd.w / 2 + 6 && Math.abs(y - nd.y) < 22) return nd;
+    }
+    return null;
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function shakeAnim(nd) {
+    if (REDUCED || !nd.shakeT) return 0;
+    var dt = performance.now() - nd.shakeT;
+    if (dt < 360) {
+      requestAnimationFrame(draw);
+      return Math.sin(dt / 25) * (1 - dt / 360) * 5;
+    }
+    nd.shakeT = 0;
+    return 0;
+  }
+
+  function drawNode(nd, text, color, dim) {
+    var h = 34;
+    var off = shakeAnim(nd);
+    ctx.fillStyle = "rgba(" + color + "," + (dim ? 0.05 : 0.1) + ")";
+    ctx.strokeStyle = "rgba(" + color + "," + (dim ? 0.35 : 0.75) + ")";
+    ctx.lineWidth = nd.shakeT ? 1.8 : 1.2;
+    roundRect(nd.x - nd.w / 2 + off, nd.y - h / 2, nd.w, h, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(" + INKRGB + "," + (dim ? 0.55 : 0.92) + ")";
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var t = text;
+    var tw = ctx.measureText(t).width;
+    if (tw > nd.w - 14) {
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      tw = ctx.measureText(t).width;
+      while (tw > nd.w - 14 && t.length > 4) {
+        t = t.slice(0, -2);
+        tw = ctx.measureText(t + "…").width;
+      }
+      if (t.length < text.length) t += "…";
+    }
+    ctx.fillText(t, nd.x + off, nd.y);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    if (!round) return;
+    var i, lk;
+    /* 连对的琥珀线 */
+    ctx.lineWidth = 1.8;
+    for (i = 0; i < round.links.length; i++) {
+      lk = round.links[i];
+      ctx.strokeStyle = "rgba(" + AMBER + ",0.75)";
+      ctx.beginPath();
+      ctx.moveTo(lk.l.x + lk.l.w / 2 - 6, lk.l.y);
+      ctx.lineTo(lk.r.x - lk.r.w / 2 + 6, lk.r.y);
+      ctx.stroke();
+    }
+    /* 错误红线（短暂） */
+    if (round.wrong && !REDUCED) {
+      var dt = performance.now() - round.wrong.t0;
+      if (dt < 480) {
+        ctx.strokeStyle = "rgba(" + DENY + "," + (0.8 * (1 - dt / 480)).toFixed(3) + ")";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(round.wrong.x1, round.wrong.y1);
+        ctx.lineTo(round.wrong.x2, round.wrong.y2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        requestAnimationFrame(draw);
+      } else { round.wrong = null; }
+    }
+    /* 拖拽中的虚线 */
+    if (round.drag) {
+      ctx.strokeStyle = "rgba(" + AMBER + ",0.85)";
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(round.drag.nd.x + round.drag.nd.w / 2 - 6, round.drag.nd.y);
+      ctx.lineTo(round.drag.x, round.drag.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(" + AMBER + ",0.95)";
+      ctx.beginPath(); ctx.arc(round.drag.x, round.drag.y, 4, 0, 6.2832); ctx.fill();
+    }
+    /* 节点 */
+    for (i = 0; i < round.left.length; i++) {
+      drawNode(round.left[i], round.left[i].term, AMBER, round.left[i].done);
+    }
+    for (i = 0; i < round.right.length; i++) {
+      drawNode(round.right[i], round.right[i].phrase, FAINT, round.right[i].done);
+    }
+    /* 列标题 */
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+    ctx.textAlign = "center";
+    ctx.fillText("术语", round.left[0].x, 12);
+    ctx.fillText("人话短句", round.right[0].x, 12);
+  }
+
+  function finishCheck() {
+    if (round.links.length !== 5) return;
+    roundsDone++;
+    var b = best();
+    if (!b || misses < b.miss) {
+      try { localStorage.setItem(BEST, JSON.stringify({ miss: misses })); } catch (e) { }
+      paintStat(" · <b style='color:var(--amber);'>新纪录！</b>");
+    } else {
+      paintStat(" · 本轮收工");
+    }
+    if (window.CAConfetti) CAConfetti.fire(misses === 0);
+    if (window.CASound) CASound.play(misses === 0 ? "clear" : "ok");
+    setTimeout(redeal, 1400);
+  }
+
+  var dragId = null;
+  canvas.addEventListener("pointerdown", function (e) {
+    size();
+    var r = wrap.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    var nd = nodeAt(x, y);
+    if (!nd || nd.done) return;
+    if (round.right.indexOf(nd) !== -1) return;   /* 只许从术语端发起 */
+    dragId = e.pointerId;
+    round.drag = { nd: nd, x: x, y: y };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
+    draw();
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!round || !round.drag || e.pointerId !== dragId) return;
+    var r = wrap.getBoundingClientRect();
+    round.drag.x = e.clientX - r.left;
+    round.drag.y = e.clientY - r.top;
+    draw();
+  });
+  function up(e) {
+    if (!round || !round.drag || e.pointerId !== dragId) return;
+    dragId = null;
+    var r = wrap.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    var target = nodeAt(x, y);
+    var src = round.drag.nd;
+    round.drag = null;
+    if (!target || round.right.indexOf(target) === -1) { draw(); return; }
+    if (target.phrase === src.phrase) {
+      src.done = true; target.done = true;
+      round.links.push({ l: src, r: target });
+      if (window.CASound) CASound.play("ok");
+      paintStat("");
+      finishCheck();
+    } else {
+      misses++;
+      src.shakeT = target.shakeT = performance.now();
+      round.wrong = { x1: src.x + src.w / 2 - 6, y1: src.y, x2: target.x - target.w / 2 + 6, y2: target.y, t0: performance.now() };
+      if (window.CASound) CASound.play("miss");
+      paintStat("");
+    }
+    draw();
+  }
+  canvas.addEventListener("pointerup", up);
+  canvas.addEventListener("pointercancel", up);
+
+  if (redealBtn) redealBtn.addEventListener("click", redeal);
+  window.addEventListener("resize", function () {
+    if (wrap.hidden) return;
+    clearTimeout(window.__mgRz);
+    window.__mgRz = setTimeout(function () { if (size()) layout(), draw(); }, 140);
+  });
+
+  window.CAMatch = {
+    wake: function () {
+      if (!round && size()) redeal();
+      else if (size()) draw();
+    }
+  };
+})();
 </script>
 
 </body>

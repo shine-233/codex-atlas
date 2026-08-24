@@ -128,6 +128,34 @@
   .wr-dir.notify { color: var(--amber); border-color: rgba(255,180,84,.4); }
   .wr-demo { color: var(--amber); font-size: 11px; }
 
+  /* ---------- THREAD SANDBOX：Thread 生命周期状态机 ---------- */
+  .ts-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; margin-top: 12px; }
+  @media (max-width: 880px) { .ts-grid { grid-template-columns: 1fr; } }
+  #ts-canvas {
+    position: relative; height: 300px;
+    border: 1px solid var(--line); background: var(--bg0); overflow: hidden;
+  }
+  #ts-canvas canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .ts-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .ts-actions .btn { padding: 6px 11px; font-size: 12px; }
+  .ts-actions .btn.ts-deny { animation: ts-shake .34s ease-out; border-color: var(--deny); color: var(--deny); }
+  @keyframes ts-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    55% { transform: translateX(4px); }
+    80% { transform: translateX(-2px); }
+  }
+  .ts-log {
+    height: 236px; overflow-y: auto; margin: 0;
+    background: var(--bg0); border: 1px solid var(--line-strong);
+    padding: 10px 12px; font-family: var(--mono); font-size: 11px; line-height: 1.75;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .ts-log .ok { color: var(--amber); }
+  .ts-log .in { color: var(--steel); }
+  .ts-log .er { color: var(--deny); }
+  .ts-log .dim { color: var(--faint); }
+
 </style>
 </head>
 <body>
@@ -245,6 +273,39 @@
           wire 名（thread/resume、thread/fork、turn/interrupt、thread/archive）已对固定提交下
           <code>app-server-protocol/src/protocol/</code> 的 wire 注册表逐一核实；字段嵌套仍为<b>示意形状</b>。
           点任意已送达的行，结构显示在上方「报文形状」面板。
+        </p>
+      </div>
+    </section>
+
+    <!-- THREAD SANDBOX：状态机交到你手里 -->
+    <section class="panel" id="thread-sb" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>THREAD SANDBOX · 自己开一个 Thread，状态机在你手里</h3>
+        <span class="readout">按动作 · 看迁移 · 非法操作当场拒绝并给理由</span>
+      </div>
+      <div style="padding:0 24px 20px;">
+        <div class="ts-actions" role="group" aria-label="Thread 生命周期动作">
+          <button class="btn primary" data-ts="start" type="button">thread/start 创建</button>
+          <button class="btn" data-ts="turn" type="button">turn/start 开一轮</button>
+          <button class="btn" data-ts="interrupt" type="button">turn/interrupt 打断</button>
+          <button class="btn" data-ts="fork" type="button">thread/fork 分叉</button>
+          <button class="btn" data-ts="rollback" type="button">thread/rollback 回滚</button>
+          <button class="btn" data-ts="archive" type="button">thread/archive 归档</button>
+          <button class="btn" data-ts="unarchive" type="button">thread/unarchive 取回</button>
+          <button class="btn" data-ts="detach" type="button">⏏ 断线</button>
+          <button class="btn" data-ts="resume" type="button">thread/resume 重连</button>
+          <button class="btn" data-ts="del" type="button">thread/delete 删除</button>
+        </div>
+        <div class="ts-grid">
+          <div id="ts-canvas" aria-hidden="true"></div>
+          <pre class="ts-log" id="ts-log" aria-live="polite"><span class="dim">── wire 事件日志 ──
+每个动作都会在这里落下真实的方法名（notify 名同样取自注册表）。</span></pre>
+        </div>
+        <p class="small muted" style="margin:12px 0 0;">
+          状态集合与迁移是本站按 wire 注册表和第二幕剧本归纳的<b>示意形状</b>，方法名全部实测。
+          两条官方口径值得记：归档是软操作，thread/resume 随时能请回来；interrupt 以 interrupted 落定，
+          已产生的条目保留在历史里。试试这些组合：RUNNING 里归档（拒绝）→ 打断再归档（放行）；
+          断线 → resume（历史逐条重放）；fork 出分身再回滚本体。
         </p>
       </div>
     </section>
@@ -1037,9 +1098,304 @@ ExecCommandApproval {
 </script>
 
 <script>
+/* ---------- THREAD SANDBOX：Thread 生命周期状态机（canvas + 按钮驱动）。
+   状态集合为本站归纳的示意形状；wire / notify 方法名实测自固定提交的注册表。
+   非法迁移当场拒绝并给理由——拒绝理由本身就是教学内容。 ---------- */
+(function () {
+  var host = document.getElementById("ts-canvas");
+  var logEl = document.getElementById("ts-log");
+  if (!host || !logEl || !window.CanvasRenderingContext2D) return;
+  var canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
+  host.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var REDUCED = window.PrefersReducedMotion === true;
+  var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+  var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+  var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+  var DENY = (window.CATheme ? CATheme.rgb("--deny", "240,121,106") : "240,121,106");
+  var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+  var W = 1, H = 1, dpr = 1;
+  function size() {
+    var r = host.getBoundingClientRect();
+    if (r.width < 4) return false;
+    W = Math.round(r.width); H = Math.round(r.height);
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  var NEW = 0, ACTIVE = 1, RUNNING = 2, ARCHIVED = 3, DETACHED = 4;
+  var META = {};
+  META[NEW] =      { name: "NEW · 未创建",       c: FAINT, dash: true };
+  META[ACTIVE] =   { name: "ACTIVE · 空闲在线",   c: AMBER };
+  META[RUNNING] =  { name: "RUNNING · turn 进行中", c: STEEL };
+  META[ARCHIVED] = { name: "ARCHIVED · 已归档",   c: FAINT, dash: true };
+  META[DETACHED] = { name: "DETACHED · 断线",     c: FAINT, dash: true };
+
+  var state = NEW, items = 0, forks = 0, beforeDetach = ACTIVE;
+  var doneTimer = null, pulseT0 = 0, denyT0 = 0;
+
+  function log(html, cls) {
+    var line = document.createElement("div");
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logEl.appendChild(line);
+    while (logEl.children.length > 90) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function flashBtn(name) {
+    var b = document.querySelector('[data-ts="' + name + '"]');
+    if (!b) return;
+    b.classList.remove("ts-deny");
+    void b.offsetWidth;
+    b.classList.add("ts-deny");
+    setTimeout(function () { b.classList.remove("ts-deny"); }, 400);
+  }
+
+  var REASONS = {
+    start: "已经有一个线程了——要重建，先 thread/delete。",
+    turn: {
+      2: "上一轮还在跑：等它 turn/completed，或 turn/interrupt 打断。",
+      3: "归档态不能开轮——先 thread/unarchive 取回。",
+      4: "断线状态不能开轮——先 thread/resume 重连。"
+    },
+    interrupt: "现在没有正在跑的 turn，打断个寂寞。",
+    fork: "只有 ACTIVE 的线程能分叉。",
+    rollback: {
+      2: "turn 还在跑，先收束这一轮再谈回滚。",
+      4: "断线先 resume。"
+    },
+    archive: {
+      2: "RUNNING 中不能归档——先打断或等这轮跑完。",
+      3: "已经归档了。",
+      4: "断线先 resume。"
+    },
+    unarchive: "只有 ARCHIVED 能取回——现在的状态用不上它。",
+    detach: {
+      2: "turn 跑着的时候断线，真实世界会发生，但这里先别——打断或等完成。",
+      0: "线程还不存在。"
+    },
+    resume: "没断线，不用重连。",
+    del: "本来就是空的。"
+  };
+
+  var ACTIONS = {
+    start: { from: [NEW], run: function () {
+      state = ACTIVE;
+      log('<span class="in">→ c2s thread/start</span>\n<span class="ok">← notify thread/started · thread/status/changed</span>');
+    } },
+    turn: { from: [ACTIVE], run: function () {
+      state = RUNNING;
+      log('<span class="in">→ c2s turn/start</span>\n<span class="ok">← notify turn/started · item/started</span>\n<span class="dim">… item/agentMessage/delta 正在流回来</span>');
+      if (doneTimer) clearTimeout(doneTimer);
+      doneTimer = setTimeout(function () {
+        if (state !== RUNNING) return;
+        items++;
+        state = ACTIVE;
+        log('<span class="ok">← notify item/completed · turn/completed</span><span class="dim">　本轮落定，items × ' + items + '</span>');
+        pulseT0 = performance.now();
+        draw();
+      }, 1700);
+    } },
+    interrupt: { from: [RUNNING], run: function () {
+      if (doneTimer) clearTimeout(doneTimer);
+      state = ACTIVE;
+      log('<span class="in">→ c2s turn/interrupt</span>\n<span class="ok">← 以 interrupted 落定 · 已产生的条目保留在历史里</span>');
+    } },
+    fork: { from: [ACTIVE], run: function () {
+      forks++;
+      log('<span class="in">→ c2s thread/fork</span>\n<span class="ok">← 新线程 t_fork' + forks + ' · 历史整份拷贝（items × ' + items + '）</span>');
+    } },
+    rollback: { from: [ACTIVE, ARCHIVED], run: function () {
+      if (items <= 0) { deny("rollback", "历史是空的，没东西可回滚。"); return; }
+      items--;
+      log('<span class="in">→ c2s thread/rollback</span>\n<span class="ok">← notify thread/reverted · 撤掉最后一轮，剩 items × ' + items + '</span>');
+    } },
+    archive: { from: [ACTIVE], run: function () {
+      state = ARCHIVED;
+      log('<span class="in">→ c2s thread/archive</span>\n<span class="ok">← notify thread/archived</span><span class="dim">　软操作：文件没删，resume 随时请回</span>');
+    } },
+    unarchive: { from: [ARCHIVED], run: function () {
+      state = ACTIVE;
+      log('<span class="in">→ c2s thread/unarchive</span>\n<span class="ok">← notify thread/unarchived</span>');
+    } },
+    detach: { from: [ACTIVE, ARCHIVED], run: function () {
+      beforeDetach = state;
+      state = DETACHED;
+      log('<span class="dim">⏏ 客户端退出连接——线程状态与落盘的 rollout 文件都还在</span>');
+    } },
+    resume: { from: [DETACHED], run: function () {
+      state = beforeDetach;
+      log('<span class="in">→ c2s thread/resume</span>\n<span class="ok">← 历史逐条重放（items × ' + items + '）· thread/status/changed</span>');
+    } },
+    del: { from: [NEW, ACTIVE, RUNNING, ARCHIVED, DETACHED], run: function () {
+      if (state === NEW) { deny("del", "本来就是空的。"); return; }
+      if (state === RUNNING && doneTimer) clearTimeout(doneTimer);
+      state = NEW; items = 0; forks = 0;
+      log('<span class="in">→ c2s thread/delete</span>\n<span class="ok">← notify thread/deleted</span><span class="dim">　演示重置：回到 NEW</span>');
+    } }
+  };
+
+  function deny(name, why) {
+    flashBtn(name);
+    log('<span class="er">✗ ' + name + '：' + why + '</span>');
+    denyT0 = performance.now();
+    if (window.CASound) CASound.play("deny");
+    draw();
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-ts]"), function (b) {
+    b.addEventListener("click", function () {
+      var name = b.getAttribute("data-ts");
+      var act = ACTIONS[name];
+      if (!act) return;
+      if (act.from.indexOf(state) === -1) {
+        var why = REASONS[name];
+        why = (typeof why === "object") ? (why[state] || "当前状态（" + META[state].name.split(" ")[0] + "）不能执行这个动作。") : why;
+        deny(name, why);
+        return;
+      }
+      act.run();
+      pulseT0 = performance.now();
+      if (window.CASound) CASound.play("ok");
+      draw();
+    });
+  });
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawNode(x, y, w, h, title, sub, meta, small) {
+    ctx.setLineDash(meta.dash ? [6, 4] : []);
+    ctx.strokeStyle = meta.c;
+    ctx.fillStyle = "rgba(" + meta.c + ",0.08)";
+    ctx.lineWidth = small ? 1.2 : 1.6;
+    roundRect(x - w / 2, y - h / 2, w, h, 10);
+    ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(" + INKRGB + ",0.92)";
+    ctx.font = (small ? "10.5px" : "12px") + " 'IBM Plex Mono', monospace";
+    ctx.fillText(title, x, y - (small ? 5 : 8));
+    if (sub) {
+      ctx.fillStyle = "rgba(" + meta.c + ",0.95)";
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.fillText(sub, x, y + (small ? 8 : 12));
+    }
+  }
+
+  function draw() {
+    var light = window.CATheme && CATheme.isLight();
+    ctx.clearRect(0, 0, W, H);
+    var mx = W * 0.32, my = H * 0.48;
+    /* 分身 */
+    var shown = Math.min(forks, 3);
+    var i;
+    for (i = 0; i < shown; i++) {
+      var fx = W * (0.66 + (i % 2) * 0.14);
+      var fy = H * (0.24 + i * 0.24);
+      ctx.strokeStyle = "rgba(" + FAINT + ",0.6)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(mx + 90, my); ctx.lineTo(fx - 52, fy); ctx.stroke();
+      ctx.setLineDash([]);
+      drawNode(fx, fy, 104, 40, "t_fork" + (forks - shown + i + 1), "ACTIVE", META[ACTIVE], true);
+    }
+    if (forks > 3) {
+      ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("+" + (forks - 3) + " 个分身", W * 0.73, H * 0.92);
+    }
+    /* 主节点 */
+    var meta = META[state];
+    var running = state === RUNNING;
+    if (running && !REDUCED) {
+      var k = (Math.sin(performance.now() / 320) + 1) / 2;
+      ctx.strokeStyle = "rgba(" + STEEL + "," + (0.25 + k * 0.35).toFixed(3) + ")";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(mx, my, 66 + k * 5, 0, 6.2832); ctx.stroke();
+    }
+    drawNode(mx, my, 190, 84, meta.name, "items × " + items + " · t_main", meta, false);
+    /* 动作脉冲 / 拒绝波纹 */
+    if (!REDUCED && pulseT0) {
+      var dt = performance.now() - pulseT0;
+      if (dt < 550) {
+        var kk = dt / 550;
+        ctx.strokeStyle = "rgba(" + AMBER + "," + (0.6 * (1 - kk)).toFixed(3) + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(mx, my, 70 + kk * 26, 0, 6.2832); ctx.stroke();
+        requestAnimationFrame(draw);
+      } else { pulseT0 = 0; }
+    }
+    if (!REDUCED && denyT0) {
+      var dd = performance.now() - denyT0;
+      if (dd < 450) {
+        var kd = dd / 450;
+        ctx.strokeStyle = "rgba(" + DENY + "," + (0.65 * (1 - kd)).toFixed(3) + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(mx, my, 70 + kd * 20, 0, 6.2832); ctx.stroke();
+        requestAnimationFrame(draw);
+      } else { denyT0 = 0; }
+    }
+    /* 状态图例 */
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+    ctx.fillText("实线 = 在线 · 虚线 = 离线/未建 · 钢青呼吸环 = turn 进行中", 12, H - 12);
+  }
+
+  var running = false, raf = 0, inView = true;
+  function loop() {
+    if (!running) return;
+    if (state === RUNNING) draw();
+    else if (!pulseT0 && !denyT0) { running = false; return; }
+    raf = requestAnimationFrame(loop);
+  }
+  function kick() {
+    if (REDUCED) { draw(); return; }
+    if (!running && inView) { running = true; raf = requestAnimationFrame(loop); }
+  }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) {
+        inView = en.isIntersecting;
+        if (inView) { size(); draw(); if (state === RUNNING) kick(); }
+        else { running = false; cancelAnimationFrame(raf); }
+      });
+    }, { rootMargin: "80px" }).observe(host);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { running = false; cancelAnimationFrame(raf); }
+    else if (inView && state === RUNNING) kick();
+  });
+  var rzT = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rzT);
+    rzT = setTimeout(function () { if (size()) draw(); }, 140);
+  });
+
+  if (size()) draw();
+})();
+</script>
+
+<script>
 window.CATOUR_STEPS = [
   { sel: ".seqwrap", title: "报文时间线 + 时序图", text: "播放整段对话协议。第 11 条是服务端反向发来的审批请求——整轮挂起等你裁决，批准和拒绝是两段剧情。" },
   { sel: "#act2-panel", title: "ACT II · 断线之后", text: "resume / fork / interrupt 三条支线时间线：断线重连、分叉试验、Esc 打断。" },
+  { sel: "#thread-sb", title: "THREAD SANDBOX", text: "状态机交到你手里：按动作看迁移，非法操作当场拒绝并给理由。试试 RUNNING 里归档——拒绝理由本身就是教学内容。" },
   { sel: "#act3-panel", title: "ACT III · rollout 解剖", text: "落盘的 JSONL 长什么样：逐行点开看角色，文件名生成器演示回滚线程怎么命名（规则实测自源码）。" },
   { sel: ".detail-json", title: "报文形状", text: "点任意已送达的报文，这里显示它的 JSON 结构（示意形状）与说明。" },
   { sel: "#gate-zone", title: "裁决框", text: "走到审批请求时它会自己弹出来。跳过了闸口它也会追上来——两条分支都在等你。" }
