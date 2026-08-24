@@ -298,7 +298,53 @@
           <span class="cost-laps-readout">拖我：模拟一轮轮聊下去</span>
         </div>
         <p class="small muted" id="cd-note" style="margin:8px 0 0;" aria-live="polite"></p>
+        <details class="src-details">
+          <summary>⌨ 看真实源码 · 触顶判断与压缩端点</summary>
+          <pre><span class="src-loc">codex-rs/core/src/session/context_window.rs :71-79 · @343074d4 实测</span>
+<span class="src-code">let buffered_auto_compact_limit = auto_compact_scope_limit
+    .map(|limit| limit.saturating_add(auto_compact_fallback_buffer_tokens));
+
+// Force compaction once the buffered window or the model's full context window is reached.
+let full_context_window_limit_reached =
+    full_context_window_limit.is_some_and(|limit| active_context_tokens &gt;= limit);
+let token_limit_reached = buffered_auto_compact_limit
+    .is_some_and(|limit| auto_compact_scope_tokens &gt;= limit)
+    || full_context_window_limit_reached;</span></pre>
+          <pre><span class="src-loc">codex-rs/core/src/client.rs :161-163</span>
+<span class="src-code">const RESPONSES_ENDPOINT: &amp;str = "/responses";
+const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
+        </details>
       </div>
+      <details class="src-details" style="margin-top:14px;">
+        <summary>⌨ 看真实源码 · AGENTS.md 目录发现与预算截断</summary>
+        <pre><span class="src-loc">codex-rs/core/src/agents_md.rs :234-251 · @343074d4 实测</span>
+<span class="src-code">let search_dirs = if let Some(root) = project_root {
+    let mut dirs = Vec::new();
+    let mut cursor = dir.clone();
+    loop {
+        dirs.push(cursor.clone());
+        if cursor == root {
+            break;
+        }
+        let Some(parent) = cursor.parent() else {
+            break;
+        };
+        cursor = parent;
+    }
+    dirs.reverse();
+    dirs
+} else {
+    vec![dir]
+};</span></pre>
+        <pre><span class="src-loc">同文件 :172-178 · 预算耗尽时的截断告警（:168-170 先行 truncate）</span>
+<span class="src-code">if size &gt; remaining {
+    tracing::warn!(
+        path = %p,
+        remaining_bytes = remaining,
+        "project doc exceeds remaining budget; truncating"
+    );
+}</span></pre>
+      </details>
       <p class="small muted">
         相关线路：<a href="loop.html">01 循环回路</a> 第 9–10 步是这些层的装配现场；
         <a href="sandbox.html">03 权限沙箱</a> 解释第 3 层声明的权限到底怎么落地。

@@ -494,6 +494,37 @@
       <p class="small muted">
         判定器里 workspace-write 对「写工作区外路径」给出的琥珀色结果，走的就是这条轴：沙箱说不行，但你可以点头放行一次。
       </p>
+      <details class="src-details">
+        <summary>⌨ 看真实源码 · 免审批白名单是 Starlark 规则驱动的</summary>
+        <pre><span class="src-loc">codex-rs/execpolicy/src/policy.rs :104-126 · @343074d4 实测</span>
+<span class="src-code">pub fn get_allowed_prefixes(&amp;self) -&gt; Vec&lt;Vec&lt;String&gt;&gt; {
+    let mut prefixes = Vec::new();
+
+    for (_program, rules) in self.rules_by_program.iter_all() {
+        for rule in rules {
+            let Some(prefix_rule) = rule.as_any().downcast_ref::&lt;PrefixRule&gt;() else {
+                continue;
+            };
+            if prefix_rule.decision != Decision::Allow {
+                continue;
+            }
+
+            let mut prefix = Vec::with_capacity(prefix_rule.pattern.rest.len() + 1);
+            prefix.push(prefix_rule.pattern.first.as_ref().to_string());
+            prefix.extend(prefix_rule.pattern.rest.iter().map(render_pattern_token));
+            prefixes.push(prefix);
+        }
+    }
+
+    prefixes.sort();
+    prefixes.dedup();
+    prefixes
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          读出声：白名单不是写死的表——从 Starlark 策略脚本里收集「Allow 决策的前缀规则」，
+          排序去重后交给审批层。untrusted 策略下的「白名单命令免审批」走的就是这套。
+        </p>
+      </details>
     </section>
 
     <!-- 审批弹窗的形状 -->

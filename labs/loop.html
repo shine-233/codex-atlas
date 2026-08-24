@@ -370,6 +370,38 @@
           <p class="sim-empty">// 队列对空转中。发一条输入，看 Submission → Event 两侧怎么动。</p>
         </div>
       </div>
+      <details class="src-details" style="margin:0 24px 20px;">
+        <summary>⌨ 看真实源码 · steer_input：把新输入并进正在跑的轮</summary>
+        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :478-487（签名）+ :546-564（入队核心）· @343074d4 实测</span>
+<span class="src-code">async fn steer_input(
+    &amp;self,
+    input: &amp;mut Vec&lt;UserInput&gt;,
+    additional_context: BTreeMap&lt;String, AdditionalContextEntry&gt;,
+    expected_turn_id: Option&lt;&amp;str&gt;,
+    …
+) -&gt; Result&lt;String, NotSubmittedReason&gt; {
+
+// ……入队核心（:546-564）：
+pending_input.push(TurnInput::UserInput {
+    content: std::mem::take(input),
+    client_id: client_user_message_id,
+});
+if let Some(incoming_root_turn_id) = incoming_root_turn_id
+    &amp;&amp; active_task.turn_context.turn_metadata_state.root_turn_id() != incoming_root_turn_id
+{
+    active_task
+        .turn_context
+        .turn_metadata_state
+        .mark_root_turn_ambiguous();
+}
+self.input_queue
+    .extend_pending_input_and_accept_mailbox_delivery_for_turn_state(
+        active_turn.turn_state.as_ref(),
+        pending_input,
+    )
+    .await;
+Ok(active_turn_id.clone())</span></pre>
+      </details>
     </section>
 
     <!-- 重采样成本对照 -->
