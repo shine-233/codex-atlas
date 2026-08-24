@@ -2227,6 +2227,33 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
 </script>
 
 <script>
+/* ---------- crate 深链：atlas.html?crate=xxx 直达并高亮 ----------
+   复用检索管线：FILTER_Q 一处更新，列表/树图/星团/力导向四个视图同时暗化聚焦。
+   反向同步：每次检索都 replaceState 进地址栏——任何一次搜索都是可分享的深链。 */
+(function () {
+  "use strict";
+  var m = /[?&]crate=([^&]+)/.exec(location.search) || /^#crate=(.+)$/.exec(location.hash);
+  var q = document.getElementById("q");
+  if (!q) return;
+  if (m) {
+    var name = m[1];
+    try { name = decodeURIComponent(name); } catch (e) { /* 保留原样 */ }
+    q.value = name;
+    q.dispatchEvent(new Event("input", { bubbles: true }));
+    var idx = document.getElementById("main").querySelector(".panel");
+    if (idx) idx.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
+  }
+  q.addEventListener("input", function () {
+    var v = q.value.trim();
+    try {
+      if (v) history.replaceState(null, "", location.pathname + "?crate=" + encodeURIComponent(v));
+      else history.replaceState(null, "", location.pathname);
+    } catch (e) { /* file:// 等环境失败就忽略 */ }
+  });
+})();
+</script>
+
+<script>
 window.CATOUR_STEPS = [
   { sel: "#q", title: "检索与定位", text: "中英文都能搜：试试 mcp、记忆、沙箱。命中的成员高亮，其余暗化——三个视图联动。" },
   { sel: "#ribbon", title: "构成比例带", text: "段宽 = 该带成员数占比（合计 135）。点段跳到对应带。" },
