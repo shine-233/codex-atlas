@@ -550,17 +550,49 @@ pub developer_instructions: Option&lt;String&gt;,                               
             </details>
           </div>
         </div>
-        <div class="tui-side">
-          <h4>这一格是谁画的</h4>
-          <p id="tu-why">点左边任何一格：这里给出渲染它的协议事件或核心机制，以及它在 01 / 04 里的对应站点。</p>
-          <hr class="sep" style="margin:14px 0;">
-          <h4>顺手记住的两个键</h4>
-          <p><span class="kbd">Esc</span>　打断正在跑的轮次——对应 01 第 7 站的并入逻辑。<br>
-             <span class="kbd">Ctrl+C</span>　两连退出 TUI。<br>
-             <span class="small muted">界面细节与按键随版本变得快，此页给的是结构，不是截图。</span></p>
-        </div>
-      </div>
-    </section>
+         <div class="tui-side">
+           <h4>这一格是谁画的</h4>
+           <p id="tu-why">点左边任何一格：这里给出渲染它的协议事件或核心机制，以及它在 01 / 04 里的对应站点。</p>
+           <hr class="sep" style="margin:14px 0;">
+           <h4>顺手记住的两个键</h4>
+           <p><span class="kbd">Esc</span>　打断正在跑的轮次——对应 01 第 7 站的并入逻辑。<br>
+              <span class="kbd">Ctrl+C</span>　两连退出 TUI。<br>
+              <span class="small muted">界面细节与按键随版本变得快，此页给的是结构，不是截图。</span></p>
+         </div>
+       </div>
+       <p class="small muted" style="margin:18px 0 0;">屏幕上你看到的历史行，不是整屏重绘——是插进视口上方。插入动作本身有一条四层入口的管线，每层管一件事：换行策略、全屏/标准模式、超链接扁平化。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · 历史行插入管线的四层入口</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/insert_history.rs :54-103 · @343074d4 实测（原文拼接，签名省略泛型约束）</span>
+<span class="src-code">pub(crate) enum InsertHistoryMode {
+    Standard,
+    FullScreen,
+}
+
+/// Insert `lines` above the viewport using the terminal's backend writer
+/// (avoids direct stdout references).
+pub fn insert_history_lines&lt;B&gt;(
+    terminal: &amp;mut crate::custom_terminal::Terminal&lt;B&gt;,
+    lines: Vec&lt;Line&gt;,
+) -&gt; io::Result&lt;()&gt;
+where B: Backend&lt;Error = io::Error&gt; + Write,
+{
+    insert_history_lines_with_wrap_policy(terminal, lines, HistoryLineWrapPolicy::PreWrap)
+}
+
+pub(crate) fn insert_history_lines_with_mode_and_wrap_policy&lt;B&gt;(...)
+{
+    let screen_size = terminal.last_known_screen_size;
+    insert_history_hyperlink_lines_with_mode_and_wrap_policy(
+        terminal,
+        &amp;plain_hyperlink_lines(lines.iter().map(line_to_static).collect()),
+        mode,
+        wrap_policy,
+        screen_size,
+    )
+}</span></pre>
+       </details>
+     </section>
 
     <!-- ================ E · EXT ================ -->
     <section class="panel" id="mod-e" style="margin-top:30px;">
@@ -1502,7 +1534,27 @@ pub developer_instructions: Option&lt;String&gt;,                               
     { q: "四层配置里，最终谁说了算？",
       opts: ["config.toml——文件里写的最稳", "[profiles]——场景包优先", "CLI 旗标与 -c——越临时的越算数"],
       a: 2,
-      why: "优先级阶梯从下往上：内置默认 < config.toml < profile < CLI。规则一句话：越临时的来路越算数。所以 CI 里钉死审批策略用的是旗标，不是配置文件。" }
+      why: "优先级阶梯从下往上：内置默认 < config.toml < profile < CLI。规则一句话：越临时的来路越算数。所以 CI 里钉死审批策略用的是旗标，不是配置文件。" },
+    { q: "【A 房】codex login 拿到的凭据，落在哪个文件里？",
+      opts: ["~/.codex/auth.json", "~/.config/codex/credentials.toml", "系统钥匙串（Keychain）"],
+      a: 0,
+      why: "A 房拆过 storage.rs：AuthDotJson 结构体序列化到 $CODEX_HOME/auth.json——比官方文档多露的字段也在这个结构体里，比如 agent_identity。" },
+    { q: "【C 房】apply_patch 的 Update 段为什么刻意不写行号？",
+      opts: ["省 token", "靠上下文容错对齐，行号反而脆", "模型写不准行号，索性不让写"],
+      a: 1,
+      why: "@@ 锚点只是缩小搜索范围，真正校验靠上下文整块对齐（行首尾空白差异可容忍）。行号一错就全盘作废——上下文对齐允许锚点附近微漂。C 房「锚点打偏」预设演示的就是拒绝路径。" },
+    { q: "【D 房】TUI 的斜杠命令弹窗，顺序由什么决定？",
+      opts: ["按字母序排", "按枚举声明序排", "按使用频率动态排"],
+      a: 1,
+      why: "slash_command.rs 的枚举注释里专门写了 DO NOT ALPHA-SORT——枚举顺序就是弹窗顺序。D 房的面板照这个顺序摆。" },
+    { q: "【E 房】hooks 事件轴上，实测的事件名一共有几个？",
+      opts: ["4 个，只覆盖会话首尾", "8 个，从 session_start 排到 session_end", "16 个，含每轮工具调用"],
+      a: 1,
+      why: "E 房的挂点轴是逐个实测的：8 个事件名从 session_start 到 session_end，点任何一个能看到它在系统里的挂载位置。" },
+    { q: "【F 房】Code Mode 的 V8 实验目前是什么状态？",
+      opts: ["已默认启用", "实验位推演——证据边界就地标注", "已被上游移除"],
+      a: 1,
+      why: "F 房讲清楚了这个实验想干什么、走到哪一步。所有属推演的部分都在页面里就地标注，别当成已落地的特性引用。" }
   ]);
 })();
 </script>

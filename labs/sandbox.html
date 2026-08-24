@@ -477,6 +477,43 @@
         能拦住它的只有两样：MCP 服务器自己的权限设计，和你会不会点「拒绝」。
         这就是 02 第 2 层把「内置 + API + MCP」合并成一份工具清单、却只给内置那部分配沙箱声明的原因。
       </p>
+      <p class="small muted" style="margin:10px 0 0;">MCP 侧的管家叫 McpManager：工具目录是两级缓存（运行时连接的工具 + 全量目录），注册来源是 plugins 与 extensions 两套体系——固定提交恰好就是给这套体系加「运行时连接状态上报」。</p>
+      <details class="src-details">
+        <summary>🔍 看真实源码 · McpManager 结构与两级缓存</summary>
+        <pre><span class="src-loc">codex-rs/core/src/mcp.rs :72-101 · @343074d4 实测（构造体省略赋值体）</span>
+<span class="src-code">#[derive(Clone)]
+pub struct McpManager {
+    plugins_manager: Arc&lt;PluginsManager&gt;,
+    extensions: Arc&lt;ExtensionRegistry&lt;Config&gt;&gt;,
+    codex_apps_tools_cache: ConnectorRuntimeManager&lt;ToolInfo&gt;,
+    tool_catalog_cache: McpToolCatalogCache,
+}
+
+impl McpManager {
+    pub fn new(plugins_manager: Arc&lt;PluginsManager&gt;) -&gt; Self {
+        Self::new_with_extensions(
+            plugins_manager,
+            codex_extension_api::empty_extension_registry(),
+            ConnectorRuntimeManager::default(),
+        )
+    }
+
+    /// Creates a manager that resolves host-installed MCP contributions.
+    pub fn new_with_extensions(
+        plugins_manager: Arc&lt;PluginsManager&gt;,
+        extensions: Arc&lt;ExtensionRegistry&lt;Config&gt;&gt;,
+        codex_apps_tools_cache: ConnectorRuntimeManager&lt;ToolInfo&gt;,
+    ) -&gt; Self { /* ... */ }
+
+    pub fn codex_apps_tools_cache(&amp;self) -&gt; ConnectorRuntimeManager&lt;ToolInfo&gt; {
+        self.codex_apps_tools_cache.clone()
+    }
+
+    pub fn tool_catalog_cache(&amp;self) -&gt; McpToolCatalogCache {
+        self.tool_catalog_cache.clone()
+    }
+}</span></pre>
+      </details>
     </section>
 
     <section>
