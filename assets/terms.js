@@ -95,8 +95,8 @@
     { v: ["previous_response_id"], name: "previous_response_id",
       d: "官方 API 的会话续接参数；Codex 有意不用它，保持请求无状态以兼容零数据保留。",
       w: "01 第10站", href: "labs/loop.html" },
-    { v: ["auto_compact_limit"], name: "auto_compact_limit",
-      d: "token 总量超过阈值就自动压缩历史的开关，压缩走 /responses/compact。",
+    { v: ["model_auto_compact_token_limit"], name: "model_auto_compact_token_limit",
+      d: "token 总量超过阈值就自动压缩历史的 config 键，压缩走 /responses/compact。",
       w: "02 答疑表", href: "labs/prompt.html" },
     { v: ["tool spec", "ToolRouter"], name: "tool spec",
       d: "发给模型的可用工具说明书：名字与参数形状，模型照着决定调什么。",
@@ -113,7 +113,7 @@
     { v: ["trust_level", "项目信任"], name: "项目信任",
       d: "第一次在某个目录启动会弹确认；点过的目录进 config 的 projects 表，之后免问。",
       w: "07 B 房", href: "labs/deep.html" },
-    { v: ["/init", "/compact", "/approvals"], name: "斜杠命令",
+    { v: ["/init", "/compact", "/permissions"], name: "斜杠命令",
       d: "TUI 客户端本地处理的输入命令（/init、/model、/compact…），根本不会发给模型。",
       w: "07 D 房", href: "labs/deep.html" }
   ];

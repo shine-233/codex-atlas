@@ -213,7 +213,7 @@
           <tr data-k="agents.md 层叠 cascade 项目约定 目录"><td><code>AGENTS.md 层叠</code></td><td>从 ~/.codex 沿目录一路读到当前目录的项目约定文件，越近的越具体、覆盖越通用的。总量受 32 KiB 默认上限约束。</td><td><a href="labs/prompt.html">02</a> 第5层</td></tr>
           <tr data-k="previous_response_id 无状态 零数据保留 stateless"><td><code>previous_response_id</code></td><td>官方 API 用来续接会话的参数。Codex 有意不用它：每次全量重发历史，保持请求无状态，零数据保留部署才能兼容。</td><td><a href="labs/loop.html">01</a> 第10站</td></tr>
           <tr data-k="提示缓存 prompt caching 缓存命中 cached 计费 一折"><td><code>提示缓存命中</code></td><td>服务端把重复的历史前缀缓存起来，命中部分按约一折计费，全量重发的总账单因此从平方增长退回近似线性。</td><td><a href="labs/loop.html">01</a> 成本对照</td></tr>
-          <tr data-k="auto_compact_limit compact 压缩 历史 超长"><td><code>auto_compact_limit</code></td><td>token 总量超过阈值就自动压缩历史的开关，压缩走 /responses/compact，压完带着加密内容继续对话。</td><td><a href="labs/prompt.html">02</a> 答疑表</td></tr>
+          <tr data-k="model_auto_compact_token_limit auto_compact compact 压缩 历史 超长"><td><code>model_auto_compact_token_limit</code></td><td>token 总量超过阈值就自动压缩历史的 config 键，压缩走 /responses/compact，压完带着加密内容继续对话。</td><td><a href="labs/prompt.html">02</a> 答疑表</td></tr>
           <tr data-k="tool spec 工具清单 tools 工具列表"><td><code>tool spec（工具清单）</code></td><td>发给模型的可用工具说明书：名字、参数形状。模型照着它决定调什么。内置、API 侧、MCP 三类合并成一份。</td><td><a href="labs/prompt.html">02</a> 第2层</td></tr>
         </tbody>
       </table>

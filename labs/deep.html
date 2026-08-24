@@ -502,7 +502,7 @@
       ],
       apikey: [
         { k: "拿到密钥", d: "platform 网站上生成一个 sk- 开头的 key。" },
-        { k: "交给 CLI", d: "<b>codex login --api-key</b> 写入 auth.json；或者只 export OPENAI_API_KEY，不落盘。" },
+        { k: "交给 CLI", d: "<b>codex login --with-api-key</b> 从标准输入读密钥写进 auth.json（旧的 --api-key 旗标已废弃）；或者只设 <b>CODEX_API_KEY</b> 环境变量，不落盘。" },
         { k: "出站端点不同", d: "请求打向 <b>api.openai.com/v1/responses</b>。同一套 Responses API，另一扇门。" },
         { k: "按 token 计费", d: "没有套餐额度这回事，花多少付多少。结合 01 成本对照里的全量重发曲线，你就知道为什么缓存命中那么值钱。" },
         { k: "没有续期机制", d: "密钥是长期凭证：不过期、不刷新。泄露即事故，权限直接到账户级。" }
@@ -510,7 +510,7 @@
     };
     var NOTES = {
       chatgpt: "字段名取自仓库 authentication.md 的公开转述，形状示意。想核对就开自己机器上的 ~/.codex/auth.json。",
-      apikey: "两种凭据都在手时听谁的？显式 --api-key > 环境变量 > auth.json 里已存的登录态；config.toml 的 preferred_auth_method 负责裁决定性——这是简化模型，组合细节以 docs/config.md 为准。"
+      apikey: "两种凭据都在手时听谁的？显式喂给 CLI 的 key > <b>CODEX_API_KEY</b> 环境变量 > auth.json 里已存的登录态（注意：本基线认的是 CODEX_API_KEY，不是 OPENAI_API_KEY）；config.toml 的 forced_login_method 负责裁决定性——这是简化模型，组合细节以固定提交下 login crate 源码为准。"
     };
     var JSONS = {
       chatgpt: '{\n  "OPENAI_API_KEY": null,\n  "tokens": {\n    "id_token": "«JWT · 三段式»",\n    "access_token": "«每次出站都带着»",\n    "refresh_token": "«静默续期靠它»",\n    "account_id": "«…»"\n  },\n  "last_refresh": "2026-08-22T09:41:00Z"\n}',
@@ -936,7 +936,7 @@
         why: "<b>AgentMessage delta</b>：模型正文逐字上屏，靠的是 04 讲过的 item started → delta → completed 三段生命周期。" },
       { kind: "exec", tag: "exec · 命令与输出", stream: false,
         text: "$ cargo test -p task-runner\n   Compiling task-runner v0.1.0\n    Finished test [unoptimized] target(s)\n     Running unittests src/lib.rs\n test retry_uses_configured_max ... ok\n test retry_gives_up_eventually ... ok\n test result: ok. 12 passed; 0 failed",
-        why: "<b>ExecCommandBegin / End</b>：命令先亮出来给你看（04 第 10 条），跑在 03 讲的沙箱之下，输出折叠进这一格。点击展开是 TUI 的基本礼仪。" },
+        why: "<b>ExecCommandBegin / End</b>：命令先亮出来给你看（04 第 10 条），跑在 03 讲的沙箱之下，输出折叠进这一格，点开能看全程。" },
       { kind: "patch", tag: "apply_patch · 文件变更", stream: false,
         text: "*** Update File: src/task_runner.rs\n  @@ pub fn retry\n-    let max = 3;\n+    let max = task.max_retries.unwrap_or(3);\n  (1 个文件 · +1 −1)",
         why: "<b>ApplyPatchApprovalRequest → TurnDiff</b>：补丁先过 C 房那种解析器，再经审批闸口（04 第 11 条的反向请求），落盘后以红绿行呈现——用的正是 C 房拆过的那套格式。" },
@@ -1052,8 +1052,8 @@
     var CMDS = [
       { c: "/init", d: "扫一遍仓库，生成或更新 AGENTS.md 骨架——02 第 5 层的素材就是它管的。" },
       { c: "/model", d: "弹出模型选择器，等效于临时改 config 的 model 键。" },
-      { c: "/approvals", d: "运行中切换审批策略，不用重启会话。03 的那条轴，随手拨。" },
-      { c: "/compact", d: "手动压缩历史。02 提过 auto_compact_limit 会自动做，这条是手动挡。" },
+      { c: "/permissions", d: "运行中查看与调整审批/沙箱权限档，不用重启会话。03 的那条轴，随手拨。" },
+      { c: "/compact", d: "手动压缩历史。02 提过 model_auto_compact_token_limit 会自动做，这条是手动挡。" },
       { c: "/diff", d: "看本轮会话在工作区留下的 git 改动。配合 03 想清楚：改动只能落在可信范围里。" },
       { c: "/status", d: "当前会话信息一览：模型、审批、沙箱、cwd、凭据形态。" },
       { c: "/new", d: "开新线程，旧时间线归档。对应 04 里 Thread 原语的生命周期。" }

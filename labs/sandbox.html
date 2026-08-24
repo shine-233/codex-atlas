@@ -444,7 +444,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；<code>SandboxPermission</code> 枚举（<code>DiskFullReadAccess</code>、<code>DiskWriteTempOnly</code>、<code>NetworkFullAccess</code>）见社区对 <code>codex-rs/core/src/protocol.rs</code> 的引用分析。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
       审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>)与「CLI 旗标覆盖配置文件」的优先级同出该文档；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
@@ -464,7 +464,7 @@
     linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
             note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
     win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
-            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @343074d4 没把它列进 workspace members——构建上暂未启用，实现位置随版本演进，这正是固定基线的意义。" }
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @343074d4 没把它列进 workspace members——构建上暂未启用。实现位置随版本演进，所以本站锁基线，换一个提交就得重查。" }
   };
 
   /* v: ro / ww / full 三模式的判定。cond = 条件放行 */
@@ -476,14 +476,14 @@
     { id:"ra", glyph:"cat ~/", name:"读工作区外的文件（如 ~/.ssh/config）",
       v:{ ro:"allow", ww:"allow", full:"allow" },
       why:"同样是放行，但<b>全盘可读是设计取舍，不是疏忽</b>。敏感文件的隔离要靠磁盘权限和信任边界解决，别指望沙箱替你保密。",
-      mech:"同上；对应枚举中的 DiskFullReadAccess 语义。" },
+      mech:"同上；读取不受沙箱约束——policy 层只管写入与网络。" },
     { id:"ww", glyph:"edit", name:"修改工作区内的文件",
       v:{ ro:"deny", ww:"allow", full:"allow" },
       why:"read-only 模式下被拒——它连临时目录都不该碰。workspace-write 是为这个动作设计的日常档位：git root 到 cwd 的路径都在白名单里。",
       mech:"workspace-write 白名单 = 工作目录 + 系统临时目录。" },
     { id:"wt", glyph:"mktemp", name:"写系统临时目录（/tmp、$TMPDIR）",
       v:{ ro:"deny", ww:"allow", full:"allow" },
-      why:"编译产物、测试缓存都落在这里。对应协议枚举 DiskWriteTempOnly：临时目录被视为工作区的延伸，而不是越界。",
+      why:"编译产物、测试缓存都落在这里。对应 protocol crate 的 workspace_write() 规则：/tmp 与 $TMPDIR 默认在可写名单里——临时目录被视为工作区的延伸，而不是越界。",
       mech:"同上；临时目录与工作目录同级放行。" },
     { id:"wo", glyph:"touch ~/x", name:"改写工作区外的路径（如 ~/.bashrc）",
       v:{ ro:"deny", ww:"cond", full:"allow" },
@@ -492,7 +492,7 @@
     { id:"net", glyph:"curl", name:"访问网络（下载依赖、调 API）",
       v:{ ro:"deny", ww:"cond", full:"allow" },
       why:"read-only 与 workspace-write 默认断网；后者可在 config 里显式打开 network_access——打开后这格变绿。需要联网装依赖又不想全放开时，这是唯一的中间档。",
-      mech:"macOS 在 Seatbelt profile 内关网络；Linux 由 seccomp 兜底；Windows 走 WFP 规则。对应 NetworkFullAccess 语义。" }
+      mech:"macOS 在 Seatbelt profile 内关网络；Linux 由 seccomp 兜底；Windows 走 WFP 规则。对应 workspace_write() 的 network_access 开关。" }
   ];
 
   var curOs = "mac";
@@ -900,7 +900,7 @@
           return { id: "rw", rule: "sed 不带 -i 是流式编辑、结果走 stdout，不碰原文件——按普通读取处理。" };
         }
         if (/(^|[\s"'=])(\/tmp\/|\/var\/tmp|\$tmpdir|%temp%)/.test(s))
-          return { id: "wt", rule: "sed -i 写系统临时目录。临时目录与工作目录同级放行（DiskWriteTempOnly 的语义）。" };
+          return { id: "wt", rule: "sed -i 写系统临时目录。临时目录与工作目录同级放行（workspace-write 白名单语义）。" };
         if (/(^|[\s"'=~])(~\/|\$home\/?|\/(etc|usr|opt|bin|sbin)\b)/.test(s))
           return { id: "wo", rule: "sed -i 的写入目标在工作目录之外：先被沙箱墙挡住，能不能过看你的审批签名。" };
         return { id: "ww", rule: "sed -i 原地改写文件——落点在工作区内，workspace-write 白名单的日常领地。" };
@@ -912,7 +912,7 @@
         /\btee\b/.test(s);
       if (write) {
         if (/(^|[\s"'=])(\/tmp\/|\/var\/tmp|\$tmpdir|%temp%)/.test(s))
-          return { id: "wt", rule: "写系统临时目录。临时目录与工作目录同级放行（DiskWriteTempOnly 的语义）。" };
+          return { id: "wt", rule: "写系统临时目录。临时目录与工作目录同级放行（workspace-write 白名单语义）。" };
         if (/(^|[\s"'=~])(~\/|\$home\/?|\/(etc|usr|opt|bin|sbin)\b)/.test(s))
           return { id: "wo", rule: "写入目标在工作目录之外：先被沙箱墙挡住，能不能过看你的审批签名。" };
         return { id: "ww", rule: "改动落在工作目录内——workspace-write 白名单的日常领地。" };

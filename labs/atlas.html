@@ -111,6 +111,28 @@
   .cov-yes { border-color: rgba(123, 201, 139, .5); color: var(--ok); background: var(--ok-dim); }
   .cov-part { border-color: rgba(255, 180, 84, .5); color: var(--amber); background: var(--amber-dim); }
   .cov-no { border-color: var(--line-strong); }
+  /* 实测依赖排行 */
+  .dep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 24px; }
+  @media (max-width: 900px) { .dep-grid { grid-template-columns: 1fr; } }
+  .dep-head {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 10px;
+  }
+  .dep-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .dep-name {
+    font-family: var(--mono); font-size: 11.5px; color: var(--dim);
+    width: 172px; flex-shrink: 0; text-align: right;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dep-track { flex: 1; height: 14px; background: var(--bg0); position: relative; }
+  .dep-bar {
+    height: 100%; background: linear-gradient(90deg, rgba(255,180,84,.35), rgba(255,180,84,.85));
+    min-width: 2px; transition: width .6s var(--ease);
+  }
+  .dep-row.out .dep-bar { background: linear-gradient(90deg, rgba(143,199,232,.3), rgba(143,199,232,.8)); }
+  .dep-n { font-family: var(--mono); font-size: 11px; color: var(--ink); width: 26px; flex-shrink: 0; }
+  .dep-row { cursor: pointer; }
+  .dep-row:hover .dep-name { color: var(--amber); }
   /* 3D 星系视图 */
   #galaxy { height: 440px; }
   #galaxy canvas { display: block; }
@@ -313,8 +335,35 @@
       </div>
       <p class="small muted" style="margin:10px 0 0;">
         覆盖粒度三级：crate 级（135 全注解）→ 文件级（五条主干线路上的关键路径）→ 函数级（循环体关键节点）。
-        SDK 客户端（Go / Python / TS / Swift / Kotlin）由 <code>generate-ts</code> 从协议生成，04 有讲到机制本身。
+        仓库内 SDK 是 Python 与 TypeScript（<code>sdk/</code> 目录），由 <code>generate-ts</code> 等工具从协议生成，04 有讲到机制本身。
         2026-08-24 对上游复核：members 实测 135、本页引用路径全部存在（raw.githubusercontent @343074d4）。
+      </p>
+    </section>
+
+    <!-- 实测依赖排行：823 条内部依赖边（爬自 135 份 Cargo.toml） -->
+    <section class="panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>DEPENDENCY FACTS · 实测内部依赖排行</h3>
+        <span class="readout">135 crate · 823 条边 · 2026-08-24 爬自固定提交</span>
+      </div>
+      <p class="small muted" style="margin:0 0 14px;">
+        不是归纳，是数出来的：逐份抓取 135 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖。
+        点任意一行，检索框会帮你定位到那个 crate。
+      </p>
+      <div class="dep-grid">
+        <div>
+          <div class="dep-head">被内部依赖最多 · in-degree</div>
+          <div id="dep-in"></div>
+        </div>
+        <div>
+          <div class="dep-head">内部依赖别人最多 · out-degree</div>
+          <div id="dep-out"></div>
+        </div>
+      </div>
+      <p class="small muted" style="margin:12px 0 0;">
+        读法：<code>protocol</code> 被 70 个 crate 依赖——「零业务语义的地基件」这句注解现在是数出来的；
+        <code>core</code> 依赖 69 个内部 crate——第 2 带是吞噬整个工作区的大胃王；
+        另有 7 个零入度叶子 crate，没有任何人依赖它们。
       </p>
     </section>
 
@@ -392,7 +441,7 @@
         "exec-server/tests/support":"测试支撑件：给 exec-server 的测试当脚手架，不参与发布产物。"
       } },
     { no:"B4", name:"沙箱安全", en:"SANDBOX & SECURITY", count:9,
-      desc:"强制执行机制与凭据保管。03 判定器的物理基础。固定提交名单里没有独立的 Windows 沙箱 crate——实现位置随版本演进，这正是固定基线的意义。",
+      desc:"强制执行机制与凭据保管。03 判定器的物理基础。windows-sandbox-rs 源码在仓库里，但固定提交的 members 名单没把它算进去——构建上暂未启用，换一个提交就得重新核对。",
       crates:["sandboxing","linux-sandbox","bwrap","execpolicy","process-hardening","secrets","keyring-store","workload-identity","aws-auth"],
       notes:{
         "sandboxing":"macOS Seatbelt profile 的生成与强制执行（03 macOS 一列的实现处）。",
@@ -1415,6 +1464,72 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  /* ---------- 实测依赖排行：数据爬自固定提交下 135 份 Cargo.toml（2026-08-24） ---------- */
+  (function () {
+    var IN = [["protocol",70],["utils/absolute-path",53],["http-client",28],["login",26],["core",25],["utils/path-uri",25],["config",24],["otel",23],["exec-server",17],["git-utils",16],["codex-api",16],["ext/extension-api",16]];
+    var OUT = [["core",69],["app-server",60],["cli",46],["tui",45],["core-plugins",22],["exec",19],["memories/write",19],["exec-server",18],["core-api",17],["mcp-server",17],["ext/skills",15],["codex-mcp",15]];
+    var grown = false;
+
+    function build() {
+      render("dep-in", IN, 70, false);
+      render("dep-out", OUT, 69, true);
+    }
+    function render(id, data, max, isOut) {
+      var box = document.getElementById(id);
+      if (!box) return;
+      data.forEach(function (d) {
+        var row = document.createElement("div");
+        row.className = "dep-row" + (isOut ? " out" : "");
+        row.setAttribute("tabindex", "0");
+        row.setAttribute("role", "button");
+        row.setAttribute("aria-label", "在图谱中检索 " + d[0]);
+        row.innerHTML = '<span class="dep-name">' + d[0] + '</span>' +
+          '<span class="dep-track"><i class="dep-bar" style="width:0%"></i></span>' +
+          '<span class="dep-n">' + d[1] + "</span>";
+        function go() {
+          qInput.value = d[0];
+          applyFilter();
+          if (window.CAFlash) CAFlash(document.querySelector(".search-row"));
+          qInput.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "center" });
+        }
+        row.addEventListener("click", go);
+        row.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
+        });
+        box.appendChild(row);
+      });
+    }
+    function grow() {
+      if (grown) return;
+      grown = true;
+      Array.prototype.forEach.call(document.querySelectorAll(".dep-bar"), function (bar) {
+        bar.style.width = bar.getAttribute("data-w") + "%";
+      });
+    }
+    function mountBars() {
+      Array.prototype.forEach.call(document.querySelectorAll(".dep-row"), function (row) {
+        var n = parseInt(row.querySelector(".dep-n").textContent, 10);
+        var isOut = row.classList.contains("out");
+        var max = isOut ? 69 : 70;
+        var bar = row.querySelector(".dep-bar");
+        bar.setAttribute("data-w", Math.max(2, n / max * 100).toFixed(1));
+      });
+      if (window.PrefersReducedMotion || !("IntersectionObserver" in window)) {
+        Array.prototype.forEach.call(document.querySelectorAll(".dep-bar"), function (bar) {
+          bar.style.width = bar.getAttribute("data-w") + "%";
+        });
+        return;
+      }
+      new IntersectionObserver(function (ents, obs) {
+        ents.forEach(function (en) {
+          if (en.isIntersecting) { grow(); obs.disconnect(); }
+        });
+      }, { rootMargin: "0px 0px -8% 0px" }).observe(document.getElementById("dep-in"));
+    }
+    build();
+    mountBars();
+  })();
 
   CAQuiz.mount(document.getElementById("quiz"), [
     { q: "想读 Agent 循环的实现本体，先去哪条带？",

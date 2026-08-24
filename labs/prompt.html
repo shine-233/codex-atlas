@@ -244,7 +244,7 @@
           </tr>
           <tr>
             <td>历史越滚越大怎么办</td>
-            <td>Codex 不用 previous_response_id，每次全量重发以保持无状态（兼容零数据保留）。当 token 总量超过 auto_compact_limit 阈值，自动调用 <b>/responses/compact</b> 压缩历史，压缩项携带 encrypted_content 供模型延续理解。</td>
+            <td>Codex 不用 previous_response_id，每次全量重发以保持无状态（兼容零数据保留）。当 token 总量超过 <code>model_auto_compact_token_limit</code> 阈值，自动调用 <b>/responses/compact</b> 压缩历史，压缩项携带 encrypted_content 供模型延续理解。</td>
           </tr>
         </tbody>
       </table>
@@ -260,7 +260,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限、auto_compact_limit 与 /responses/compact 行为，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。
+      组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限、model_auto_compact_token_limit 与 /responses/compact 行为，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。
       <b>柱状刻度是示意相对体积，不是实测 token 数。</b>本站不运行模型，不测量任何真实请求。
     </aside>
 
