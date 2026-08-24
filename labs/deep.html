@@ -197,6 +197,21 @@
   .ext-detail h4 { margin: 0 0 6px; font-family: var(--mono); font-size: 14px; }
   .ext-detail p { color: var(--dim); font-size: 13px; line-height: 1.7; margin: 0 0 6px; max-width: 52em; }
   .ext-detail .gap { color: var(--faint); font-size: 12.5px; }
+
+  /* F 房 Code Mode 日志 */
+  .cm-log {
+    margin-top: 12px; padding: 14px 18px; min-height: 200px; max-height: 300px; overflow-y: auto;
+    font-family: var(--mono); font-size: 11.5px; line-height: 2.05;
+    background: var(--bg0); border: 1px solid var(--line);
+  }
+  .cm-log p { margin: 0; color: var(--dim); white-space: pre-wrap; }
+  .cm-log .cl-no { color: var(--faint); margin-right: 9px; }
+  .cm-log .cl-samp { color: var(--amber); }
+  .cm-log .cl-ev { color: var(--steel); }
+  .cm-log .cl-ok { color: var(--ok); }
+  .cm-log .cl-note { color: var(--faint); }
+  .cm-log .cl-js { color: #ffd9a0; }
+  .cm-empty { color: var(--faint); }
 </style>
 </head>
 <body>
@@ -239,30 +254,32 @@
 <div class="wrap">
   <main class="container" id="main">
 
-    <div class="status-strip">
-      <span><i class="dot"></i>支线深度不及主干，门槛也低：每间房独立，随便进</span>
-      <span>凭据流与 config 出自官方文档级材料</span>
-      <span>TUI 与扩展机制为结构示意，就地标注</span>
-    </div>
-
-    <header style="padding-top:16px;">
-      <div class="miniscope" id="miniscope" aria-hidden="true"></div>
-      <p class="eyebrow"><span class="tick">▮</span>07 深水区 · 支线</p>
-      <h1>主干讲完之后，<br>还有五间没开门的房间。</h1>
-      <p class="lede">
-        01–05 是主干道，真用起来时问题多半落在支线上：
-        登录令牌存在哪、config.toml 里谁覆盖谁、apply_patch 的补丁到底长什么样、
-        TUI 里每一格画面背后是哪条事件、技能记忆这些新词挂在系统的哪个位置。
-        这一页把五扇门各推开一条缝，每间房放一台能动手的小仪器。
-      </p>
-      <div class="room-jumps">
-        <a href="#mod-a">A · 凭据流</a>
-        <a href="#mod-b">B · 配置系统</a>
-        <a href="#mod-c">C · 补丁格式</a>
-        <a href="#mod-d">D · TUI 后台</a>
-        <a href="#mod-e">E · 扩展机制</a>
+      <div class="status-strip">
+        <span><i class="dot"></i>支线深度不及主干，门槛也低：每间房独立，随便进</span>
+        <span>凭据流与 config 出自官方文档级材料</span>
+        <span>F 房为实验位预览，就地标注</span>
       </div>
-    </header>
+
+      <header style="padding-top:16px;">
+        <div class="miniscope" id="miniscope" aria-hidden="true"></div>
+        <p class="eyebrow"><span class="tick">▮</span>07 深水区 · 支线</p>
+        <h1>主干讲完之后，<br>还有六间没开门的房间。</h1>
+        <p class="lede">
+          01–05 是主干道，真用起来时问题多半落在支线上：
+          登录令牌存在哪、config.toml 里谁覆盖谁、apply_patch 的补丁到底长什么样、
+          TUI 里每一格画面背后是哪条事件、技能记忆这些新词挂在系统的哪个位置、
+          Code Mode 那个 V8 实验到底想干什么。
+          这一页把六扇门各推开一条缝，每间房放一台能动手的小仪器。
+        </p>
+        <div class="room-jumps">
+          <a href="#mod-a">A · 凭据流</a>
+          <a href="#mod-b">B · 配置系统</a>
+          <a href="#mod-c">C · 补丁格式</a>
+          <a href="#mod-d">D · TUI 后台</a>
+          <a href="#mod-e">E · 扩展机制</a>
+          <a href="#mod-f">F · Code Mode</a>
+        </div>
+      </header>
 
     <!-- ================ A · AUTH ================ -->
     <section class="panel" id="mod-a" style="margin-top:34px;">
@@ -467,6 +484,58 @@
           <p id="xd-known">已知部分来自固定提交下实测的 crate 名单；未知部分也会明说。</p>
           <p class="gap" id="xd-gap"></p>
         </div>
+
+        <!-- hooks 实测事件轴：8 个事件模块，文件名即事件名（@343074d4 实测） -->
+        <div style="margin-top:18px;border-top:1px dashed var(--line-strong);padding-top:14px;">
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">HOOKS 事件轴 · events/ 目录实测的 8 个钩子（按会话生命周期排序 · 点一个看挂点）</div>
+          <div id="hook-events" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
+          <div class="ext-detail" style="margin-top:12px;min-height:70px;" aria-live="polite">
+            <h4 id="he-name" style="font-size:13px;">点上方任意事件</h4>
+            <p id="he-body" style="margin:4px 0 0;">模块名即文件名，来自固定提交 codex-rs/hooks/src/events/ 实测；挂点位置与说明是本站归纳。</p>
+          </div>
+          <p class="small muted" style="margin:8px 0 0;">
+            同 crate 还有：engine/（执行引擎）、registry.rs（注册表）、schema.rs（44 KiB 的配置 schema，最大的那个文件）、
+            config_rules.rs（配置规则）、declarations.rs、mcp.rs、legacy_notify.rs（旧 notify 兼容）、output_spill.rs（输出落盘）。
+            结构为 @343074d4 实测；各事件的确切触发语义以源码为准。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================ F · CODE MODE ================ -->
+    <section class="panel" id="mod-f" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">F · CODE MODE</span>　V8 实验位：让模型写代码，而不是逐张发单</h3>
+        <span class="readout">实验位 · crate 名字里自带 poc · 形状为本站推演</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
+        普通模式里，模型每做一个动作就发一张工具单，一来一回都是一次采样。
+        Code Mode 的想法：让模型直接写一段 JavaScript，丢进内嵌的 V8 引擎里跑——
+        循环、拼接、多步编排都在 JS 里完成。<b style="color:var(--ink);">但 JS 摸不到你的系统</b>：
+        它能调用的只有被注入的 host 函数，而每个 host 函数背后仍是正常的工具路径——照样过沙箱与审批。
+        下方对比是本站推演的形状示意，不是上游文档承诺。
+      </p>
+      <div style="padding:0 24px 20px;">
+        <div class="seg" role="group" aria-label="选择模式">
+          <button data-cm="normal" class="on">普通模式 · 逐张发单</button>
+          <button data-cm="code">Code Mode · 一段 JS</button>
+        </div>
+        <div class="controls" style="border:none;padding:10px 0 0;">
+          <button class="btn primary" id="cm-run" type="button">▶ 跑一遍</button>
+          <span class="match-readout" id="cm-count" aria-live="polite">选模式后点跑</span>
+        </div>
+        <div class="cm-log" id="cm-log" aria-live="polite">
+          <p class="cm-empty">// 同一个任务「读两个配置文件并汇总」，两种跑法。</p>
+        </div>
+        <div style="margin-top:14px;border-top:1px dashed var(--line-strong);padding-top:12px;">
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">crate 家族（@343074d4 实测）</div>
+          <p class="small" style="color:var(--dim);margin:0;">
+            <code>code-mode</code>（主 crate）· <code>code-mode-host</code>（宿主侧 V8 环境）·
+            <code>code-mode-protocol</code>（内部协议）· <code>code-mode-runtime</code>（运行时实现）·
+            <code>v8-poc</code>（概念验证——名字就是公告栏）。
+            实测依赖里 <code>code-mode</code> 还连着 <code>http-client</code> 与 <code>websocket-client</code>：远程执行通道的伏笔。
+          </p>
+        </div>
       </div>
     </section>
 
@@ -476,7 +545,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名，接口形态未定——地图有效，解剖无效。基线 openai/codex@343074d4。
+      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名；hooks 事件轴的 8 个事件名为固定提交下 events/ 目录实测，事件语义为本站归纳。F 房 Code Mode 的双模式对比是<b>本站推演的形状示意</b>——上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。基线 openai/codex@343074d4。
     </aside>
 
   </main>
@@ -1107,8 +1176,8 @@
         known: "外部能力以工具身份进 tools 字段：<code>plugin</code>、<code>core-plugins</code> 是内置体系，MCP 服务器经 <code>mcp_servers</code> 表接入。别忘了 03 的红线：MCP 工具不在沙箱管辖内。",
         gap: "插件分发与签名机制尚无公开定论；装第三方插件目前等于信任作者。" },
       { n: "hooks · 钩子", w: "挂在工具执行的前与后",
-        known: "生命周期钩子：在工具执行前后插自定义逻辑。crate 就叫 <code>hooks</code>，位置对应主干 01 第 12 站的两侧。",
-        gap: "可挂事件的完整清单、配置格式未定型；本页只保证「它在这两个位置存在」。" },
+        known: "生命周期钩子：在工具执行前后插自定义逻辑。crate 就叫 <code>hooks</code>，位置对应主干 01 第 12 站的两侧。固定提交下 events/ 目录实测有 <b>8 个事件模块</b>——点下方事件轴逐个看。",
+        gap: "事件名已实测（文件名即事件名）；每个事件的配置语义与触发细则仍在演进（config_rules.rs 还在改）。" },
       { n: "memories · 记忆", w: "挂在历史与上下文（历史写回一段）",
         known: "读取与写入拆成两个 crate：<code>memories/read</code> 与 <code>memories/write</code>，成对出现；另有扩展包装位 <code>ext/memories</code>。方向上是给上下文加一层跨会话的记忆检索。",
         gap: "存储格式、遗忘策略、与 rollout 落盘的边界都还是进行时。" },
@@ -1183,6 +1252,129 @@
         if (window.CAFlash) CAFlash(document.querySelector(".ext-detail"));
       });
       hooksBox.appendChild(b);
+    });
+  })();
+
+  /* ---------- E 房补充：hooks 实测事件轴（8 事件，文件名即事件名） ---------- */
+  (function () {
+    var box = document.getElementById("hook-events");
+    if (!box) return;
+    var EVENTS = [
+      { n: "session_start", st: "会话建立", where: "会话最前", d: "会话启动时触发。适合注入环境上下文、装载项目级准备逻辑。" },
+      { n: "user_prompt_submit", st: "输入提交", where: "采样之前（01·9 前）", d: "你敲下回车、输入进入队列前后触发。可做输入审计、改写或短路。" },
+      { n: "pre_tool_use", st: "工具执行前", where: "01·12 闸前", d: "每次工具调用执行前触发。检查参数、放行或拦截——这是钩子最常被期待的挂点。" },
+      { n: "post_tool_use", st: "工具执行后", where: "01·12 闸后", d: "工具跑完拿到输出后触发。可做结果审计、自动格式化、日志归档。" },
+      { n: "permission_request", st: "审批请求", where: "审批闸口（03 的琥珀格）", d: "权限审批请求发生时触发——钩子甚至可以参与到「要不要问」的流程里。" },
+      { n: "compact", st: "历史压缩", where: "压缩前后", d: "自动/手动压缩历史时触发。可保存压缩前快照、审计被压掉的内容。" },
+      { n: "stop", st: "轮次收束", where: "01·13 附近", d: "模型停止、一轮收束时触发。适合做完成通知、结果汇总。" },
+      { n: "session_end", st: "会话结束", where: "会话最后", d: "会话退出时触发。收尾清理、会话级日志归档。" }
+    ];
+    var nameOut = document.getElementById("he-name");
+    var bodyOut = document.getElementById("he-body");
+    EVENTS.forEach(function (ev, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ext-card-btn";
+      b.style.cssText = "flex:1 1 120px;padding:8px 10px;";
+      b.innerHTML = '<span class="xn" style="font-size:11.5px;">' + ev.n + "</span>" +
+        '<span class="xw" style="margin-top:2px;">' + ev.st + "</span>";
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(box.children, function (x) { x.classList.toggle("on", x === b); });
+        nameOut.textContent = ev.n + " · " + ev.st;
+        bodyOut.innerHTML = "<b>挂点：</b>" + ev.where + "。<b>说明（本站归纳）：</b>" + ev.d +
+          ' <span style="color:var(--faint);">模块：codex-rs/hooks/src/events/' + ev.n + ".rs（实测）</span>";
+        if (window.CAFlash) CAFlash(nameOut.parentElement);
+      });
+      box.appendChild(b);
+    });
+  })();
+
+  /* ---------- F 房：Code Mode 双模式对比（本站推演的状态机示意） ---------- */
+  (function () {
+    var logBox = document.getElementById("cm-log");
+    var countOut = document.getElementById("cm-count");
+    var runBtn = document.getElementById("cm-run");
+    if (!logBox || !runBtn) return;
+    var mode = "normal";
+    var seq = 0, timers = [];
+
+    function log(html) {
+      var empty = logBox.querySelector(".cm-empty");
+      if (empty) empty.remove();
+      seq++;
+      var p = document.createElement("p");
+      p.innerHTML = '<span class="cl-no">' + (seq < 10 ? "0" + seq : seq) + "</span>" + html;
+      if (window.PrefersReducedMotion !== true) p.classList.add("ca-rise");
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+    function clear() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      seq = 0;
+      logBox.innerHTML = '<p class="cm-empty">// 同一个任务「读两个配置文件并汇总」，两种跑法。</p>';
+    }
+    function step(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+    var SCRIPTS = {
+      normal: {
+        count: "采样 5 次 · 工具单 2 张",
+        note: "普通模式：每次工具调用都要回模型转一圈。动作越多，采样次数涨得越快——01 成本对照里那条平方曲线就是这么来的。",
+        run: function () {
+          log('<span class="cl-samp">→ 采样 #1</span>　模型：我要读 a.toml');
+          step(700, function () { log('<span class="cl-ev">← 工具单</span>　read_file(a.toml) · 走沙箱'); });
+          step(1400, function () { log('<span class="cl-ok">← 输出</span>　写回历史'); });
+          step(1900, function () { log('<span class="cl-samp">→ 采样 #2</span>　模型：再读 b.toml'); });
+          step(2600, function () { log('<span class="cl-ev">← 工具单</span>　read_file(b.toml) · 走沙箱'); });
+          step(3300, function () { log('<span class="cl-ok">← 输出</span>　写回历史'); });
+          step(3800, function () { log('<span class="cl-samp">→ 采样 #3</span>　模型：再读 c.toml'); });
+          step(4500, function () { log('<span class="cl-ev">← 工具单</span>　read_file(c.toml) · 走沙箱'); });
+          step(5200, function () { log('<span class="cl-ok">← 输出</span>　写回历史'); });
+          step(5700, function () { log('<span class="cl-samp">→ 采样 #4</span>　模型：还差 d.toml'); });
+          step(6400, function () { log('<span class="cl-ev">← 工具单</span>　read_file(d.toml) · 走沙箱'); });
+          step(7100, function () { log('<span class="cl-ok">← 输出</span>　写回历史'); });
+          step(7600, function () { log('<span class="cl-samp">→ 采样 #5</span>　模型：汇总四个文件'); });
+          step(8300, function () { log('<span class="cl-ok">← TurnComplete</span>　任务完成'); });
+        }
+      },
+      code: {
+        count: "采样 1 次 · host 调用 4 次（每次仍走沙箱）",
+        note: "Code Mode：编排逻辑搬进 JS，采样只发生一次。注意看——每次 host_read_file 依然走沙箱与审批：V8 给的是编排自由，不是权限自由。形状为本站推演。",
+        run: function () {
+          log('<span class="cl-samp">→ 采样 #1</span>　模型返回一段 JS（不是工具单）');
+          step(800, function () { log('<span class="cl-js">const a = host.read_file("a.toml");</span>'); });
+          step(1000, function () { log('<span class="cl-js">const b = host.read_file("b.toml");</span>'); });
+          step(1200, function () { log('<span class="cl-js">const c = host.read_file("c.toml");</span>'); });
+          step(1400, function () { log('<span class="cl-js">const d = host.read_file("d.toml");</span>'); });
+          step(1600, function () { log('<span class="cl-js">return [a, b, c, d].map(summarize).join("\\n");</span>'); });
+          step(2100, function () { log('<span class="cl-note">── V8 引擎内开始执行 ──</span>'); });
+          step(2500, function () { log('<span class="cl-ev">host.read_file(a)</span>　→ 穿沙箱 · 返回内容'); });
+          step(2900, function () { log('<span class="cl-ev">host.read_file(b)</span>　→ 穿沙箱 · 返回内容'); });
+          step(3300, function () { log('<span class="cl-ev">host.read_file(c)</span>　→ 穿沙箱 · 返回内容'); });
+          step(3700, function () { log('<span class="cl-ev">host.read_file(d)</span>　→ 穿沙箱 · 返回内容'); });
+          step(4200, function () { log('<span class="cl-js">JS 内汇总完成，返回最终字符串</span>'); });
+          step(4700, function () { log('<span class="cl-ok">← TurnComplete</span>　任务完成 · 只采样了一次'); });
+        }
+      }
+    };
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (b) {
+      b.addEventListener("click", function () {
+        mode = b.getAttribute("data-cm");
+        Array.prototype.forEach.call(document.querySelectorAll("[data-cm]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        clear();
+        countOut.textContent = "选模式后点跑";
+      });
+    });
+    runBtn.addEventListener("click", function () {
+      clear();
+      var s = SCRIPTS[mode];
+      s.run();
+      var total = mode === "normal" ? 8600 : 5000;
+      timers.push(setTimeout(function () { countOut.textContent = s.count; }, total));
+      if (window.CASound) CASound.play("click");
     });
   })();
 

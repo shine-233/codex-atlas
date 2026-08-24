@@ -227,6 +227,47 @@
       </div>
     </section>
 
+    <!-- ACT III：落盘格式 -->
+    <section class="panel" id="act3-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>ACT III · 落盘格式：rollout 文件解剖</h3>
+        <span class="readout">文件名规则与 crate 结构为 @343074d4 实测 · 行内容为示意形状</span>
+      </div>
+      <div style="padding:6px 24px 20px;">
+        <p class="small muted" style="margin:0 0 12px;">
+          断线恢复的原料是一个 JSONL 文件。文件名规则实测自 <code>rollout_file_name.rs</code>：
+          <code>rollout-</code> + 时间戳 + threadId——<b>回滚过的线程会追加第二个 ID</b>。
+          点左边任意一行，看它在恢复时扮演什么角色。
+        </p>
+        <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:14px;">
+          <pre class="sse-log" id="rl-log" style="min-height:240px;cursor:pointer;" aria-label="rollout 文件 JSONL 行示意，可点击"></pre>
+          <div>
+            <div class="dj-tag" id="rl-tag" style="margin-bottom:6px;">点左侧任意一行</div>
+            <p class="small" id="rl-body" style="color:var(--dim);line-height:1.8;min-height:150px;margin:0 0 10px;">
+              每一行都是一条独立记录：第一行是会话元数据，其后是逐条轮次上下文与响应条目。
+              恢复时不一定整文件读入——<code>reverse_jsonl_scanner</code> 从文件尾部往回扫，找到需要的起点就开始重放。
+            </p>
+            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">rollout crate 内部（@343074d4 实测模块）</div>
+            <p class="small" style="color:var(--dim);line-height:1.9;margin:0;">
+              <code>recorder.rs</code>（写入，71 KiB 全 crate 最大）· <code>reverse_jsonl_scanner.rs</code>（尾部回扫）·
+              <code>compression.rs</code>（压缩 + 文件名解析）· <code>state_db.rs</code> / <code>sqlite_metrics.rs</code>（SQLite 侧账）·
+              <code>session_index.rs</code> / <code>search.rs</code>（索引检索）· <code>rollout_file_name.rs</code>（文件名规则）·
+              <code>list.rs</code> / <code>metadata.rs</code> / <code>policy.rs</code> / <code>model_context.rs</code>
+            </p>
+          </div>
+        </div>
+        <div style="margin-top:14px;border-top:1px dashed var(--line-strong);padding-top:12px;">
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">文件名生成器 · 规则实测自 rollout_file_name.rs</div>
+          <label class="switch-row">
+            <input type="checkbox" id="rl-reverted">
+            <span class="sw" aria-hidden="true"></span>
+            <span style="font-family:var(--mono);font-size:12px;">这个线程回滚过（fork / revert 出了新 rollout）</span>
+          </label>
+          <pre class="cfg-pre" id="rl-name" style="margin-top:10px;" aria-live="polite"></pre>
+        </div>
+      </div>
+    </section>
+
     <section class="panel detail-json">
       <div class="panel-title" style="margin-bottom:6px;">
         <h3>报文形状</h3>
@@ -801,6 +842,62 @@
       x.classList.toggle("on", x.getAttribute("data-a2") === scene);
     });
     render2();
+  })();
+
+  /* ---------- ACT III：rollout 文件解剖（行内容示意 · 文件名规则实测） ---------- */
+  (function () {
+    var log = document.getElementById("rl-log");
+    var tag = document.getElementById("rl-tag");
+    var body = document.getElementById("rl-body");
+    var rev = document.getElementById("rl-reverted");
+    var nameOut = document.getElementById("rl-name");
+    if (!log || !rev) return;
+
+    var LINES = [
+      { j: '{ "type": "session_meta", "id": "t_9f3a…",\n  "cwd": "~/proj/api", "originator": "vscode" }',
+        d: "第一行永远是会话元数据：thread ID、工作目录、来源客户端。恢复时先读它建立身份——04 第一幕 newThread 返回的句柄就落在这里。" },
+      { j: '{ "type": "turn_context",\n  "approval_policy": "on-request",\n  "sandbox_mode": "workspace-write" }',
+        d: "轮次上下文：当时的审批与沙箱档位。恢复后这些设置跟着文件走，而不是凭空猜。" },
+      { j: '{ "type": "response_item", "payload": {\n  "type": "message", "role": "user",\n  "content": "跑一遍测试" } }',
+        d: "用户输入原样入档。resume 重放时，这一行变回对话里的那句话。" },
+      { j: '{ "type": "response_item", "payload": {\n  "type": "reasoning",\n  "encrypted_content": "«加密的推理摘要»" } }',
+        d: "推理摘要以加密形式落盘——本机也解不开，但重新采样时能原样交还模型延续思路。" },
+      { j: '{ "type": "response_item", "payload": {\n  "type": "function_call", "name": "shell",\n  "arguments": "cargo test" } }',
+        d: "工具调用记录。断线前执行到哪一条，恢复后 UI 就能如实画到哪一条。" },
+      { j: '{ "type": "compacted", "payload": {\n  "message": "«压缩后的历史摘要»" } }',
+        d: "压缩标记行：02 讲的 auto_compact 发生后，被压掉的旧轮次在这里留一个摘要锚点。恢复时以它为准折叠历史。" }
+    ];
+
+    var rows = [];
+    LINES.forEach(function (ln, i) {
+      var d = document.createElement("div");
+      d.innerHTML = '<span class="ev-name">L' + (i + 1) + "</span>  " + ln.j.split("\n")[0].replace(/[{}]/g, "").trim() + " …";
+      d.style.cssText = "cursor:pointer;padding:1px 0;transition:color .15s;";
+      d.addEventListener("mouseenter", function () { d.style.color = "var(--amber)"; });
+      d.addEventListener("mouseleave", function () { d.style.color = ""; });
+      d.addEventListener("click", function () {
+        tag.textContent = "L" + (i + 1) + " · " + ln.j.split('"')[1] + " · 示意形状";
+        body.innerHTML = ln.d;
+        Array.prototype.forEach.call(rows, function (r, k) { r.style.background = k === i ? "rgba(255,180,84,.08)" : ""; });
+        if (window.CAFlash) CAFlash(body);
+      });
+      rows.push(d);
+      log.appendChild(d);
+    });
+
+    function renderName() {
+      var ts = "2026-08-24T09-41-00";
+      var tid = "9f3ac2e1-4b7d-4c8a-9e2f-1a2b3c4d5e6f";
+      var rid = "0f8e77aa-22c1-4bb3-9d50-88a1c2d3e4f5";
+      nameOut.textContent = rev.checked
+        ? "rollout-" + ts + "-" + tid + "_" + rid + ".jsonl"
+        : "rollout-" + ts + "-" + tid + ".jsonl";
+    }
+    rev.addEventListener("change", function () {
+      renderName();
+      if (window.CAFlash) CAFlash(nameOut);
+    });
+    renderName();
   })();
 
   CAQuiz.mount(document.getElementById("quiz"), [
