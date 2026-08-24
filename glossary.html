@@ -59,7 +59,15 @@
   .fc-back p { max-width: 44em; margin: 0 auto; color: var(--ink); font-size: 14.5px; line-height: 1.75; }
   .fc-back .fc-where { margin-top: 14px !important; font-size: 12.5px; color: var(--dim) !important; text-align: center; }
   .fcard.flipped .fc-term, .fcard.flipped .fc-hint { display: none; }
-  .fcard.flipped .fc-back { display: block; }
+  .fcard.flipped .fc-back {
+    display: block;
+    /* 翻面入场：轻轻一个前翻落定（backface 重排的轻量替身，不破坏自适应高度） */
+    animation: fc-flip-in .3s var(--ease) both;
+  }
+  @keyframes fc-flip-in {
+    0% { transform: perspective(600px) rotateX(-16deg) translateY(5px); opacity: 0; }
+    100% { transform: none; opacity: 1; }
+  }
   .swipe-hint { display: none; }
   @media (hover: none) and (pointer: coarse) {
     .swipe-hint { display: inline; }

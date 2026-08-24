@@ -464,7 +464,7 @@
     linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
             note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
     win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
-            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：固定提交 @343074d4 的 workspace 成员名单里没有独立的 Windows 沙箱 crate，但 workspace.dependencies 中仍保留指向 windows-sandbox-rs 的路径引用——实现位置随版本演进，这正是固定基线的意义。" }
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @343074d4 没把它列进 workspace members——构建上暂未启用，实现位置随版本演进，这正是固定基线的意义。" }
   };
 
   /* v: ro / ww / full 三模式的判定。cond = 条件放行 */
@@ -569,8 +569,54 @@
       pipe.classList.remove("run");
       void pipe.offsetWidth;
       pipe.classList.add("run");
+      runPacket(resCls);
     } else {
       pipe.classList.remove("run");
+      stopPacket();
+    }
+  }
+
+  /* ---------- 信号包：命令包逐段穿过五道闸，颜色随最终判定落定 ---------- */
+  var packetEl = null;
+  var packetTimers = [];
+  function stopPacket() {
+    packetTimers.forEach(clearTimeout);
+    packetTimers = [];
+    if (packetEl) packetEl.classList.remove("live");
+  }
+  function runPacket(cls) {
+    if (!pipe || window.PrefersReducedMotion === true) return;
+    packetTimers.forEach(clearTimeout);
+    packetTimers = [];
+    var stages = pipe.querySelectorAll(".pipe-stage");
+    if (stages.length < 5) return;
+    if (!packetEl) {
+      packetEl = document.createElement("i");
+      packetEl.className = "pipe-packet";
+    }
+    pipe.appendChild(packetEl);   /* innerHTML 重建会把它冲掉，每次重新挂载 */
+    var pr = pipe.getBoundingClientRect();
+    function center(i) {
+      var r = stages[i].getBoundingClientRect();
+      return r.left - pr.left + pipe.scrollLeft + r.width / 2;
+    }
+    packetEl.className = "pipe-packet live";
+    packetEl.style.left = center(0) + "px";
+    var HOP = 165;
+    for (var i = 1; i < 5; i++) {
+      (function (i) {
+        packetTimers.push(setTimeout(function () {
+          if (!packetEl) return;
+          packetEl.style.left = center(i) + "px";
+          if (i === 4) {
+            packetEl.classList.add(cls || "");
+            var st = stages[4];
+            st.classList.remove("landed");
+            void st.offsetWidth;
+            st.classList.add("landed");
+          }
+        }, HOP * i));
+      })(i);
     }
   }
 

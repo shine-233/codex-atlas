@@ -715,6 +715,32 @@
       for (var k = 9; k < s; k++) if (NODE[k]) NODE[k].classList.add("done");
       if (NODE[s]) NODE[s].classList.add("hot");
       if (FLOW[s] && window.PrefersReducedMotion !== true) FLOW[s].classList.add("flow");
+      runDot(FLOW[s]);
+    }
+
+    /* 信号点：沿当前活跃边流动一圈（MotionPath 的手写版） */
+    var dot = E("circle", { r: "3.6", class: "lm-dot", opacity: "0" });
+    svg.appendChild(dot);
+    var dotRaf = 0;
+    function runDot(pathEl) {
+      if (dotRaf) { cancelAnimationFrame(dotRaf); dotRaf = 0; }
+      if (!pathEl || !pathEl.getTotalLength || window.PrefersReducedMotion === true) {
+        dot.setAttribute("opacity", "0");
+        return;
+      }
+      var L = pathEl.getTotalLength();
+      if (!L) { dot.setAttribute("opacity", "0"); return; }
+      var t0 = performance.now(), DUR = 480;
+      dot.setAttribute("opacity", "1");
+      dotRaf = requestAnimationFrame(function frame(now) {
+        var p = Math.min(1, (now - t0) / DUR);
+        var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        var pt = pathEl.getPointAtLength(e * L);
+        dot.setAttribute("cx", pt.x);
+        dot.setAttribute("cy", pt.y);
+        if (p < 1) dotRaf = requestAnimationFrame(frame);
+        else dotRaf = 0;
+      });
     }
     document.addEventListener("ca:stage", syncMap);
     syncMap({ detail: { stage: cur } });   /* 补齐首次渲染前的状态 */

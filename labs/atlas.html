@@ -280,6 +280,7 @@
                   <li><a href="appserver.html"><code>app-server-protocol/</code><span class="cov cov-yes">三原语 · 04</span></a></li>
                   <li><a href="sandbox.html"><code>sandboxing/ · linux-sandbox/ · bwrap/</code><span class="cov cov-yes">三套内核闸 · 03</span></a></li>
                   <li><a href="atlas.html"><code>apply-patch/ · exec/ · rollout/ · hooks/ · memories/ …</code><span class="cov cov-yes">逐带逐条注解 · 05</span></a></li>
+                  <li><code>windows-sandbox-rs/</code><span class="cov cov-part">源码在仓库 · 未入 workspace members（03 有考）</span></li>
                   <li><span class="tree-mute">其余 120+ crate —— 在上方列表 / 树图 / 星系里按带检索</span></li>
                 </ul>
               </details>
@@ -295,14 +296,25 @@
                 </ul>
               </details>
             </li>
+            <li>
+              <details>
+                <summary><code>sdk/</code><span class="cov cov-part">机制讲到 · 代码未逐行</span></summary>
+                <ul>
+                  <li><a href="appserver.html"><code>sdk/typescript/</code><span class="cov cov-yes">generate-ts 产物消费方 · 04</span></a></li>
+                  <li><span class="tree-mute">其余语言客户端 —— 未覆盖</span></li>
+                </ul>
+              </details>
+            </li>
             <li><span class="tree-mute"><code>.github/</code><span class="cov cov-no">CI 与发布流水线 · 未覆盖</span></span></li>
-            <li><span class="tree-mute"><code>README · LICENSE</code><span class="cov cov-no">上游门面 · 未覆盖</span></span></li>
+            <li><span class="tree-mute"><code>scripts/ · tools/ · patches/ · third_party/ · bazel 系</code><span class="cov cov-no">构建与工程脚手架 · 未覆盖</span></span></li>
+            <li><span class="tree-mute"><code>AGENTS.md（根）· README · LICENSE</code><span class="cov cov-no">上游门面 · 未覆盖</span></span></li>
           </ul>
         </details>
       </div>
       <p class="small muted" style="margin:10px 0 0;">
         覆盖粒度三级：crate 级（135 全注解）→ 文件级（五条主干线路上的关键路径）→ 函数级（循环体关键节点）。
         SDK 客户端（Go / Python / TS / Swift / Kotlin）由 <code>generate-ts</code> 从协议生成，04 有讲到机制本身。
+        2026-08-24 对上游复核：members 实测 135、本页引用路径全部存在（raw.githubusercontent @343074d4）。
       </p>
     </section>
 
@@ -901,6 +913,7 @@
     var lastInteract = 0, running = false, raf = 0, t0 = 0;
     var pointers = {}, pinchDist = 0, pinchMidX = 0, pinchMidY = 0;
     var panX = 0, panY = 0, panning = false;
+    var focusBi = null, tween = null, lastPC = [];
     function clampPan() {
       var lim = Math.min(W, H) * 0.345 * zoomv;
       if (panX > lim) panX = lim;
@@ -926,6 +939,15 @@
       if (ax > 1.25) { ax = 1.25; vax = 0; }
       if (ax < -1.25) { ax = -1.25; vax = 0; }
 
+      /* 带聚焦镜头：缓动转向目标姿态，用户拖拽即打断 */
+      if (tween && !dragging) {
+        ax += (tween[0] - ax) * 0.13;
+        ay += (tween[1] - ay) * 0.13;
+        if (Math.abs(tween[0] - ax) < 0.004 && Math.abs(tween[1] - ay) < 0.004) {
+          ax = tween[0]; ay = tween[1]; tween = null;
+        }
+      }
+
       var cay = Math.cos(ay), say = Math.sin(ay);
       var cax = Math.cos(ax), sax = Math.sin(ax);
       var radBase = Math.min(W, H) * 0.345 * zoomv * introE;
@@ -946,28 +968,33 @@
       /* 带心 → 成员的暗连线（constellation 语法） */
       var pc = [];
       for (i = 0; i < CENTERS.length; i++) pc.push(proj(CENTERS[i].x, CENTERS[i].y, CENTERS[i].z));
+      lastPC = pc;
       ctx.lineWidth = 1;
       for (i = 0; i < PTS.length; i++) {
         p = PTS[i];
         pr = proj(p.x, p.y, p.z);
         p._sx = pr.sx; p._sy = pr.sy; p._z = pr.z; p._per = pr.per;
         var c = pc[p.bi];
-        var la = 0.055 * (1 - (pr.z + 1) / 2) + 0.015;
+        var la = (0.055 * (1 - (pr.z + 1) / 2) + 0.015) * (focusBi !== null && p.bi !== focusBi ? 0.18 : 1);
         ctx.strokeStyle = "rgba(" + STEEL + "," + la.toFixed(3) + ")";
         ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(pr.sx, pr.sy); ctx.stroke();
       }
 
-      /* 带心标记与标签（朝向观察者时） */
-      ctx.font = "10px IBM Plex Mono, monospace";
+      /* 带心标记与标签（朝向观察者时；聚焦带高亮） */
       ctx.textAlign = "center";
       for (i = 0; i < CENTERS.length; i++) {
         var cc = pc[i];
         if (cc.z > 0.45) continue;
         var ca = 0.5 * (1 - (cc.z + 1) / 2) + 0.12;
+        var isF = focusBi === i;
         ctx.fillStyle = "rgba(" + STEEL + "," + (ca * 0.9).toFixed(3) + ")";
         ctx.fillRect(cc.sx - 1.5, cc.sy - 1.5, 3, 3);
-        ctx.fillStyle = "rgba(" + INK + "," + (ca * 0.75).toFixed(3) + ")";
+        ctx.font = isF ? "600 11.5px IBM Plex Mono, monospace" : "10px IBM Plex Mono, monospace";
+        ctx.fillStyle = isF
+          ? "rgba(" + AMBER + "," + Math.min(1, ca + 0.35).toFixed(3) + ")"
+          : "rgba(" + INK + "," + (ca * 0.75).toFixed(3) + ")";
         ctx.fillText(CENTERS[i].no + " · " + CENTERS[i].name, cc.sx, cc.sy - 8);
+        ctx.font = "10px IBM Plex Mono, monospace";
       }
 
       /* 成员：按深度排序后绘制 */
@@ -979,7 +1006,8 @@
         var depth = 1 - (p._z + 1) / 2;
         var isSel = selCrate === p.name;
         var hayHit = !FILTER_Q || (SEARCH_TEXT[p.name] || p.name.toLowerCase()).indexOf(FILTER_Q) !== -1;
-        var a = (0.22 + 0.6 * depth) * (hayHit ? 1 : 0.1);
+        var dimF = focusBi !== null && p.bi !== focusBi;
+        var a = (0.22 + 0.6 * depth) * (hayHit ? 1 : 0.1) * (dimF ? 0.12 : 1);
         var r = 2.1 * p._per * (isSel ? 1.5 : 1);
         ctx.fillStyle = "rgba(" + AMBER + "," + a.toFixed(3) + ")";
         ctx.beginPath(); ctx.arc(p._sx, p._sy, r, 0, 6.2832); ctx.fill();

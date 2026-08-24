@@ -454,7 +454,8 @@ input[type="range"]::-moz-range-thumb {
   top: 2px; left: 2px;
   width: 10px; height: 10px;
   background: var(--faint);
-  transition: transform 0.15s, background 0.15s;
+  /* 弹性过冲（react-spring 系 wobbly 手感）：旋钮到位时轻轻弹一下 */
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s;
 }
 input:checked + .sw { border-color: var(--amber); }
 input:checked + .sw::after { transform: translateX(14px); background: var(--amber); }
@@ -1026,6 +1027,37 @@ table.rt tr.hidden { display: none; }
 }
 .pipe.run .pipe-runner { animation: pipe-run .55s ease-out both; }
 @keyframes pipe-run { from { width: 0; } to { width: 100%; } }
+
+/* 信号包：一条命令逐段穿过五道闸，颜色随最终判定落定（GSAP MotionPath 的手写版） */
+.pipe-packet {
+  position: absolute;
+  top: 50%;
+  width: 9px; height: 9px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--dim);
+  box-shadow: 0 0 7px rgba(231, 237, 243, .3);
+  z-index: 3;
+  pointer-events: none;
+  display: none;
+  transition: left .17s cubic-bezier(0.4, 0, 0.2, 1), background .18s, box-shadow .18s;
+}
+.pipe-packet.live { display: block; }
+.pipe-packet.pass { background: var(--ok); box-shadow: 0 0 10px rgba(123, 201, 139, .65); }
+.pipe-packet.ask { background: var(--amber); box-shadow: 0 0 10px rgba(255, 180, 84, .65); }
+.pipe-packet.block { background: var(--deny); box-shadow: 0 0 10px rgba(240, 121, 106, .65); }
+.pipe-stage.landed { animation: pipe-land .55s var(--ease); }
+@keyframes pipe-land {
+  0% { box-shadow: 0 0 0 0 rgba(231, 237, 243, .3); }
+  100% { box-shadow: 0 0 0 10px rgba(231, 237, 243, 0); }
+}
+
+/* 回路信号点：沿活跃边流动的光点（01 重采样回路图） */
+.lm-dot {
+  fill: #ffb454;
+  filter: drop-shadow(0 0 4px rgba(255, 180, 84, .85));
+  pointer-events: none;
+}
 
 /* ---------- 跨页过渡（View Transitions；不支持的浏览器原样跳转） ---------- */
 @view-transition { navigation: auto; }

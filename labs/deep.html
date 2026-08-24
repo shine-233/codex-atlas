@@ -84,8 +84,16 @@
     background: var(--bg0); border: 1px solid var(--line-strong);
     padding: 13px 15px; overflow-x: auto; white-space: pre; margin: 0; min-height: 250px;
   }
-  .pl-file .add { color: var(--ok); background: rgba(123,201,139,.12); display: inline-block; width: 100%; }
-  .pl-file .del { color: var(--deny); background: rgba(240,121,106,.10); text-decoration: line-through; opacity: .75; display: inline-block; width: 100%; }
+  .pl-file .add { color: var(--ok); background: rgba(123,201,139,.12); display: inline-block; width: 100%; animation: pl-flash-ok 1.1s ease-out both; }
+  .pl-file .del { color: var(--deny); background: rgba(240,121,106,.10); text-decoration: line-through; opacity: .75; display: inline-block; width: 100%; animation: pl-flash-bad 1.1s ease-out both; }
+  @keyframes pl-flash-ok {
+    0% { background: rgba(123,201,139,.55); }
+    100% { background: rgba(123,201,139,.12); }
+  }
+  @keyframes pl-flash-bad {
+    0% { background: rgba(240,121,106,.5); }
+    100% { background: rgba(240,121,106,.10); }
+  }
   .pl-file .ctx { color: var(--ink); }
   .pl-src {
     width: 100%; box-sizing: border-box; min-height: 250px;
@@ -761,7 +769,7 @@
         }
         if (ln.indexOf("*** Add File:") === 0) {
           sawSection = true; hunks++;
-          var path = ln.slice(13).trim();
+          var path = ln.slice("*** Add File: ".length).trim();
           var body = [];
           i++;
           while (i < lines.length && lines[i].indexOf("+") === 0) { body.push(lines[i].slice(1)); i++; }
@@ -779,7 +787,7 @@
         }
         if (ln.indexOf("*** Update File:") === 0) {
           sawSection = true; hunks++;
-          var target = ln.slice(15).trim();
+          var target = ln.slice("*** Update File: ".length).trim();
           if (target !== "src/task_runner.rs")
             return { ok: false, msg: "Update File 指向 <code>" + target.replace(/</g, "&lt;") + "</code>，但工作台上只有 src/task_runner.rs。真实实现对不上路径同样会拒。" };
           i++;

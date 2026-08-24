@@ -71,7 +71,17 @@
     border: 1px solid var(--deny);
     background: var(--deny-dim);
   }
-  .decide.show { display: flex; flex-wrap: wrap; align-items: center; }
+  .decide.show { display: flex; flex-wrap: wrap; align-items: center; animation: ca-rise .2s ease-out both, gate-glow 2.4s ease-in-out .4s infinite; }
+  /* 闸口呼吸：挂起中的裁决框与「⏸ 整轮挂起」章都在轻轻发光，提醒你它还在等 */
+  @keyframes gate-glow {
+    0%, 100% { border-color: var(--deny); box-shadow: 0 0 0 0 rgba(240, 121, 106, 0); }
+    50% { border-color: rgba(240, 121, 106, .5); box-shadow: 0 0 14px 0 rgba(240, 121, 106, .16); }
+  }
+  .msg.gate-open .chip.deny { animation: gate-chip 2.2s ease-in-out infinite; }
+  @keyframes gate-chip {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240, 121, 106, 0); }
+    50% { box-shadow: 0 0 0 5px rgba(240, 121, 106, .13); }
+  }
   .decide .dq { font-size: 13px; color: var(--ink); margin-right: auto; }
 
   .detail-json { margin-top: 0; }
