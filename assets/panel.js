@@ -661,6 +661,9 @@
       { name: "深水区 C · apply_patch 解剖台", sub: "可编辑可应用", href: P("labs/deep.html") + "#mod-c", kw: "patch 补丁 apply diff hunk 锚点 格式" },
       { name: "深水区 D · TUI 后台", sub: "事件映射+斜杠命令", href: P("labs/deep.html") + "#mod-d", kw: "tui 终端 slash 命令 界面 渲染" },
       { name: "深水区 E · 扩展挂点地图", sub: "skills/hooks/memories", href: P("labs/deep.html") + "#mod-e", kw: "skill hook memory 扩展 插件 技能 记忆 钩子" },
+      { name: "↳ HOOKS 事件轴 · 8 个实测钩子", sub: "session_start…session_end", href: P("labs/deep.html") + "#mod-e", kw: "hooks events 事件 钩子 pre_tool_use post_tool_use" },
+      { name: "深水区 F · Code Mode 实验位", sub: "V8 跑模型代码（推演）", href: P("labs/deep.html") + "#mod-f", kw: "code mode v8 实验 javascript host" },
+      { name: "↳ ACT III · rollout 文件解剖", sub: "JSONL 落盘与恢复", href: P("labs/appserver.html") + "#act3-panel", kw: "rollout jsonl 落盘 恢复 文件名 解剖" },
       { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" },
       { act: "profile", no: "◆", name: "学习档案 · 成绩与重置", sub: "左栏底部也有入口", href: "", kw: "progress 档案 进度 重置 reset 导出 export 成绩 分数" }
     ];
@@ -804,7 +807,9 @@
     "左栏底部有「学习档案」：自检成绩和翻卡进度都在里面，能导出也能一键清空。",
     "03 底部那个审批弹窗是真的能点的——批准一次、本轮允许和拒绝，给的结果各不相同。",
     "03 的沙盘把围墙画了出来：换动作看命令包走位，撞墙、等签字、穿墙，全是活的。",
-    "02 答疑表下面有个 compact 演示：拖到触顶，亲眼看历史被压成一段加密摘要。"
+    "02 答疑表下面有个 compact 演示：拖到触顶，亲眼看历史被压成一段加密摘要。",
+    "04 新增 ACT III：rollout 文件逐行点开看，文件名生成器能演示回滚线程怎么命名。",
+    "07E 的 hooks 事件轴有 8 个实测事件名——session_start 到 session_end，点着看挂点。"
   ];
   var tipIdx = -1;
   function nextTip() {

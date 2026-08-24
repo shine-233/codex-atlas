@@ -876,7 +876,8 @@
       d.addEventListener("mouseenter", function () { d.style.color = "var(--amber)"; });
       d.addEventListener("mouseleave", function () { d.style.color = ""; });
       d.addEventListener("click", function () {
-        tag.textContent = "L" + (i + 1) + " · " + ln.j.split('"')[1] + " · 示意形状";
+        var m = ln.j.match(/"type":\s*"([^"]+)"/);
+        tag.textContent = "L" + (i + 1) + " · " + (m ? m[1] : "record") + " · 示意形状";
         body.innerHTML = ln.d;
         Array.prototype.forEach.call(rows, function (r, k) { r.style.background = k === i ? "rgba(255,180,84,.08)" : ""; });
         if (window.CAFlash) CAFlash(body);
