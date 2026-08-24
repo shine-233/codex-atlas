@@ -58,6 +58,18 @@
   .stage-body { color: var(--dim); max-width: 40em; }
   .stage-body b { color: var(--ink); font-weight: 500; }
 
+  /* 真实源码抽屉 */
+  .stage-src { margin-top: 16px; }
+  .src-toggle { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; }
+  .src-pre {
+    background: var(--bg0); border: 1px solid var(--line);
+    padding: 12px 14px; margin-top: 10px;
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.85;
+    color: var(--dim); overflow-x: auto; white-space: pre;
+  }
+  .src-pre .src-loc { color: var(--faint); font-size: 10px; letter-spacing: .06em; }
+  .src-pre .src-code { color: var(--ink); }
+
   .controls {
     display: flex;
     align-items: center;
@@ -230,6 +242,7 @@
           <div class="chips" id="d-files"></div>
           <div class="chips" id="d-events"></div>
           <p class="stage-body" id="d-body"></p>
+          <div class="stage-src" id="d-src" hidden></div>
           <p class="small muted" id="d-next" style="border-left:2px solid var(--line-strong);padding-left:12px;margin-top:18px;"></p>
         </div>
       </div>
@@ -466,6 +479,38 @@
       next:"收束后这一轮就结束了。转了几圈、每圈重发了多少，下面成本对照里都有。" }
   ];
 
+  /* 每站的真实源码切片：片段与行号实测自固定提交 @343074d4（raw 文件逐个核对）。 */
+  var SRC = {
+    1: { loc: "codex-cli/bin/codex.js :195（JS 启动器）",
+         code: 'const child = spawn(binaryPath, process.argv.slice(2), {\n  stdio: "inherit",\n  env,\n});' },
+    2: { loc: "codex-rs/cli/src/main.rs :1093",
+         code: 'match subcommand {\n    None | Some(Subcommand::Agents(_)) => {\n        prepend_config_flags(\n            &mut interactive.config_overrides,\n            root_config_overrides.clone(),\n        );' },
+    3: { loc: "codex-rs/tui/src/lib.rs :269",
+         code: '        environment_manager,\n        InProcessAppServerClient::start,\n    )\n    .await\n}' },
+    4: { loc: "codex-rs/app-server/src/request_processors/turn_processor.rs :478",
+         code: 'async fn turn_start_inner(\n    &self,\n    request_id: ConnectionRequestId,\n    params: TurnStartParams,\n    ...\n) -> Result<TurnStartResponse, JSONRPCErrorError> {' },
+    5: { loc: "codex-rs/app-server/src/request_processors/turn_processor.rs :447",
+         code: 'async fn submit_core_op(\n    &self,\n    request_id: &ConnectionRequestId,\n    thread: &CodexThread,\n    op: Op,\n) -> CodexResult<String> {\n    thread\n        .submit_with_trace(op, self.request_trace_context(request_id).await)\n        .await\n}' },
+    6: { loc: "codex-rs/core/src/session/mod.rs :533（容量常量 :461 = 512）",
+         code: 'let (tx_sub, rx_sub) = async_channel::bounded(SUBMISSION_CHANNEL_CAPACITY);\nlet (tx_event, rx_event) = async_channel::unbounded();\n// This task will run until Op::Shutdown is received.' },
+    7: { loc: "codex-rs/core/src/session/turn_input.rs :282",
+         code: 'let turn_state = {\n    let mut active_turn = session.active_turn.lock().await;\n    if active_turn.is_some() {\n        return Ok(TurnInputSubmission::NotSubmitted {\n            reason: NotSubmittedReason::NotIdle,\n        });\n    }' },
+    8: { loc: "codex-rs/core/src/tasks/regular.rs :50",
+         code: 'let event = EventMsg::TurnStarted(TurnStartedEvent {\n    turn_id: ctx.sub_id.clone(),\n    ...\n});\nsess.send_event(ctx.as_ref(), event).await;' },
+    9: { loc: "codex-rs/core/src/session/turn.rs :1312（采样循环喂输入在 :1371）",
+         code: 'pub(crate) fn build_prompt(\n    input: Vec<ResponseItem>,\n    step_context: &StepContext,\n    base_instructions: BaseInstructions,\n) -> Prompt {\n    Prompt {\n        input,\n        tools: step_context.tool_router.model_visible_specs(),\n        ...\n\n// 每轮采样前的输入来源（:1371）：\n// sess.clone_history().await.for_prompt(&…)' },
+    10: { loc: "codex-rs/model-provider-info/src/lib.rs :40 + codex-api/src/endpoint/responses.rs :148",
+          code: 'pub const CHATGPT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";\n\n// responses.rs：SSE 请求头\nreq.headers.insert(\n    http::header::ACCEPT,\n    HeaderValue::from_static("text/event-stream"),\n);' },
+    11: { loc: "codex-rs/codex-api/src/common.rs :76（Completed 在 :92）",
+          code: 'pub enum ResponseEvent {\n    Created,\n    SafetyBuffering(SafetyBuffering),\n    OutputItemDone(ResponseItem),\n    OutputItemAdded(ResponseItem),\n    …\n    Completed {\n        response_id: String,\n        token_usage: Option<TokenUsage>,\n        …' },
+    12: { loc: "codex-rs/core/src/tools/router.rs :148 + stream_events_utils.rs :296",
+          code: 'pub fn build_tool_call(item: ResponseItem) -> Result<Option<ToolCall>, FunctionCallError> {\n    …\n\n// stream_events_utils.rs：\nmatch ToolRouter::build_tool_call(item.clone()) {\n// The model emitted a tool call; … queue the tool execution.\nOk(Some(call)) => {' },
+    13: { loc: "codex-rs/core/src/session/turn.rs :2226 / :2397 / :500",
+          code: 'let mut needs_follow_up = false;\n…\nneeds_follow_up |= output_result.needs_follow_up;\n…\nif !needs_follow_up {\n    last_agent_message = sampling_request_last_agent_message;' }
+  };
+
+  function escHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
   var rail = document.getElementById("rail");
   var dTitle = document.getElementById("d-title");
   var dFiles = document.getElementById("d-files");
@@ -525,6 +570,28 @@
     }
     dBody.innerHTML = st.body;
     dNext.textContent = st.next;
+    /* 真实源码抽屉 */
+    var srcBox = document.getElementById("d-src");
+    var src = SRC[i];
+    if (src) {
+      srcBox.hidden = false;
+      srcBox.innerHTML =
+        '<button type="button" class="btn src-toggle" aria-expanded="false">⌨ 看真实源码 · ' + escHtml(src.loc) + "</button>" +
+        '<pre class="src-pre" hidden><span class="src-loc">' + escHtml(src.loc) + " · @343074d4 实测</span>\n" +
+        '<span class="src-code">' + escHtml(src.code) + "</span></pre>";
+      var tg = srcBox.querySelector(".src-toggle");
+      var pre = srcBox.querySelector(".src-pre");
+      tg.addEventListener("click", function () {
+        var open = pre.hidden;
+        pre.hidden = !open;
+        tg.setAttribute("aria-expanded", open ? "true" : "false");
+        tg.classList.toggle("on", open);
+        if (open && window.CASound) CASound.play("click");
+      });
+    } else {
+      srcBox.hidden = true;
+      srcBox.innerHTML = "";
+    }
     curName.textContent = st.n;
     posNow.textContent = pad(i);
     posNum.textContent = pad(i);
