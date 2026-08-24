@@ -890,6 +890,52 @@
     else main.appendChild(card);
   })();
 
+  /* ---------- 回到顶部：长页往下滚过一屏半才现身，键盘可达 ---------- */
+  (function () {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ca-top";
+    btn.textContent = "↑ 顶部";
+    btn.setAttribute("aria-label", "回到页面顶部");
+    btn.title = "回到顶部";
+    var shown = false;
+    function paint() {
+      var show = window.scrollY > window.innerHeight * 1.5;
+      if (show !== shown) { shown = show; btn.classList.toggle("show", show); }
+    }
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: window.PrefersReducedMotion ? "auto" : "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+    document.body.appendChild(btn);
+  })();
+
+  /* ---------- 空闲预取：八页互指，配合跨页过渡接近秒开 ----------
+     requestIdleCallback 里逐个注入 <link rel="prefetch">；
+     saveData 或 2G 用户直接跳过——省流量优先于快。 */
+  (function () {
+    function go() {
+      var here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+      var isLab = location.pathname.indexOf("/labs/") !== -1;
+      var pages = ["index.html", "labs/loop.html", "labs/prompt.html", "labs/sandbox.html",
+        "labs/appserver.html", "labs/atlas.html", "labs/deep.html", "glossary.html"];
+      var conn = navigator.connection || {};
+      if (conn.saveData || /2g$/i.test(conn.effectiveType || "")) return;
+      pages.forEach(function (p) {
+        var file = p.split("/").pop();
+        if (file === here) return;
+        var href = p.indexOf("labs/") === 0 ? (isLab ? file : p) : (isLab ? "../" + p : p);
+        if (document.querySelector('link[rel="prefetch"][href="' + href + '"]')) return;
+        var l = document.createElement("link");
+        l.rel = "prefetch"; l.href = href;
+        document.head.appendChild(l);
+      });
+    }
+    if ("requestIdleCallback" in window) { try { requestIdleCallback(go, { timeout: 4000 }); } catch (e) { setTimeout(go, 2500); } }
+    else setTimeout(go, 2500);
+  })();
+
   /* ---------- 全站命令面板：Ctrl+K 或 / 呼出，跨页直达任意仪器 ---------- */
   (function () {
     var IN_LABS = location.pathname.indexOf("/labs/") !== -1;
