@@ -291,9 +291,9 @@
 
       function frame(ts) {
         if (last == null) last = ts;
-        var dt = ts - last;
+        var dt = Math.min(ts - last, 50); /* 钳制：离屏/切页回来不跳帧 */
         last = ts;
-        if (!paused) {
+        if (!paused && hostInView) {
           da = (da + speed * dt / 1000) % L2;
           db = (db - speed * 0.72 * dt / 1000) % L2;
           pushHist(histA, place(dotA, haloA, da));
@@ -301,8 +301,15 @@
           placeTrail(trailA, histA);
           placeTrail(trailB, histB);
         }
-        if (!document.hidden) requestAnimationFrame(frame);
+        /* 离屏或页面隐藏时降频轮询，不烧 rAF（性能：miniscope 常驻页顶） */
+        if (!document.hidden && hostInView) requestAnimationFrame(frame);
         else setTimeout(function () { requestAnimationFrame(frame); }, 500);
+      }
+      var hostInView = true;
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (ents) {
+          hostInView = ents[0].isIntersecting;
+        }, { rootMargin: "80px" }).observe(host);
       }
       requestAnimationFrame(frame);
     }

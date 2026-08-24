@@ -1199,6 +1199,18 @@ table.rt tr.hidden { display: none; }
   transition: opacity 0.15s;
 }
 .cod-pet:hover { opacity: 1; }
+/* 拎起 / 飞行态：拖住小鳕可以甩出去，落定后它自己游回角落 */
+.cod-pet.cod-hold {
+  cursor: grabbing;
+  z-index: 90;
+  opacity: 1;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.5));
+}
+.cod-pet.cod-hold svg { animation: cod-squirm .38s ease-in-out infinite; }
+@keyframes cod-squirm {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(7deg) scale(1.06); }
+}
 .cod-pet svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .cod-pet .cod-tail { transform-origin: 11px 20px; animation: cod-wag 2.8s ease-in-out infinite; }
 .cod-pet .cod-eye { transform-origin: 33.5px 17.5px; animation: cod-blink 5.2s steps(1) infinite; }
@@ -1772,6 +1784,33 @@ body::after {
 .src-details .src-loc { color: var(--faint); font-size: 10px; letter-spacing: .06em; }
 .src-details .src-code { color: var(--ink); }
 
+/* ---------- 人性化：触屏触达面积（44px 目标线） ---------- */
+@media (pointer: coarse) {
+  .seg button { padding: 9px 14px; }
+  .cq-opt, .sr-opt { padding: 11px 14px; }
+  .btn { padding: 9px 16px; }
+  .cell { min-width: 64px; padding: 6px 11px; }
+}
+
+/* ---------- 打印样式：只留正文 ---------- */
+@media print {
+  .rail, .topbar, .mobile-nav, .cod-pet, .cod-swim, .cod-toast, .cod-bubble,
+  .cmdk-fab, .cmdk-layer, .kbd-layer, .tour-layer, .tour-fab,
+  .snd-toggle, .theme-toggle, .rail-profile, #ca-progress,
+  .metro-legend, .birth-viz-wrap, .fx-tilt-wrap, .fx-glare,
+  .ca-confetti, .sr-timer, .skip-link {
+    display: none !important;
+  }
+  body { background: #fff !important; }
+  body::after { display: none !important; }
+  .wrap { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .container { max-width: none !important; padding: 0 !important; }
+  * { color: #111 !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
+  .panel, .verdict, .evidence, .birth-viz, .approve-mock { border: 1px solid #999 !important; break-inside: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 10px; color: #555 !important; }
+  .bv-layer, .cd-track i { border: 1px solid #999 !important; opacity: 1 !important; transform: none !important; }
+}
+
 /* ---------- 首页滚动叙事：一次请求的诞生 ---------- */
 .birth-grid { display: grid; grid-template-columns: minmax(280px, 420px) 1fr; gap: 28px; align-items: start; }
 @media (max-width: 900px) { .birth-grid { grid-template-columns: 1fr; } }
@@ -1815,3 +1854,41 @@ body::after {
 .birth-card p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.85; max-width: 40em; }
 .birth-card { opacity: .32; transition: opacity .4s var(--ease); }
 .birth-card.on { opacity: 1; }
+
+/* ---------- 载荷栈的建模互动：透视倾斜 + 点选高亮 ----------
+   倾斜只写 transform（合成层，不触发重排）；--bvx/--bvy 由 JS 按指针位置写入。
+   层间 translateZ 递增让七层有真实厚度，倾斜时视差才读得出来。 */
+.birth-viz-wrap { perspective: 900px; }
+.birth-viz {
+  transform-style: preserve-3d;
+  transform: rotateX(var(--bvx, 0deg)) rotateY(var(--bvy, 0deg));
+  transition: transform .35s var(--ease);
+}
+.birth-viz.is-tilting { transition: none; }
+.bv-layer { cursor: pointer; }
+@supports (transform: translateZ(0)) {
+  .bv-layer.on:nth-child(2) { transform: translateZ(6px); }
+  .bv-layer.on:nth-child(3) { transform: translateZ(12px); }
+  .bv-layer.on:nth-child(4) { transform: translateZ(18px); }
+  .bv-layer.on:nth-child(5) { transform: translateZ(24px); }
+  .bv-layer.on:nth-child(6) { transform: translateZ(30px); }
+  .bv-layer.on:nth-child(7) { transform: translateZ(36px); }
+  .bv-layer.on:nth-child(8) { transform: translateZ(42px); }
+}
+/* 键盘聚焦 / 卡片侧反点时：图层描边加亮一拍（.pick），不与 .on 的底色冲突 */
+.bv-layer.pick,
+.bv-layer:focus-visible {
+  border-color: var(--amber); border-style: solid;
+  outline: 1px solid rgba(255, 180, 84, .45); outline-offset: 2px;
+}
+/* 图层点击后，目标卡片亮一拍（.lit）：琥珀左边线 + 底光渐隐 */
+.birth-card.lit { opacity: 1; }
+.birth-card.lit p { animation: card-lit 1.4s var(--ease); }
+@keyframes card-lit {
+  0% { text-shadow: 0 0 14px rgba(255, 180, 84, .55); }
+  100% { text-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .birth-viz { transform: none !important; transition: none; }
+  .birth-card.lit p { animation: none; }
+}

@@ -1016,6 +1016,182 @@
     }
   });
 
+  /* 抓起来扔：按住拖走是拎着，甩出去带惯性，撞墙反弹，落定后自己游回角落。
+     纯手写抛体物理（重力 + 恢复系数 + 地面摩擦），不碰任何既有行为：
+     轻点仍是提示、连点仍是彩蛋（拖过的 click 在捕获阶段吃掉）。 */
+  (function () {
+    if (reduced || !window.PointerEvent) return;
+    var mode = "idle";          /* idle | press | hold | fly | home */
+    var homeX = -1, homeY = -1;
+    var px = 0, py = 0, offX = 0, offY = 0, fw = 46, fh = 40;
+    var samples = [], suppressClick = false, flyRaf = 0, flyT0 = 0, thrown = 0;
+    try { thrown = parseInt(localStorage.getItem("ca-pet-flings") || "0", 10) || 0; } catch (e) { }
+
+    /* 拖过之后再放手的这次 click 不是「点」，捕获阶段拦掉，别误触提示 */
+    pet.addEventListener("click", function (e) {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }, true);
+
+    function rememberHome() {
+      if (homeX >= 0) return;
+      var r = pet.getBoundingClientRect();
+      homeX = r.left; homeY = r.top; fw = r.width || 46; fh = r.height || 40;
+    }
+    function place(x, y) {
+      pet.style.right = "auto"; pet.style.bottom = "auto";
+      pet.style.left = Math.round(x) + "px";
+      pet.style.top = Math.round(y) + "px";
+    }
+    function velFromSamples() {
+      var now = performance.now(), a = null, b = null;
+      var i = samples.length - 1;
+      for (; i >= 0; i--) {
+        if (now - samples[i].t <= 110) { b = samples[i]; continue; }
+        break;
+      }
+      if (!b) b = samples[samples.length - 1];
+      for (i = 0; i < samples.length; i++) {
+        if (now - samples[i].t <= 110) { a = samples[i]; break; }
+      }
+      if (!a || !b || b.t === a.t) return { vx: 0, vy: 0 };
+      var dt = (b.t - a.t) / 1000;
+      return { vx: (b.x - a.x) / dt, vy: (b.y - a.y) / dt };
+    }
+
+    pet.addEventListener("pointerdown", function (e) {
+      if (mode === "fly") { catchMidair(e); return; }
+      if (mode !== "idle" || (e.button !== undefined && e.button > 0)) return;
+      rememberHome();
+      mode = "press";
+      px = homeX; py = homeY;
+      offX = e.clientX - homeX; offY = e.clientY - homeY;
+      samples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      try { pet.setPointerCapture(e.pointerId); } catch (err) { }
+    });
+
+    pet.addEventListener("pointermove", function (e) {
+      if (mode !== "press" && mode !== "hold") return;
+      var nx = e.clientX - offX, ny = e.clientY - offY;
+      if (mode === "press") {
+        if (Math.abs(nx - px) + Math.abs(ny - py) < 7) return;
+        mode = "hold";
+        pet.classList.add("cod-hold");
+        pet.style.transform = "rotate(0deg)";
+        place(px, py);
+      }
+      px = Math.min(Math.max(nx, -fw), window.innerWidth);
+      py = Math.min(Math.max(ny, -fh), window.innerHeight + fh);
+      place(px, py);
+      samples.push({ x: e.clientX, y: e.clientY, t: performance.now() });
+      if (samples.length > 8) samples.shift();
+    });
+
+    function release() {
+      if (mode !== "press" && mode !== "hold") return;
+      var wasHold = mode === "hold";
+      mode = "idle";
+      pet.classList.remove("cod-hold");
+      if (!wasHold) return;
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 240);   /* 兜底：别把下一次真点击吃掉 */
+      var v = velFromSamples();
+      startFly(px, py, v.vx * 0.9, v.vy * 0.9);
+    }
+    pet.addEventListener("pointerup", release);
+    pet.addEventListener("pointercancel", release);
+
+    /* 飞行中被接住：就地拎着继续玩 */
+    function catchMidair(e) {
+      cancelAnimationFrame(flyRaf);
+      mode = "hold";
+      pet.classList.add("cod-hold");
+      rememberHome();
+      offX = fw / 2; offY = fh / 2;
+      px = e.clientX - offX; py = e.clientY - offY;
+      place(px, py);
+      samples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      try { pet.setPointerCapture(e.pointerId); } catch (err) { }
+    }
+
+    function startFly(x, y, vx, vy) {
+      mode = "fly";
+      flyT0 = performance.now();
+      var sp = Math.sqrt(vx * vx + vy * vy), MAXV = 2100;
+      if (sp > MAXV) { vx *= MAXV / sp; vy *= MAXV / sp; }
+      var spin = 0, last = flyT0;
+      var G = 2600, REST = 0.58;
+
+      function step(ts) {
+        var dt = Math.min(0.032, (ts - last) / 1000);
+        last = ts;
+        vy += G * dt;
+        x += vx * dt; y += vy*dt;
+        var W = window.innerWidth, H = window.innerHeight, bw = W - fw - 4, bh = H - fh - 4;
+        if (x < 4) { x = 4; vx = -vx * REST; }
+        else if (x > bw) { x = bw; vx = -vx * REST; }
+        var floorHit = false;
+        if (y < 4) { y = 4; vy = -vy * REST; }
+        else if (y > bh) { y = bh; vy = -vy * REST * 0.72; vx *= 0.94; floorHit = true; }
+        spin += vx * dt * 0.22;
+        pet.style.transform = "rotate(" + Math.max(-26, Math.min(26, spin)) + "deg)";
+        place(x, y);
+        var still = Math.abs(vx) < 60 && Math.abs(vy) < 90 && floorHit;
+        var timedOut = ts - flyT0 > 6000;
+        if (!still && !timedOut) { flyRaf = requestAnimationFrame(step); return; }
+        settle(x, y);
+      }
+      flyRaf = requestAnimationFrame(step);
+
+      thrown++;
+      if (thrown === 3) {
+        try { localStorage.setItem("ca-pet-flings", "3"); } catch (e) { }
+        showToast("<b>小鳕</b> · 行吧，鳍练出来了。轻点是提示，拖住才是起飞。");
+      } else if (thrown < 3) {
+        try { localStorage.setItem("ca-pet-flings", String(thrown)); } catch (e) { }
+      }
+    }
+
+    function settle(x, y) {
+      cancelAnimationFrame(flyRaf);
+      mode = "home";
+      pet.style.transform = "rotate(0deg)";
+      place(x, y);
+      setTimeout(function () { swimBack(); }, 850);
+    }
+
+    function swimBack() {
+      var sx = parseFloat(pet.style.left) || homeX;
+      var sy = parseFloat(pet.style.top) || homeY;
+      var t0 = null, DUR = 780;
+      function frame(ts) {
+        if (t0 == null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / DUR);
+        var ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        var cx = sx + (homeX - sx) * ease;
+        var cy = sy + (homeY - sy) * ease - Math.sin(p * Math.PI) * 26;
+        place(cx, cy);
+        pet.style.transform = "rotate(" + (Math.sin(p * Math.PI * 4) * 5).toFixed(1) + "deg)";
+        if (p < 1 && mode === "home") { requestAnimationFrame(frame); return; }
+        /* 回家：清掉内联样式，交还给 right/bottom 锚定 */
+        mode = "idle";
+        pet.style.cssText = "";
+        pet.style.touchAction = "none";
+        pet.classList.remove("pet-happy");
+        void pet.offsetWidth;
+        pet.classList.add("pet-happy");
+        setTimeout(function () { pet.classList.remove("pet-happy"); }, 900);
+      }
+      if (reduced) { mode = "idle"; pet.style.cssText = ""; pet.style.touchAction = "none"; return; }
+      requestAnimationFrame(frame);
+    }
+
+    pet.style.touchAction = "none";
+    pet.title = "小鳕 · 点我有提示 · 抓住可以扔";
+  })();
+
   /* 悬停气泡：小鳕冒一句短话，20 秒内不重复打扰 */
   var QUIPS = [
     "在看哪条线路？",
@@ -1091,6 +1267,57 @@
     reactTimer = setTimeout(function () {
       pet.classList.remove("pet-happy", "pet-ouch");
     }, 900);
+  });
+
+  /* 眼神跟随光标：只动 cx/cy 属性，不碰 transform——眨眼动画走的是
+     transform 轨道，两条轨道互不覆盖。悬停设备 + 未开减动效才启用。 */
+  (function () {
+    var CAN_HOVER = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!CAN_HOVER || reduced) return;
+    var eye = pet.querySelector(".cod-eye");
+    if (!eye) return;
+    var BX = parseFloat(eye.getAttribute("cx")), BY = parseFloat(eye.getAttribute("cy"));
+    var raf = 0, tx = BX, ty = BY;
+    document.addEventListener("pointermove", function (e) {
+      var r = pet.getBoundingClientRect();
+      /* 以鳕鱼身体中心为原点，把光标方向压进 1.3px 的瞳孔活动半径 */
+      var ox = e.clientX - (r.left + r.width * 0.72);
+      var oy = e.clientY - (r.top + r.height * 0.44);
+      var d = Math.sqrt(ox * ox + oy * oy) || 1;
+      var k = Math.min(1.3, d / 40) / d;
+      tx = BX + ox * k; ty = BY + oy * k;
+      if (!raf) {
+        raf = requestAnimationFrame(function () {
+          raf = 0;
+          eye.setAttribute("cx", tx.toFixed(2));
+          eye.setAttribute("cy", ty.toFixed(2));
+        });
+      }
+    }, { passive: true });
+  })();
+
+  /* 全站速通收尾反应：按成绩说话，答得差就把最弱的那条线路指出来 */
+  document.addEventListener("ca:speedrun", function (ev) {
+    var d = ev.detail || {};
+    var correct = d.correct || 0, total = d.total || 8;
+    var LINE_NAMES = { "loop.html": "01 循环回路", "prompt.html": "02 输入组装",
+      "sandbox.html": "03 权限沙箱", "appserver.html": "04 协议线路", "atlas.html": "05 Crate 图谱" };
+    var weakest = null, worst = 2;
+    try {
+      var rec = window.CAProgress ? CAProgress.read() : {};
+      Object.keys(LINE_NAMES).forEach(function (k) {
+        if (rec[k] && rec[k].t) {
+          var ratio = rec[k].c / rec[k].t;
+          if (ratio < worst) { worst = ratio; weakest = LINE_NAMES[k]; }
+        } else if (worst > 0) { worst = -1; weakest = LINE_NAMES[k] + "（还没做过自检）"; }
+      });
+    } catch (e) { /* 读不到进度就不点名 */ }
+    var line;
+    if (correct >= total) line = correct + "/" + total + "，满分收工。这站的出题人已经没什么可教你的了——去读真源码吧。";
+    else if (correct * 2 >= total) line = correct + "/" + total + "，底子有了。" + (weakest ? "最不稳的是「" + weakest + "」，去把它的自检补完再回来。" : "五条线路的自检都过一遍，成绩还会涨。");
+    else line = correct + "/" + total + "。别急，" + (weakest ? "先把「" + weakest + "」的自检补齐，再回来速通。" : "把五条线路的自检做完再来，成绩会不一样。");
+    if (correct >= total) CAConfetti.fire(false);
+    swimOnce(function () { showToast("<b>小鳕</b> · " + line); });
   });
 
   /* 主题切换钮：持久化 ca-theme，刷新一次让 canvas/SVG 按新色重绘 */
