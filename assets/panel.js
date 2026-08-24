@@ -649,6 +649,39 @@
   });
   layer.addEventListener("click", function (e) { if (e.target === layer) toggleKeys(false); });
 
+  /* ---------- XP：把本机真实进度折算成分数与称号（纯本地，不上传） ----------
+     口径：主线自检每题 10 分，支线 6 分，翻卡 4 分，速通每题 15 分，足迹每页 5 分。
+     称号只描述你在这台浏览器里做过什么，不承诺任何别的事。 */
+  var XP_LEVELS = [
+    [0, "路过"], [80, "读码学徒"], [180, "信号员"], [320, "循环驯兽师"],
+    [500, "crate 考古学家"], [720, "深水潜航员"], [950, "全图通"]
+  ];
+  function caXP() {
+    var xp = 0;
+    try {
+      var seen = JSON.parse(localStorage.getItem("ca-seen") || "{}");
+      var seenCount = 0;
+      ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html"]
+        .forEach(function (p) { if (seen[p]) seenCount++; });
+      xp += seenCount * 5;
+      var quiz = window.CAProgress ? CAProgress.read() : {};
+      ["loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html"].forEach(function (k) {
+        if (quiz[k]) xp += quiz[k].c * 10;
+      });
+      if (quiz["deep.html"]) xp += quiz["deep.html"].c * 6;
+      var f = JSON.parse(localStorage.getItem("ca-flash-glossary") || "{}");
+      Object.keys(f).forEach(function (k) { if (f[k] === true) xp += 4; });
+      var sr = JSON.parse(localStorage.getItem("ca-speedrun") || "null");
+      if (sr && sr.correct) xp += sr.correct * 15;
+    } catch (e) { /* 存储不可用就按 0 算 */ }
+    return xp;
+  }
+  function caLevel(xp) {
+    var lv = 0;
+    for (var i = 0; i < XP_LEVELS.length; i++) { if (xp >= XP_LEVELS[i][0]) lv = i; }
+    return lv;
+  }
+
   /* ---------- 学习档案：本机进度总览 · 导出 · 重置 ----------
      数据全部在 localStorage（ca-*），这里只做汇总展示与清理；
      音效偏好（ca-sound）在重置时保留。 */
@@ -700,10 +733,24 @@
       Object.keys(f).forEach(function (k) { if (f[k] === true) flash++; });
     } catch (e) { /* 忽略 */ }
 
+    /* XP 行：等级称号 + 距下一级的进度条 */
+    var xp = caXP(), lv = caLevel(xp);
+    var nxt = XP_LEVELS[lv + 1];
+    var xpRow = "<tr><td>经验 · 称号</td><td><b>" + XP_LEVELS[lv][1] + "</b> · " + xp + " XP";
+    if (nxt) {
+      var pctX = Math.round((xp - XP_LEVELS[lv][0]) / (nxt[0] - XP_LEVELS[lv][0]) * 100);
+      xpRow += '<span class="prof-meter" aria-hidden="true"><i style="width:' + pctX + '%;"></i></span>' +
+        '<span style="color:var(--faint);font-size:11.5px;">下一级「' + nxt[1] + "」还差 " + (nxt[0] - xp) + "</span>";
+    } else {
+      xpRow += "<span style='color:var(--amber);'> · 已满级</span>";
+    }
+    xpRow += "</td></tr>";
+
     card.innerHTML =
       "<h3>学习档案</h3>" +
       '<p class="kc-sub">只存在这台浏览器的 localStorage 里 · 不上传任何数据</p>' +
       "<table class=\"rt\"><tbody>" +
+      xpRow +
       "<tr><td>线路足迹</td><td>读过 <b>" + seenCount + "</b> / " + ALLPAGES.length + " 页</td></tr>" +
       "<tr><td>自检通关</td><td><b>" + cleared + "</b> / 5 条主线全对</td></tr>" +
       quizRows +
@@ -716,7 +763,7 @@
       '<p class="small muted">「复制」把上面这些打成一段 JSON 存档留念（不含恢复导入——数据只在这台浏览器的 localStorage 里）。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
 
     card.querySelector("#prof-copy").addEventListener("click", function () {
-      var payload = { site: "codex-atlas", exportedAt: new Date().toISOString(), pagesSeen: seenCount, quiz: quiz, flashcardsKnown: flash };
+      var payload = { site: "codex-atlas", exportedAt: new Date().toISOString(), pagesSeen: seenCount, xp: xp, level: XP_LEVELS[lv][1], quiz: quiz, flashcardsKnown: flash };
       var text = JSON.stringify(payload, null, 2);
       var btn2 = this;
       function done() {
@@ -778,6 +825,70 @@
     b.addEventListener("click", openProfile);
     foot.appendChild(b);
   });
+
+  /* ---------- 「接下来」推荐卡：按真实进度指下一站 ----------
+     首页有路由表和速通，不重复；内页做完自检后，这里告诉你去哪。
+     推荐逻辑：本页没做满先做满 → 否则按 01→07 顺序找第一条没满的线 →
+     全满则送你去速通验收。数据全部来自本机 CAProgress。 */
+  (function () {
+    var main = document.getElementById("main");
+    if (!main) return;
+    var here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    if (here === "" || here === "index.html") return;
+    var isLab = location.pathname.indexOf("/labs/") !== -1;
+    var pre = isLab ? "" : "labs/";
+    var quiz = window.CAProgress ? CAProgress.read() : {};
+    var ORDER = [
+      ["loop.html", "01 循环回路"], ["prompt.html", "02 输入组装"], ["sandbox.html", "03 权限沙箱"],
+      ["appserver.html", "04 协议线路"], ["atlas.html", "05 Crate 图谱"], ["deep.html", "07 深水区"]
+    ];
+    function unfinished(k) {
+      var r = quiz[k];
+      if (!r || !r.t) return { done: false, c: 0, t: 0 };
+      return { done: r.c >= r.t, c: r.c, t: r.t };
+    }
+    var target = null, why = "";
+    var inOrder = ORDER.some(function (o) { return o[0] === here; });
+    var curRec = unfinished(here);
+    if (inOrder && !curRec.done) {
+      target = here;
+      why = curRec.t
+        ? "本页自检 " + curRec.c + " / " + curRec.t + "，先做满，进度环才会闭合成实心。"
+        : "本页的 CHECKPOINT 还没做过——做完它，首页线路图上这站才有进度环。";
+    }
+    if (!target) {
+      for (var i = 0; i < ORDER.length; i++) {
+        if (ORDER[i][0] === here) continue;
+        var r2 = unfinished(ORDER[i][0]);
+        if (!r2.done) {
+          target = ORDER[i][0];
+          why = r2.t ? "自检 " + r2.c + " / " + r2.t + "，还差 " + (r2.t - r2.c) + " 题就通关。"
+                     : "还没去过——这条线上有能上手的仪器。";
+          break;
+        }
+      }
+    }
+    var href, title, sub;
+    if (target) {
+      var nm = ORDER.filter(function (o) { return o[0] === target; })[0];
+      title = nm ? nm[1] : "术语速查";
+      href = target === "glossary.html" ? (isLab ? "../glossary.html" : "glossary.html") : pre + target;
+      sub = why;
+    } else {
+      title = "全站速通 · 验收";
+      href = (isLab ? "../index.html" : "index.html") + "#speedrun";
+      sub = "五条主线加支线的自检全通了。8 题限时速通走一遍，看成绩配不配得上这张地图。";
+    }
+    var card = document.createElement("section");
+    card.className = "next-card";
+    card.innerHTML =
+      '<p class="nc-eyebrow">下一步 · 按你的进度</p>' +
+      '<div class="nc-row"><a class="nc-link" href="' + href + '">' + title + " →</a>" +
+      "<p class='nc-why'>" + sub + "</p></div>";
+    var quizEl = document.getElementById("quiz");
+    if (quizEl && quizEl.parentNode) quizEl.parentNode.insertBefore(card, quizEl.nextSibling);
+    else main.appendChild(card);
+  })();
 
   /* ---------- 全站命令面板：Ctrl+K 或 / 呼出，跨页直达任意仪器 ---------- */
   (function () {
@@ -1319,6 +1430,25 @@
     if (correct >= total) CAConfetti.fire(false);
     swimOnce(function () { showToast("<b>小鳕</b> · " + line); });
   });
+
+  /* 升级播报：称号变了小鳕来报。ca-level 首次写入不播——老玩家回来
+     不想被「恭喜升到路过」糊脸，只播之后真实发生的升级。 */
+  (function () {
+    var lvNow = caLevel(caXP());
+    var prev = null;
+    try { prev = localStorage.getItem("ca-level"); } catch (e) { /* 忽略 */ }
+    if (prev === null) {
+      try { localStorage.setItem("ca-level", String(lvNow)); } catch (e) { /* 忽略 */ }
+      return;
+    }
+    if (lvNow > Number(prev)) {
+      try { localStorage.setItem("ca-level", String(lvNow)); } catch (e) { /* 忽略 */ }
+      CAConfetti.fire(false);
+      swimOnce(function () {
+        showToast("<b>小鳕</b> · 升级！称号「" + XP_LEVELS[lvNow][1] + "」。XP 只算你真做过的事：自检、翻卡、速通、足迹。");
+      });
+    }
+  })();
 
   /* 主题切换钮：持久化 ca-theme，刷新一次让 canvas/SVG 按新色重绘 */
   (function () {

@@ -1892,3 +1892,33 @@ body::after {
   .birth-viz { transform: none !important; transition: none; }
   .birth-card.lit p { animation: none; }
 }
+
+/* ---------- 跨页过渡（MPA View Transitions）----------
+   Chrome/Edge 126+ 生效：八个页面之间导航时旧页淡出新页淡入，
+   纯 CSS 零 JS。不支持的浏览器整条规则被忽略，零成本降级。 */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation-duration: .22s; }
+  ::view-transition-new(root) { animation-duration: .26s; }
+}
+
+/* ---------- 「接下来」推荐卡 ---------- */
+.next-card {
+  margin-top: 30px;
+  border: 1px dashed var(--line-strong);
+  border-left: 3px solid var(--amber);
+  padding: 16px 20px;
+  background: var(--bg1);
+}
+.next-card .nc-eyebrow {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--faint); margin: 0 0 8px;
+}
+.next-card .nc-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.next-card .nc-link {
+  font-size: 17px; font-weight: 600; color: var(--amber);
+  text-decoration: none; border-bottom: 1px solid transparent;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.next-card .nc-link:hover, .next-card .nc-link:focus-visible { border-bottom-color: var(--amber); }
+.next-card .nc-why { margin: 0; color: var(--dim); font-size: 13px; }

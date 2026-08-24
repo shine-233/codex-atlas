@@ -32,6 +32,7 @@
     var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
     var parts = [];
     var sparks = [];   /* 点击爆裂：tsParticles 的 onclick burst 手写版 */
+    var packets = [];  /* 链路信号包：挑一对正在连线的粒子，一枚光点沿连线穿行 */
     var mouse = { x: -999, y: -999 };
     var running = false, rafId = 0;
 
@@ -104,6 +105,38 @@
         var a = 0.32 + 0.3 * (0.5 + 0.5 * Math.sin(t * p.tws + p.tw * 6.28));
         ctx.fillStyle = "rgba(" + p.c + "," + a.toFixed(3) + ")";
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.fill();
+      }
+      /* 链路信号包：低频生成，沿两点连线走直线，终点即消失。
+         琥珀=出站、钢青=回流，跟全站的信号语义一致。 */
+      if (packets.length < 3 && Math.random() < 0.022 && parts.length > 4) {
+        var pi = (Math.random() * parts.length) | 0;
+        var pj = (Math.random() * parts.length) | 0;
+        if (pi !== pj) {
+          dx = parts[pi].x - parts[pj].x; dy = parts[pi].y - parts[pj].y;
+          if (dx * dx + dy * dy < LINK * LINK * 0.55) {
+            packets.push({ a: parts[pi], b: parts[pj], t: 0,
+              sp: 0.008 + Math.random() * 0.008,
+              c: Math.random() < 0.55 ? AMBER : STEEL });
+          }
+        }
+      }
+      for (i = packets.length - 1; i >= 0; i--) {
+        var pk = packets[i];
+        pk.t += pk.sp;
+        /* 端点粒子回绕瞬移会让直线横穿全屏：距离失控立即掐掉 */
+        dx = pk.a.x - pk.b.x; dy = pk.a.y - pk.b.y;
+        if (pk.t >= 1 || !isFinite(pk.t) || dx * dx + dy * dy > LINK * LINK * 1.44) {
+          packets.splice(i, 1); continue;
+        }
+        var kx = pk.a.x + (pk.b.x - pk.a.x) * pk.t;
+        var ky = pk.a.y + (pk.b.y - pk.a.y) * pk.t;
+        /* 拖尾残影 + 本体，读出传播方向 */
+        var kq = pk.a.x + (pk.b.x - pk.a.x) * Math.max(0, pk.t - 0.06);
+        var kr = pk.a.y + (pk.b.y - pk.a.y) * Math.max(0, pk.t - 0.06);
+        ctx.strokeStyle = "rgba(" + pk.c + ",0.28)";
+        ctx.beginPath(); ctx.moveTo(kq, kr); ctx.lineTo(kx, ky); ctx.stroke();
+        ctx.fillStyle = "rgba(" + pk.c + "," + (0.9 * (1 - pk.t * 0.35)).toFixed(3) + ")";
+        ctx.beginPath(); ctx.arc(kx, ky, 2.1, 0, 6.2832); ctx.fill();
       }
       /* 爆裂火花：短命、减速、淡出 */
       for (i = sparks.length - 1; i >= 0; i--) {
