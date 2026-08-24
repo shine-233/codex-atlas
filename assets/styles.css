@@ -1583,3 +1583,51 @@ body::after {
 }
 .ca-copybtn:hover { color: var(--amber); border-color: var(--amber); opacity: 1; }
 .ca-copybtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- 首页全站线路图（metro） ---------- */
+.metro-wrap svg { width: 100%; height: auto; display: block; }
+.metro-line { stroke: rgba(143, 199, 232, .5); stroke-width: 5; fill: none; stroke-linecap: round; }
+.metro-branch { stroke: rgba(255, 180, 84, .55); stroke-width: 3.5; fill: none; stroke-dasharray: 1 8; stroke-linecap: round; }
+.metro-station { cursor: pointer; }
+.metro-station circle.plat { fill: var(--bg0); stroke: var(--line-strong); stroke-width: 2; transition: stroke .18s, filter .18s; }
+.metro-station circle.ring { fill: none; stroke: var(--amber); stroke-width: 3; transform: rotate(-90deg); transform-origin: center; transform-box: fill-box; transition: stroke-dasharray .5s var(--ease); }
+.metro-station text.st-no { fill: var(--faint); font-family: var(--mono); font-size: 10px; text-anchor: middle; }
+.metro-station text.st-name { fill: var(--dim); font-family: var(--mono); font-size: 11.5px; text-anchor: middle; transition: fill .18s; }
+.metro-station:hover circle.plat, .metro-station:focus-visible circle.plat { stroke: var(--amber); filter: drop-shadow(0 0 6px rgba(255,180,84,.5)); }
+.metro-station:hover text.st-name, .metro-station:focus-visible text.st-name { fill: var(--ink); }
+.metro-station.seen circle.plat { stroke: var(--dim); }
+.metro-station:focus-visible { outline: none; }
+.metro-pulse { fill: #8fc7e8; filter: drop-shadow(0 0 5px rgba(143,199,232,.9)); }
+.metro-pulse.amber { fill: #ffb454; filter: drop-shadow(0 0 5px rgba(255,180,84,.9)); }
+.metro-hub-glow { animation: hotPulse 6s ease-in-out infinite; }
+.metro-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.metro-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- 全站速通 ---------- */
+.sr-stage { min-height: 190px; }
+.sr-q { font-size: 15.5px; color: var(--ink); margin: 0 0 12px; line-height: 1.7; }
+.sr-q .sr-no { font-family: var(--mono); color: var(--amber); margin-right: 10px; }
+.sr-q .sr-page { font-family: var(--mono); font-size: 10.5px; color: var(--faint); border: 1px solid var(--line-strong); padding: 1px 7px; margin-left: 10px; vertical-align: 2px; }
+.sr-opts { display: grid; gap: 8px; }
+.sr-opt {
+  text-align: left; background: var(--bg2); border: 1px solid var(--line-strong);
+  color: var(--dim); font-size: 13.5px; padding: 10px 14px; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+  font-family: var(--sans);
+}
+.sr-opt:hover { border-color: var(--amber); color: var(--ink); }
+.sr-opt .sr-key { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-right: 10px; }
+.sr-opt.right { border-color: var(--ok); color: var(--ok); background: var(--ok-dim); }
+.sr-opt.wrong { border-color: var(--deny); color: var(--deny); background: var(--deny-dim); }
+.sr-opt.mute { opacity: .45; }
+.sr-opt:disabled { cursor: default; }
+.sr-timer { height: 4px; background: var(--bg2); border: 1px solid var(--line); margin: 14px 0 6px; position: relative; overflow: hidden; }
+.sr-timer i { display: block; height: 100%; background: var(--amber); width: 100%; }
+.sr-timer i.low { background: var(--deny); }
+.sr-timer-row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-bottom: 10px; }
+.sr-ex { min-height: 44px; font-size: 12.5px; color: var(--dim); line-height: 1.7; margin: 10px 0 0; }
+.sr-ex b { color: var(--ink); }
+.sr-final { text-align: center; padding: 18px 0 6px; }
+.sr-final .big { font-family: var(--mono); font-size: 40px; color: var(--amber); letter-spacing: .04em; }
+.sr-final .sub { color: var(--dim); font-size: 13px; margin-top: 6px; }
+.sr-best { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: .08em; }

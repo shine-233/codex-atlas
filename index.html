@@ -100,9 +100,29 @@
 
     <hr class="sep">
 
+    <!-- 全站线路图 -->
+    <section id="metro">
+      <p class="eyebrow"><span class="tick">01</span>全站线路图
+        <span class="readout" style="margin-left:14px;text-transform:none;letter-spacing:.04em;">你的进度画在站上 · 点站直达</span></p>
+      <h2 style="margin-top:6px;">八站一线，进度环跟着你走</h2>
+      <div class="panel" style="margin-top:16px;">
+        <div class="metro-wrap">
+          <div id="metro-map" role="group" aria-label="全站线路图：00 总览经 01 到 05 五站主线，06 术语速查与 07 深水区为支线；每个站点外圈显示该页自检进度，点击直达"></div>
+        </div>
+        <div class="metro-legend">
+          <span><i style="background:var(--amber);"></i>外圈 = 该站自检进度</span>
+          <span><i style="background:var(--dim);"></i>灰圈 = 读过但还没做自检</span>
+          <span><i style="background:var(--steel);"></i>光点 = 线上跑的脉冲（装饰）</span>
+          <span>键盘：Tab 到站后回车直达</span>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
     <!-- 三步上手：这是真实顺序 -->
     <section>
-      <p class="eyebrow"><span class="tick">01</span>三步上手</p>
+      <p class="eyebrow"><span class="tick">02</span>三步上手</p>
       <h2 style="margin-top:6px;">第一次来，按顺序走这三步</h2>
       <table class="rt">
         <thead>
@@ -130,7 +150,7 @@
 
     <!-- 五条主线 + 支线 -->
     <section>
-      <p class="eyebrow"><span class="tick">02</span>线路总览
+      <p class="eyebrow"><span class="tick">03</span>线路总览
         <span class="readout" id="qp-sum" style="margin-left:14px;text-transform:none;letter-spacing:.04em;"></span></p>
       <h2 style="margin-top:6px;">五条主线，一台支线</h2>
 
@@ -237,7 +257,7 @@
 
     <!-- 按问题路由 -->
     <section id="route">
-      <p class="eyebrow"><span class="tick">03</span>信号路由</p>
+      <p class="eyebrow"><span class="tick">04</span>信号路由</p>
       <h2 style="margin-top:6px;">按你的问题选入口</h2>
       <div class="search-row" style="margin-bottom:2px;">
         <input type="text" id="route-q" class="search-box"
@@ -271,6 +291,22 @@
       </table>
     </section>
 
+    <!-- 全站速通 -->
+    <section id="speedrun">
+      <p class="eyebrow"><span class="tick">05</span>全站速通
+        <span class="readout" style="margin-left:14px;text-transform:none;letter-spacing:.04em;">8 题随机 · 每题 20 秒 · 最佳成绩存本机</span></p>
+      <h2 style="margin-top:6px;">敢不敢现在就验收一遍</h2>
+      <div class="panel" style="margin-top:16px;">
+        <div class="sr-stage" id="sr-stage" aria-live="polite">
+          <p class="sr-q">题目从五条线路的 CHECKPOINT 题库里随机抽 8 道，每题 20 秒。答完立刻知道对错和原因。数字键 <span class="kbd">1</span>–<span class="kbd">3</span> 也能作答。</p>
+          <p class="sr-best" id="sr-best-line"></p>
+          <p style="margin:16px 0 0;"><button class="btn primary" id="sr-start">▶ 开始速通</button></p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
     <!-- 证据边界 -->
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
@@ -284,6 +320,7 @@
 
 <script src="assets/panel.js"></script>
 <script src="assets/sound.js"></script>
+<script src="assets/quiz-bank.js"></script>
 <script src="assets/fx.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>
@@ -395,5 +432,256 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
 })();
 </script>
 <script src="assets/terms.js"></script>
+<script>
+/* ---------- 全站线路图：8 站 metro，进度环 = 各页自检/翻卡成绩 ---------- */
+(function () {
+  "use strict";
+  var host = document.getElementById("metro-map");
+  if (!host) return;
+  var NS = "http://www.w3.org/2000/svg";
+  function E(n, a) { var x = document.createElementNS(NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+  var reduced = window.PrefersReducedMotion === true;
+
+  var STATIONS = [
+    { no: "00", name: "总览", x: 70, y: 150, href: "index.html", hub: true },
+    { no: "01", name: "循环回路", x: 190, y: 150, href: "labs/loop.html", qp: "loop.html" },
+    { no: "02", name: "输入组装", x: 310, y: 150, href: "labs/prompt.html", qp: "prompt.html" },
+    { no: "03", name: "权限沙箱", x: 430, y: 150, href: "labs/sandbox.html", qp: "sandbox.html" },
+    { no: "04", name: "协议线路", x: 550, y: 150, href: "labs/appserver.html", qp: "appserver.html" },
+    { no: "05", name: "Crate 图谱", x: 670, y: 150, href: "labs/atlas.html", qp: "atlas.html" },
+    { no: "06", name: "术语速查", x: 310, y: 62, href: "glossary.html", branch: true, flash: true },
+    { no: "07", name: "深水区", x: 670, y: 238, href: "labs/deep.html", qp: "deep.html", branch: true }
+  ];
+
+  var svg = E("svg", { viewBox: "0 0 760 300", preserveAspectRatio: "xMidYMid meet" });
+  svg.style.width = "100%"; svg.style.height = "auto"; svg.style.display = "block";
+
+  /* 主线 + 支线 */
+  var mainPath = E("path", { class: "metro-line", d: "M 70 150 H 670" });
+  svg.appendChild(mainPath);
+  var br1 = E("path", { class: "metro-branch", d: "M 310 150 V 62" });
+  var br2 = E("path", { class: "metro-branch", d: "M 670 150 V 238" });
+  svg.appendChild(br1); svg.appendChild(br2);
+
+  var quiz = window.CAProgress ? CAProgress.read() : {};
+  var seen = {};
+  try { seen = JSON.parse(localStorage.getItem("ca-seen") || "{}"); } catch (e) { }
+  var flash = 0, FLASH_TOTAL = 41;
+  try {
+    var f = JSON.parse(localStorage.getItem("ca-flash-glossary") || "{}");
+    Object.keys(f).forEach(function (k) { if (f[k] === true) flash++; });
+  } catch (e) { }
+  var grand = false;
+  try { grand = localStorage.getItem("ca-grand") === "1"; } catch (e) { }
+
+  function stationSt(s) {
+    var g = E("g", { class: "metro-station" + (seen[s.href.split("/").pop()] ? " seen" : "") });
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("role", "link");
+    var label = s.no + " " + s.name + (s.hub ? " · 你在这里" : "");
+    g.setAttribute("aria-label", label + "，回车前往");
+    var R = s.hub ? 15 : 12;
+
+    g.appendChild(E("circle", { class: "plat", cx: s.x, cy: s.y, r: R }));
+    /* 进度环：主线=自检成绩，06=翻卡，07=自检 */
+    var pct = 0, tip = "";
+    if (s.qp && quiz[s.qp] && quiz[s.qp].t) {
+      pct = quiz[s.qp].c / quiz[s.qp].t;
+      tip = "自检 " + quiz[s.qp].c + "/" + quiz[s.qp].t;
+    } else if (s.flash) {
+      pct = flash / FLASH_TOTAL;
+      tip = "翻卡已记 " + flash + "/" + FLASH_TOTAL;
+    }
+    if (pct > 0) {
+      var C = 2 * Math.PI * (R + 6);
+      g.appendChild(E("circle", {
+        class: "ring", cx: s.x, cy: s.y, r: R + 6,
+        "stroke-dasharray": (pct * C).toFixed(1) + " " + C.toFixed(1)
+      }));
+    }
+    var no = E("text", { class: "st-no", x: s.x, y: s.y + (s.hub ? -22 : -20) });
+    no.textContent = (tip ? tip + " · " : "") + s.no;
+    g.appendChild(no);
+    var nm = E("text", { class: "st-name", x: s.x, y: s.y + (s.branch ? (s.no === "06" ? -30 : 38) : 34) });
+    nm.textContent = s.name;
+    g.appendChild(nm);
+    if (s.hub && grand) {
+      g.classList.add("metro-hub-glow");
+      var badge = E("text", { x: s.x, y: s.y + 52, "text-anchor": "middle", fill: "#ffb454", "font-family": "var(--mono)", "font-size": "10px" });
+      badge.textContent = "★ 五条全通";
+      g.appendChild(badge);
+    }
+
+    function go() { location.href = s.href; }
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
+    });
+    svg.appendChild(g);
+    return g;
+  }
+  STATIONS.forEach(stationSt);
+  host.appendChild(svg);
+
+  /* 脉冲：两枚光点沿主线往返，一枚跑 07 支线（reduced-motion 静止） */
+  if (!reduced) {
+    var mainLen = mainPath.getTotalLength();
+    var pulses = [
+      { el: E("circle", { class: "metro-pulse amber", r: 4.5 }), t: 0, speed: 0.00022, dir: 1 },
+      { el: E("circle", { class: "metro-pulse", r: 3.5 }), t: 0.5, speed: 0.00016, dir: -1 },
+      { el: E("circle", { class: "metro-pulse", r: 3 }), t: 0.2, speed: 0.00019, dir: 1 }
+    ];
+    pulses.forEach(function (p) { svg.appendChild(p.el); });
+    var brLen = br2.getTotalLength();
+    var brPulse = { el: E("circle", { class: "metro-pulse amber", r: 3.5 }), t: 0, speed: 0.0003, dir: 1, path: br2, len: brLen };
+    svg.appendChild(brPulse.el);
+    var last = null;
+    (function frame(ts) {
+      if (last == null) last = ts;
+      var dt = ts - last; last = ts;
+      if (!document.hidden) {
+        pulses.forEach(function (p) {
+          p.t += p.speed * dt * p.dir;
+          if (p.t > 1) { p.t = 1; p.dir = -1; }
+          if (p.t < 0) { p.t = 0; p.dir = 1; }
+          var pt = mainPath.getPointAtLength(p.t * mainLen);
+          p.el.setAttribute("cx", pt.x); p.el.setAttribute("cy", pt.y);
+        });
+        brPulse.t += brPulse.speed * dt * brPulse.dir;
+        if (brPulse.t > 1) { brPulse.t = 1; brPulse.dir = -1; }
+        if (brPulse.t < 0) { brPulse.t = 0; brPulse.dir = 1; }
+        var bp = brPulse.path.getPointAtLength(brPulse.t * brPulse.len);
+        brPulse.el.setAttribute("cx", bp.x); brPulse.el.setAttribute("cy", bp.y);
+      }
+      requestAnimationFrame(frame);
+    })(performance.now());
+  }
+})();
+
+/* ---------- 全站速通 ---------- */
+(function () {
+  "use strict";
+  var stage = document.getElementById("sr-stage");
+  var bestLine = document.getElementById("sr-best-line");
+  if (!stage || !window.CAQBANK) return;
+  var KEY = "ca-speedrun";
+  var N = 8, SECONDS = 20;
+
+  function readBest() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; }
+  }
+  function paintBest() {
+    var b = readBest();
+    bestLine.innerHTML = b
+      ? "本机最佳：<b style='color:var(--amber);font-family:var(--mono);'>" + b.correct + "/" + b.total + "</b> · 用时 " + b.time + "s · " + b.date
+      : "还没有成绩——第一个记录就是你。";
+  }
+  paintBest();
+
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  var timer = null, timeLeft = SECONDS, locked = false, startTime = 0;
+
+  function clearStage(html) {
+    stage.innerHTML = html;
+  }
+
+  function start() {
+    var qs = shuffle(window.CAQBANK.slice()).slice(0, N);
+    var i = 0, correct = 0;
+    startTime = Date.now();
+    ask();
+
+    function ask() {
+      locked = false;
+      var q = qs[i];
+      clearStage(
+        '<div class="sr-timer-row"><span>第 ' + (i + 1) + " / " + N + " 题 · " + q.page + "</span><span id='sr-sec'>" + SECONDS + "s</span></div>" +
+        '<div class="sr-timer"><i id="sr-drain"></i></div>' +
+        '<p class="sr-q"><span class="sr-no">Q' + (i + 1) + "</span>" + q.q + '<span class="sr-page">' + q.page + "</span></p>" +
+        '<div class="sr-opts" id="sr-opts"></div>' +
+        '<p class="sr-ex" id="sr-ex"></p>'
+      );
+      var opts = document.getElementById("sr-opts");
+      q.opts.forEach(function (label, oi) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "sr-opt";
+        b.innerHTML = '<span class="sr-key">' + (oi + 1) + "</span>" + label;
+        b.addEventListener("click", function () { answer(oi); });
+        opts.appendChild(b);
+      });
+      timeLeft = SECONDS;
+      var drain = document.getElementById("sr-drain");
+      var secOut = document.getElementById("sr-sec");
+      var t0 = Date.now();
+      timer = setInterval(function () {
+        var left = Math.max(0, SECONDS - (Date.now() - t0) / 1000);
+        timeLeft = left;
+        drain.style.width = (left / SECONDS * 100) + "%";
+        drain.classList.toggle("low", left < 6);
+        secOut.textContent = left.toFixed(1) + "s";
+        if (left <= 0) answer(-1);
+      }, 100);
+    }
+
+    function answer(oi) {
+      if (locked) return;
+      locked = true;
+      clearInterval(timer);
+      var q = qs[i];
+      var ok = oi === q.a;
+      if (ok) correct++;
+      try { document.dispatchEvent(new CustomEvent("ca:quiz", { detail: { ok: ok } })); } catch (e) { }
+      Array.prototype.forEach.call(document.getElementById("sr-opts").children, function (b, idx) {
+        b.disabled = true;
+        if (idx === q.a) b.classList.add("right");
+        else if (idx === oi) b.classList.add("wrong");
+        else b.classList.add("mute");
+      });
+      document.getElementById("sr-ex").innerHTML =
+        "<b>" + (ok ? "答对。" : oi === -1 ? "超时。" : "差一点。") + "</b> " + q.why;
+      i++;
+      if (i < N) setTimeout(ask, 1900);
+      else setTimeout(finish, 1900);
+    }
+
+    function finish() {
+      var secs = ((Date.now() - startTime) / 1000).toFixed(1);
+      var best = readBest();
+      var isBest = !best || correct > best.correct || (correct === best.correct && parseFloat(secs) < parseFloat(best.time));
+      if (isBest) {
+        try { localStorage.setItem(KEY, JSON.stringify({ correct: correct, total: N, time: secs, date: new Date().toISOString().slice(0, 10) })); } catch (e) { }
+        try { CAConfetti.fire(correct >= N); } catch (e) { }
+      }
+      clearStage(
+        '<div class="sr-final">' +
+        '<div class="big">' + correct + " / " + N + "</div>" +
+        "<div class='sub'>用时 " + secs + " 秒" + (isBest ? " · <b style='color:var(--amber);'>新纪录</b>" : " · 最佳 " + best.correct + "/" + N) + "</div>" +
+        "<p style='margin:18px 0 0;'><button class='btn primary' id='sr-again'>↻ 再来一轮（题目会重抽）</button></p>" +
+        "</div>"
+      );
+      paintBest();
+      document.getElementById("sr-again").addEventListener("click", start);
+      if (isBest && window.CASound) CASound.play(correct >= N ? "grand" : "clear");
+    }
+  }
+  document.getElementById("sr-start").addEventListener("click", start);
+
+  /* 数字键作答 */
+  document.addEventListener("keydown", function (e) {
+    var opts = document.getElementById("sr-opts");
+    if (!opts || locked) return;
+    var n = parseInt(e.key, 10);
+    if (n >= 1 && n <= opts.children.length) opts.children[n - 1].click();
+  });
+})();
+</script>
 </body>
 </html>
