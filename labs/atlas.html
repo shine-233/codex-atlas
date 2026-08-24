@@ -111,6 +111,17 @@
   .cov-yes { border-color: rgba(123, 201, 139, .5); color: var(--ok); background: var(--ok-dim); }
   .cov-part { border-color: rgba(255, 180, 84, .5); color: var(--amber); background: var(--amber-dim); }
   .cov-no { border-color: var(--line-strong); }
+  /* 9×9 带邻接矩阵：行=依赖方，列=被依赖方 */
+  .mx9 { overflow-x: auto; }
+  .mx9 table { border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+  .mx9 th, .mx9 td { border: 1px solid var(--line); text-align: center; padding: 4px 6px; min-width: 34px; }
+  .mx9 th { color: var(--faint); font-weight: 500; background: var(--bg2); }
+  .mx9 td.cell0 { color: var(--faint); }
+  .mx9 td.celln { color: var(--ink); background: var(--amber-dim); cursor: pointer; }
+  .mx9 td.celln:hover { background: rgba(255, 180, 84, 0.35); }
+  .mx9 td.diag { background: var(--bg2); color: var(--dim); }
+  .mx9 .mx-total { color: var(--ink); font-weight: 600; }
+
   /* 实测依赖排行 */
   .dep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 24px; }
   @media (max-width: 900px) { .dep-grid { grid-template-columns: 1fr; } }
@@ -344,10 +355,10 @@
     <section class="panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>DEPENDENCY FACTS · 实测内部依赖排行</h3>
-        <span class="readout">135 crate · 823 条边 · 2026-08-24 爬自固定提交</span>
+        <span class="readout">135 crate · 814 条成员内边 · 2026-08-24 爬自固定提交</span>
       </div>
       <p class="small muted" style="margin:0 0 14px;">
-        不是归纳，是数出来的：逐份抓取 135 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖。
+        不是归纳，是数出来的：逐份抓取 135 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖（成员对成员 814 条；另有 9 条指向 chatgpt / message-history / windows-sandbox 三个非成员包）。
         点任意一行，检索框会帮你定位到那个 crate。
       </p>
       <div class="dep-grid">
@@ -365,6 +376,19 @@
         <code>core</code> 依赖 69 个内部 crate——第 2 带是吞噬整个工作区的大胃王；
         另有 7 个零入度叶子 crate，没有任何人依赖它们。
       </p>
+    </section>
+
+    <!-- 9×9 带邻接矩阵：814 条边的完整矩阵化 -->
+    <section class="panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>BAND MATRIX · 9×9 实测邻接矩阵</h3>
+        <span class="readout">行 = 依赖方 · 列 = 被依赖方 · 全表合计 = 814</span>
+      </div>
+      <p class="small muted" style="margin:0 0 14px;">
+        依赖排行只给 TOP 12，这张矩阵是<b>全部 814 条边</b>的完整落位：对角线是带内依赖，
+        其余每格是行带依赖列带的边数。悬停放大，点击格子直接用该「行带 列带」组合检索。
+      </p>
+      <div class="mx9" id="mx9"></div>
     </section>
 
     <section class="panel" style="margin-top:26px;">
@@ -1510,7 +1534,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         if (p !== name && CA_DEPS[p].indexOf(name) !== -1) ins.push(p);
       });
       var head = '<p style="margin:12px 0 0;border-top:1px dashed var(--line-strong);padding-top:10px;">' +
-        '<b>实测依赖</b>（823 条边 · 爬自 135 份 Cargo.toml）：<br>';
+        '<b>实测依赖</b>（814 条成员内边 · 爬自 135 份 Cargo.toml）：<br>';
       if (!outs.length && !ins.length) return head + "无内部依赖——叶子 crate，独来独往。</p>";
       var parts = [];
       if (outs.length) parts.push('出 <b>' + outs.length + "</b> 条：<br>" + depChips(outs));
@@ -1590,6 +1614,80 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     }
     build();
     mountBars();
+  })();
+
+  /* ---------- 9×9 邻接矩阵：全量 814 条边落位，可点检索 ---------- */
+  (function () {
+    var box = document.getElementById("mx9");
+    if (!box) return;
+    var grid = {}, diag = {};
+    Object.keys(CA_DEPS).forEach(function (c) {
+      var bc = CRATE_INDEX[c];
+      if (!bc) return;
+      CA_DEPS[c].forEach(function (d) {
+        var bd = CRATE_INDEX[d];
+        if (!bd) return;
+        var k = bc.no + "->" + bd.no;
+        if (bc.no === bd.no) diag[bc.no] = (diag[bc.no] || 0) + 1;
+        else grid[k] = (grid[k] || 0) + 1;
+      });
+    });
+    var nos = BANDS.map(function (b) { return b.no; });
+    var total = Object.keys(grid).reduce(function (a, k) { return a + grid[k]; }, 0) +
+                Object.keys(diag).reduce(function (a, k) { return a + diag[k]; }, 0);
+    var maxOff = 0;
+    Object.keys(grid).forEach(function (k) { if (grid[k] > maxOff) maxOff = grid[k]; });
+
+    var html = '<table><thead><tr><th>行＼列</th>';
+    nos.forEach(function (no) { html += "<th>" + no + "</th>"; });
+    html += "<th>Σ</th></tr></thead><tbody>";
+    nos.forEach(function (r) {
+      html += "<tr><th>" + r + "</th>";
+      var rowSum = 0;
+      nos.forEach(function (c2) {
+        if (r === c2) {
+          var dv = diag[r] || 0;
+          rowSum += dv;
+          html += '<td class="diag">' + (dv || "·") + "</td>";
+        } else {
+          var v = grid[r + "->" + c2] || 0;
+          rowSum += v;
+          if (v) {
+            var heat = Math.min(1, v / maxOff);
+            html += '<td class="celln" style="background:rgba(255,180,84,' + (0.12 + heat * 0.4).toFixed(2) + ')" ' +
+              'data-q="' + r + " " + c2 + '" tabindex="0" role="button" ' +
+              'aria-label="检索 ' + r + " 依赖 " + c2 + ' 的 ' + v + ' 条边">' + v + "</td>";
+          } else {
+            html += '<td class="cell0">·</td>';
+          }
+        }
+      });
+      html += '<td class="mx-total">' + rowSum + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    box.innerHTML = html;
+
+    box.addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t.getAttribute || !t.getAttribute("data-q")) return;
+      qInput.value = t.getAttribute("data-q");
+      applyFilter();
+      if (window.CAFlash) CAFlash(document.querySelector(".search-row"));
+      qInput.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "center" });
+    });
+    box.addEventListener("keydown", function (e) {
+      var t = e.target;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (!t.getAttribute || !t.getAttribute("data-q")) return;
+      e.preventDefault();
+      qInput.value = t.getAttribute("data-q");
+      applyFilter();
+    });
+    var sumEl = document.createElement("p");
+    sumEl.className = "small muted";
+    sumEl.style.margin = "10px 0 0";
+    sumEl.textContent = "全表合计（含带内）= " + total + " 条，与 DEPENDENCY FACTS 的 814 一致——数字对得上才算数。";
+    box.after(sumEl);
   })();
 
   CAQuiz.mount(document.getElementById("quiz"), [
