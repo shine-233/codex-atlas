@@ -1922,3 +1922,38 @@ body::after {
 }
 .next-card .nc-link:hover, .next-card .nc-link:focus-visible { border-bottom-color: var(--amber); }
 .next-card .nc-why { margin: 0; color: var(--dim); font-size: 13px; }
+
+/* ---------- 回路示波器 · 3D 抓取拖转 ----------
+   transform 只写在 .ls-grab 这一层（合成层），内部 SVG 的脉冲、
+   站点命中区全部照常工作；is-drag 时关掉过渡跟手，松手靠过渡回弹。 */
+.ls-grab {
+  transform: perspective(950px) rotateX(var(--lrx, 0deg)) rotateY(var(--lry, 0deg));
+  transition: transform .55s var(--ease);
+  touch-action: pan-y;
+  cursor: grab;
+}
+.ls-grab:active { cursor: grabbing; }
+.ls-grab.is-drag { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ls-grab { transform: none; cursor: default; }
+}
+
+/* ---------- hero 载入编排：首屏元素按阅读顺序错峰落位 ----------
+   一次性动画，结束即交还控制权（backwards 不 forwards），
+   不跟解码字/弹性标题/抓取拖转抢 transform——示波器只做淡入。 */
+@media (prefers-reduced-motion: no-preference) {
+  .hero .lede, .hero p.small, .hero p[style*="margin:20px"], .loopscope-tip {
+    animation: hero-rise .65s var(--ease) backwards;
+  }
+  .hero .lede { animation-delay: .12s; }
+  .hero p.small { animation-delay: .22s; }
+  .hero p[style*="margin:20px"] { animation-delay: .3s; }
+  .loopscope-tip { animation-delay: .42s; }
+  #hero-scope { animation: hero-fade .8s var(--ease) .34s backwards; }
+}
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@keyframes hero-fade {
+  from { opacity: 0; }
+}

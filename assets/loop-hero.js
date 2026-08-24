@@ -314,6 +314,53 @@
       requestAnimationFrame(frame);
     }
 
+    /* 3D 抓取拖转：回路是一台仪器，抓住边框可以把它转起来看，
+       松手弹性回正。拖过阈值算拖拽，吞掉落点站点的 click——
+       否则一次拖拽会顺手触发导航。触摸设备只抢横向位移（touch-action: pan-y），
+       上下仍留给页面滚动。 */
+    if (!opts.plain && !window.PrefersReducedMotion) {
+      host.classList.add("ls-grab");
+      host.title = host.title || "按住拖动：把回路转起来看；松手回正";
+      var gx = 0, gy = 0, gDragging = false, gPid = null, suppressClick = false;
+      host.addEventListener("pointerdown", function (e) {
+        if (e.button !== 0 && e.pointerType === "mouse") return;
+        gPid = e.pointerId; gx = e.clientX; gy = e.clientY;
+        gDragging = false; suppressClick = false;
+        try { host.setPointerCapture(gPid); } catch (err) { /* 老浏览器就算了 */ }
+      });
+      host.addEventListener("pointermove", function (e) {
+        if (gPid === null || e.pointerId !== gPid) return;
+        var dx = e.clientX - gx, dy = e.clientY - gy;
+        if (!gDragging && Math.abs(dx) + Math.abs(dy) > 6) {
+          gDragging = true;
+          host.classList.add("is-drag");
+        }
+        if (!gDragging) return;
+        var ry = Math.max(-22, Math.min(22, dx * 0.14));
+        var rx = Math.max(-16, Math.min(16, -dy * 0.12));
+        host.style.setProperty("--lry", ry.toFixed(2) + "deg");
+        host.style.setProperty("--lrx", rx.toFixed(2) + "deg");
+      });
+      function gEnd(e) {
+        if (gPid === null || (e.pointerId !== undefined && e.pointerId !== gPid)) return;
+        gPid = null;
+        if (gDragging) {
+          suppressClick = true;
+          setTimeout(function () { suppressClick = false; }, 80);
+        }
+        gDragging = false;
+        host.classList.remove("is-drag");
+        host.style.setProperty("--lrx", "0deg");
+        host.style.setProperty("--lry", "0deg");
+      }
+      host.addEventListener("pointerup", gEnd);
+      host.addEventListener("pointercancel", gEnd);
+      /* 捕获阶段拦下被拖拽“污染”的 click：站点导航与悬停回调都不触发 */
+      host.addEventListener("click", function (e) {
+        if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+      }, true);
+    }
+
     /* 外部联动：按周长占比高亮某个站点 */
     function setActiveByFraction(f) {
       stationNodes.forEach(function (n) {
