@@ -612,6 +612,42 @@ pub(crate) struct MarkdownStreamCollector {
 /// Append a raw streaming delta to the internal source buffer.
 pub fn push_delta(&amp;mut self, delta: &amp;str) { ... }</span></pre>
        </details>
+       <p class="small muted" style="margin:14px 0 0;">「整体重渲染」只是收集侧。渲染好的行在上屏之前还要排队：一条 FIFO 队列，每行带自己的入队时刻。排空策略只许看队龄和积压深度，不许偷看内容——这条被写成模块的第一不变式。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · StreamState：带时间戳的 FIFO 渲染行队列</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/mod.rs :9-10, 26-36 · @343074d4 实测</span>
+<span class="src-code">//! The key invariant is queue ordering. All drains pop from the front, and enqueue records an
+//! arrival timestamp so policy code can reason about oldest queued age without peeking into text.
+
+struct QueuedLine {
+    line: HyperlinkLine,
+    enqueued_at: Instant,
+}
+
+/// Holds in-flight markdown stream state and queued committed lines.
+pub(crate) struct StreamState {
+    pub(crate) collector: MarkdownStreamCollector,
+    queued_lines: VecDeque&lt;QueuedLine&gt;,
+    pub(crate) has_seen_delta: bool,
+}</span></pre>
+       </details>
+       <p class="small muted" style="margin:14px 0 0;">表格在流里有特权：表头行一出现先扣住，等下一行像不像分隔符再决定发不发。确认之前整段是「可变尾巴」——新来一行数据，前面几行可以跟着重新对齐；确认之后才准流进稳定队列。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · 表格扣留扫描器的三态判定</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/table_holdback.rs :21-32 · @343074d4 实测</span>
+<span class="src-code">/// Result of scanning accumulated raw source for pipe-table patterns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum TableHoldbackState {
+    /// No table detected -- all rendered lines can flow into the stable queue.
+    None,
+    /// The last non-blank line looks like a table header row but no delimiter
+    /// row has followed yet. Hold back in case the next delta is a delimiter.
+    PendingHeader { header_start: usize },
+    /// A header + delimiter pair was found -- the source contains a confirmed
+    /// table. Content from the table header onward stays mutable.
+    Confirmed { table_start: usize },
+}</span></pre>
+       </details>
        <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 宽度契约：表格放不下就降级成键值对</summary>
@@ -626,6 +662,36 @@ pub fn push_delta(&amp;mut self, delta: &amp;str) { ... }</span></pre>
 pub(crate) fn render_markdown_text_with_width(input: &amp;str, width: Option&lt;usize&gt;) -&gt; Text&lt;'static&gt; {
     let cwd = std::env::current_dir().ok();
     render_markdown_text_with_width_and_cwd(input, width, cwd.as_deref())
+}</span></pre>
+       </details>
+       <p class="small muted" style="margin:14px 0 0;">宽度契约之下是换行原语本身。纯散文按词边界折行就好；麻烦的是 URL——被 <b>/</b> 或 <b>-</b> 从中间切断的链接，在终端里就点不动了。所以折行前先扫一遍 token：行里有没有链接样式的词、有没有普通词，决定走哪条折行路径。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · adaptive_wrap_line：一次 token 扫描定三条路径</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/wrapping.rs :703-727 · @343074d4 实测</span>
+<span class="src-code">pub(crate) fn adaptive_wrap_line&lt;'a&gt;(line: &amp;'a Line&lt;'a&gt;, base: RtOptions&lt;'a&gt;) -&gt; Vec&lt;Line&lt;'a&gt;&gt; {
+    let (flat, span_bounds) = flatten_line(line);
+    let mut saw_url = false;
+    let mut saw_non_url = false;
+
+    for token in flat.split_ascii_whitespace() {
+        if is_url_like_token(token) {
+            saw_url = true;
+        } else if is_substantive_non_url_token(token) {
+            saw_non_url = true;
+        }
+
+        if saw_url &amp;&amp; saw_non_url {
+            break;
+        }
+    }
+
+    if !saw_url {
+        word_wrap_flattened_line(line, &amp;flat, &amp;span_bounds, base)
+    } else if saw_non_url {
+        mixed_url_wrap_line(line, &amp;flat, &amp;span_bounds, base)
+    } else {
+        word_wrap_flattened_line(line, &amp;flat, &amp;span_bounds, url_preserving_wrap_options(base))
+    }
 }</span></pre>
        </details>
        <details class="src-details">
@@ -645,6 +711,35 @@ pub(crate) fn render_markdown_text_with_width(input: &amp;str, width: Option&lt;
 let total_added: usize = rows.iter().map(|r| r.added).sum();
 let total_removed: usize = rows.iter().map(|r| r.removed).sum();
 let file_count = rows.len();</span></pre>
+       </details>
+       <p class="small muted" style="margin:14px 0 0;">头部数字之后是逐行着色，入口叫 render_change。它带一道性能闸门：补丁大到一定程度就整体放弃逐行语法高亮——否则几千次解析器初始化能把渲染卡死。小补丁则按 hunk 整块送进高亮器，语法状态得以跨行延续。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · render_change 的两道取舍：大补丁弃高亮，小补丁按块高亮</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :591-598, 617-631 · @343074d4 实测</span>
+<span class="src-code">                // Skip per-line syntax highlighting when the patch is too
+                // large — avoids thousands of parser initializations that
+                // would stall rendering on big diffs.
+                let diff_lang = if exceeds_highlight_limits(total_diff_bytes, total_diff_lines) {
+                    None
+                } else {
+                    lang
+                };
+
+                    // Highlight each hunk as a single block so syntect parser
+                    // state is preserved across consecutive lines.
+                    let hunk_syntax_lines = diff_lang.and_then(|language| {
+                        let hunk_text: String = h
+                            .lines()
+                            .iter()
+                            .map(|line| match line {
+                                diffy::Line::Insert(text)
+                                | diffy::Line::Delete(text)
+                                | diffy::Line::Context(text) =&gt; *text,
+                            })
+                            .collect();
+                        let syntax_lines = highlight_code_to_styled_spans(&amp;hunk_text, language)?;
+                        (syntax_lines.len() == h.lines().len()).then_some(syntax_lines)
+                    });</span></pre>
        </details>
        <p class="small muted" style="margin:14px 0 0;">按 Esc 不只是打断——在主视图里它先「预演回溯」：←→ 在历史用户消息间移动，Enter 确认回到那条重新开分支。选中状态是一份小心维护的快照：线程一切换，全部作废。</p>
        <details class="src-details">
@@ -713,6 +808,45 @@ pub(crate) struct BacktrackState {
             config_rules.rs（配置规则）、declarations.rs、mcp.rs、legacy_notify.rs（旧 notify 兼容）、output_spill.rs（输出落盘）。
             结构为 @343074d4 实测；各事件的确切触发语义以源码为准。
           </p>
+          <p class="small muted" style="margin:10px 0 0;">
+            注册表是上面事件轴的源码侧对照：轴上的每个事件名在这里都有对应的 run_* 方法（另有 preview_* 干跑版本）。
+            通用入口 dispatch 只有一条铁律：钩子按序执行，第一个要求中止的当场截断队伍。
+            另一个如实记下的细节：HookEvent 枚举在固定提交下只有 AfterAgent 一个变体——
+            其余事件各有专用的请求/结果类型与引擎方法，还没收拢进通用分发。
+          </p>
+          <details class="src-details">
+            <summary>🔍 看真实源码 · 钩子注册表：dispatch 中止规则与事件专属入口</summary>
+            <pre><span class="src-loc">codex-rs/hooks/src/registry.rs :152-165, 210-223 · @343074d4 实测</span>
+<span class="src-code">pub async fn dispatch(&amp;self, hook_payload: HookPayload) -&gt; Vec&lt;HookResponse&gt; {
+    let hooks = self.hooks_for_event(&amp;hook_payload.hook_event);
+    let mut outcomes = Vec::with_capacity(hooks.len());
+    for hook in hooks {
+        let outcome = hook.execute(&amp;hook_payload).await;
+        let should_abort_operation = outcome.result.should_abort_operation();
+        outcomes.push(outcome);
+        if should_abort_operation {
+            break;
+        }
+    }
+
+    outcomes
+}
+
+pub async fn run_pre_tool_use(&amp;self, request: PreToolUseRequest) -&gt; PreToolUseOutcome {
+    self.engine.run_pre_tool_use(request).await
+}
+
+pub async fn run_permission_request(
+    &amp;self,
+    request: PermissionRequestRequest,
+) -&gt; PermissionRequestOutcome {
+    self.engine.run_permission_request(request).await
+}
+
+pub async fn run_post_tool_use(&amp;self, request: PostToolUseRequest) -&gt; PostToolUseOutcome {
+    self.engine.run_post_tool_use(request).await
+}</span></pre>
+          </details>
         </div>
       </div>
     </section>
@@ -750,6 +884,24 @@ pub(crate) struct BacktrackState {
             <code>v8-poc</code>（概念验证——名字就是公告栏）。
             实测依赖里 <code>code-mode</code> 还连着 <code>http-client</code> 与 <code>websocket-client</code>：远程执行通道的伏笔。
           </p>
+          <p class="small muted" style="margin:10px 0 0;">
+            主 crate 的 lib.rs 一共九行，却把运行形态交代完了：WebSocket 与 gRPC 两条远程会话通道、
+            进程托管的会话形态，外加一个 Disabled 兜底。上文说的「远程执行通道伏笔」，在类型名里已经兑现；
+            至于哪条通道默认启用属于行为配置，本站不猜。
+          </p>
+          <details class="src-details">
+            <summary>🔍 看真实源码 · code-mode 主 crate 全部九行 lib.rs</summary>
+            <pre><span class="src-loc">codex-rs/code-mode/src/lib.rs :1-9 · @343074d4 实测（全文）</span>
+<span class="src-code">mod grpc_session;
+mod remote_session;
+
+pub use codex_code_mode_protocol::*;
+pub use grpc_session::GrpcCodeModeSessionProvider;
+pub use remote_session::DisabledCodeModeSessionProvider;
+pub use remote_session::ProcessOwnedCodeModeSession;
+pub use remote_session::ProcessOwnedCodeModeSessionProvider;
+pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
+          </details>
         </div>
       </div>
     </section>

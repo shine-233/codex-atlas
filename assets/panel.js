@@ -1392,6 +1392,47 @@
     }, 50000 + Math.floor(Math.random() * 40000));
   })();
 
+  /* 彩蛋：连打 codex 五个键，鱼群出动（输入框里打字不触发） */
+  (function () {
+    if (reduced) return;
+    var buf = "", lastFire = 0;
+    document.addEventListener("keydown", function (e) {
+      var tag = e.target && e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (!e.key || e.key.length !== 1) return;
+      buf = (buf + e.key.toLowerCase()).slice(-5);
+      if (buf !== "codex" || Date.now() - lastFire < 8000) return;
+      lastFire = Date.now();
+      buf = "";
+      for (var i = 0; i < 6; i++) {
+        (function (i) {
+          setTimeout(function () {
+            var s = document.createElement("div");
+            s.className = "cod-swim";
+            s.innerHTML = FISH;
+            s.style.opacity = String(0.5 + 0.5 * Math.random());
+            document.body.appendChild(s);
+            var t0 = null, DUR = 1900 + Math.random() * 1300;
+            var amp = 6 + Math.random() * 16, ph = Math.random() * 6.28, sp = 0.72 + Math.random() * 0.9;
+            var W2 = window.innerWidth + 140;
+            function frame(ts) {
+              if (t0 == null) t0 = ts;
+              var p = Math.min(1, (ts - t0) / DUR);
+              var ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+              s.style.transform = "translateX(" + (ease * W2 * sp).toFixed(1) + "px) translateY(" +
+                (Math.sin(p * Math.PI * 3 + ph) * amp).toFixed(1) + "px)";
+              if (p < 1) requestAnimationFrame(frame);
+              else s.remove();
+            }
+            requestAnimationFrame(frame);
+          }, i * 170);
+        })(i);
+      }
+      showToast("<b>小鳕</b> · 呼叫鱼群——全员出动！这个暗号都让你摸出来了。");
+      if (window.CASound) CASound.play("grand");
+    });
+  })();
+
   /* 自检通关时，小鳕游过屏幕庆祝一下 + 一把彩纸 */
   document.addEventListener("ca:allclear", function () {
     CAConfetti.fire(false);

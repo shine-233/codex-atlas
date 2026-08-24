@@ -79,6 +79,12 @@
   .detail-card h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 15px; }
   .detail-card .dc-band { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--steel); text-transform: uppercase; }
   .detail-card p { color: var(--dim); font-size: 13.5px; max-width: 46em; margin: 8px 0 0; }
+  /* 邻居迷你图：选中 crate 居中，出入依赖环绕 */
+  .dc-neigh {
+    position: relative; height: 190px; margin-top: 14px;
+    border: 1px dashed var(--line); background: var(--bg0); overflow: hidden;
+  }
+  .dc-neigh canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
   /* 视图切换 + 面积树图 */
   .view-row {
@@ -304,6 +310,7 @@
         <div class="dc-band" id="dc-band">—</div>
         <h4 id="dc-name">点任意成员或带标题查看注解</h4>
         <p id="dc-body">每个成员的名字都取自固定提交下的 workspace 名单。带标题给出该带的整体职责。</p>
+        <div class="dc-neigh" id="dc-neigh" hidden></div>
       </div>
     </section>
 
@@ -819,6 +826,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     dcBand.textContent = b.no + " · " + b.en;
     dcName.textContent = b.name + "带 · " + b.crates.length + " 个成员";
     dcBody.textContent = b.desc;
+    if (window.CANeigh) CANeigh.hide();
   }
 
   /* ---------- 面积树图：squarified 布局，格子面积 = 成员数 ---------- */
@@ -1879,6 +1887,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     var note = (band.notes && band.notes[name]) ||
       "属于「" + band.name + "」带。要定位它的角色：从所在带入手，回到仓库看这个 crate 的 lib.rs 头部注释与依赖方向。";
     dcBody.innerHTML = linkifyNote(note, name) + depFactsHtml(name);
+    if (window.CANeigh) CANeigh.show(name);
     if (window.CAFlash) {
       CAFlash(chipEl
         ? chipEl.closest(".panel").querySelector(".detail-card")
@@ -2207,6 +2216,151 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     sumEl.style.margin = "10px 0 0";
     sumEl.textContent = "全表合计（含带内）= " + total + " 条，与 DEPENDENCY FACTS 的 814 一致——数字对得上才算数。";
     box.after(sumEl);
+  })();
+
+  /* ---------- 邻居迷你图：详情卡里的局部依赖小宇宙。
+     选中 crate 居中，出度（它依赖谁）在右、入度（谁依赖它）在左，
+     悬停高亮、点邻居直接跳过去——读码时顺藤摸瓜用。 ---------- */
+  (function () {
+    var box = document.getElementById("dc-neigh");
+    if (!box || !window.CanvasRenderingContext2D) return;
+    var canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default;";
+    box.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+    var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+    var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+    /* 反向索引一次：name → 谁依赖它 */
+    var INS = {};
+    Object.keys(CA_DEPS).forEach(function (src) {
+      if (!CRATE_INDEX[src]) return;
+      CA_DEPS[src].forEach(function (d) {
+        if (CRATE_INDEX[d] && d !== src) (INS[d] = INS[d] || []).push(src);
+      });
+    });
+
+    var W = 1, H = 1, dpr = 1, cur = null, hits = [], hoverI = -1;
+    function size() {
+      var r = box.getBoundingClientRect();
+      if (r.width < 4) return false;
+      W = Math.round(r.width); H = Math.round(r.height);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return true;
+    }
+    function nrad(deg) { return 3.5 + Math.min(6, Math.sqrt(deg) * 1.1); }
+
+    function show(name) {
+      cur = name;
+      var outs = (CA_DEPS[name] || []).filter(function (d) { return CRATE_INDEX[d]; });
+      var ins = INS[name] || [];
+      if (!outs.length && !ins.length) { box.hidden = true; return; }
+      box.hidden = false;
+      if (!size()) return;
+      render(outs, ins);
+    }
+    function hide() { cur = null; box.hidden = true; }
+
+    function render(outs, ins) {
+      var light = window.CATheme && CATheme.isLight();
+      ctx.clearRect(0, 0, W, H);
+      var cx = W * 0.5, cy = H * 0.54, R = Math.min(W * 0.34, H * 0.36);
+      var i, a;
+      hits = [];
+      function place(arr, a0, a1, color, side) {
+        var shown = arr.slice(0, 9);
+        shown.forEach(function (nm, k) {
+          var ang = (arr.length === 1) ? (a0 + a1) / 2 : a0 + (a1 - a0) * k / (shown.length - 1);
+          var x = cx + Math.cos(ang) * R, y = cy + Math.sin(ang) * R;
+          hits.push({ name: nm, x: x, y: y, r: nrad(CA_DEG[nm] || 1), color: color, side: side });
+        });
+        if (arr.length > shown.length) {
+          hits.push({ name: "+" + (arr.length - shown.length) + " 更多", x: cx + Math.cos(a1) * R * 0.72, y: cy + Math.sin(a1) * R * 0.72 + 14, r: 0, color: color, more: true, side: side });
+        }
+      }
+      place(outs, -0.92, 0.92, AMBER, 1);     /* 右半球：它依赖 */
+      place(ins, Math.PI - 0.92, Math.PI + 0.92, STEEL, -1);  /* 左半球：谁依赖它 */
+
+      /* 连线 */
+      for (i = 0; i < hits.length; i++) {
+        a = hits[i];
+        if (a.more) continue;
+        ctx.strokeStyle = "rgba(" + a.color + "," + (i === hoverI ? 0.9 : (light ? 0.4 : 0.3)) + ")";
+        ctx.lineWidth = i === hoverI ? 1.6 : 1;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(a.x, a.y); ctx.stroke();
+      }
+      /* 中心节点 */
+      ctx.fillStyle = "rgba(" + AMBER + ",0.9)";
+      ctx.beginPath(); ctx.arc(cx, cy, nrad(CA_DEG[cur] || 6) + 2, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = "rgba(" + INKRGB + ",0.5)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, nrad(CA_DEG[cur] || 6) + 6, 0, 6.2832); ctx.stroke();
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(" + INKRGB + ",0.95)";
+      var nmTxt = cur.length > 16 ? cur.slice(0, 15) + "…" : cur;
+      ctx.fillText(nmTxt, cx, cy - nrad(CA_DEG[cur] || 6) - 10);
+      /* 邻居节点与标签 */
+      for (i = 0; i < hits.length; i++) {
+        a = hits[i];
+        if (a.more) {
+          ctx.fillStyle = "rgba(" + FAINT + ",0.95)";
+          ctx.fillText(a.name, a.x, a.y);
+          continue;
+        }
+        var hov = i === hoverI;
+        ctx.fillStyle = "rgba(" + a.color + "," + (hov ? 1 : 0.8) + ")";
+        ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, 6.2832); ctx.fill();
+        if (hov) {
+          ctx.strokeStyle = "rgba(" + INKRGB + ",0.7)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(a.x, a.y, a.r + 3.5, 0, 6.2832); ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(" + (hov ? INKRGB : FAINT) + "," + (hov ? 1 : 0.85) + ")";
+        ctx.textAlign = a.side > 0 ? "left" : "right";
+        var lbl = a.name.length > 20 ? a.name.slice(0, 19) + "…" : a.name;
+        ctx.fillText(lbl, a.x + a.side * (a.r + 4), a.y);
+      }
+      /* 图例 */
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+      ctx.fillText("右 = 它依赖 " + outs.length + " · 左 = 依赖它 " + ins.length + " · 悬停高亮，点邻居跳过去", 10, H - 10);
+    }
+
+    canvas.addEventListener("pointermove", function (e) {
+      if (box.hidden) return;
+      var r = box.getBoundingClientRect();
+      var x = e.clientX - r.left, y = e.clientY - r.top;
+      var hit = -1;
+      for (var i = 0; i < hits.length; i++) {
+        var a = hits[i];
+        if (a.more) continue;
+        var dx = x - a.x, dy = y - a.y;
+        if (dx * dx + dy * dy < (a.r + 6) * (a.r + 6)) { hit = i; break; }
+      }
+      if (hit !== hoverI) {
+        hoverI = hit;
+        canvas.style.cursor = hit >= 0 ? "pointer" : "default";
+        if (cur) {
+          var outs2 = (CA_DEPS[cur] || []).filter(function (d) { return CRATE_INDEX[d]; });
+          render(outs2, INS[cur] || []);
+        }
+      }
+    });
+    canvas.addEventListener("click", function (e) {
+      if (hoverI < 0 || !hits[hoverI]) return;
+      var nm = hits[hoverI].name;
+      var b = CRATE_INDEX[nm];
+      if (b) selectCrate(b, nm, canvas);
+    });
+
+    window.CANeigh = { show: show, hide: hide };
   })();
 
   CAQuiz.mount(document.getElementById("quiz"), [

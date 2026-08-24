@@ -547,6 +547,37 @@ impl Drop for InitializeDeadlineGuard {
     }
 }</span></pre>
       </details>
+      <p class="small muted" style="margin:10px 0 0;">HTTP 路径上还有一段反方向的故事：MCP 服务器可以在工具执行中途反过来向你提问（elicitation）——要么是 MCP 标准的结构化输入，要么是一张 OpenAI 风格的表单。关键在计时：你思考的每一秒都不算进操作超时。提问挂起期间秒表停摆，答案一到、守卫析构，时钟接着走。</p>
+      <details class="src-details">
+        <summary>🔍 看真实源码 · 服务器反向提问时，超时秒表是怎么停的</summary>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :297-305 与 src/elicitation_client_service.rs :74-85 · @343074d4 实测（原文拼接，缩进压平）</span>
+<span class="src-code">pub enum Elicitation {
+    Mcp(ElicitRequestParams),
+    OpenAiForm {
+        meta: Option&lt;serde_json::Value&gt;,
+        message: String,
+        requested_schema: serde_json::Value,
+    },
+}
+
+async fn create_elicitation(
+    &amp;self,
+    request: Elicitation,
+    context: RequestContext&lt;RoleClient&gt;,
+) -&gt; Result&lt;ElicitationResponse, rmcp::ErrorData&gt; {
+    let RequestContext { id, meta, .. } = context;
+    let request = restore_context_meta(request, meta);
+    let _pause = self.pause_state.enter();
+    (self.send_elicitation)(id, request)
+        .await
+        .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          固定提交自带测试 active_time_timeout_pauses_while_elicitation_is_pending（rmcp_client.rs :1589）：
+          50ms 的截止时间扛住了 90ms 的操作——因为中间 75ms 秒表是停着的。
+          停表靠引用计数：提问进来计数加一，守卫析构减到零才恢复计时。
+        </p>
+      </details>
     </section>
 
     <section>

@@ -127,6 +127,14 @@
   .wr-dir.s2c-req { color: var(--deny); border-color: var(--deny); }
   .wr-dir.notify { color: var(--amber); border-color: rgba(255,180,84,.4); }
   .wr-demo { color: var(--amber); font-size: 11px; }
+  .wr-ts {
+    margin-left: 8px; font-family: var(--mono); font-size: 10px;
+    color: var(--steel); background: none;
+    border: 1px solid var(--line-strong);
+    padding: 1px 7px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .wr-ts:hover { border-color: var(--steel); color: var(--ink); }
 
   /* ---------- THREAD SANDBOX：Thread 生命周期状态机 ---------- */
   .ts-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; margin-top: 12px; }
@@ -1047,6 +1055,12 @@ ExecCommandApproval {
     var countEl = document.getElementById("wr-count");
     if (!body || !q) return;
     var dirFilter = "";
+    /* 这批方法能在上方 THREAD SANDBOX 里现场按——行内给个直达按钮 */
+    var TS_MAP = {
+      "thread/start": "start", "turn/start": "turn", "turn/interrupt": "interrupt",
+      "thread/fork": "fork", "thread/rollback": "rollback", "thread/archive": "archive",
+      "thread/unarchive": "unarchive", "thread/resume": "resume", "thread/delete": "del"
+    };
 
     function paint() {
       var kw = q.value.trim().toLowerCase();
@@ -1059,13 +1073,28 @@ ExecCommandApproval {
         var tr = document.createElement("tr");
         if (r.demo) tr.className = "demo";
         var dirName = { "c2s-req": "客户端请求", "s2c-req": "服务端反向", "notify": "通知" }[r.d] || r.d;
+        var tsGo = TS_MAP[r.w]
+          ? ' <button type="button" class="wr-ts" data-ts-go="' + TS_MAP[r.w] + '" title="跳到 THREAD SANDBOX 现场按一次">沙盒▶</button>'
+          : "";
         tr.innerHTML = '<td class="wr-wire">' + r.w + '</td>' +
           '<td><span class="wr-dir ' + r.d + '">' + dirName + '</span></td>' +
-          '<td class="wr-demo">' + (r.demo || "") + '</td>';
+          '<td class="wr-demo">' + (r.demo || "") + tsGo + '</td>';
         body.appendChild(tr);
       });
       countEl.textContent = n + " / " + ROWS.length + " 条";
     }
+
+    body.addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t.getAttribute || !t.getAttribute("data-ts-go")) return;
+      var act = t.getAttribute("data-ts-go");
+      var btn = document.querySelector('[data-ts="' + act + '"]');
+      if (!btn) return;
+      var panel = document.getElementById("thread-sb");
+      if (panel) panel.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
+      setTimeout(function () { btn.click(); }, window.PrefersReducedMotion ? 0 : 420);
+      if (window.CAFlash) CAFlash(panel);
+    });
 
     q.addEventListener("input", paint);
     q.addEventListener("keydown", function (e) {
