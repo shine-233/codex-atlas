@@ -118,11 +118,63 @@
       </div>
     </section>
 
+    <!-- 一次请求的诞生 · 滚动叙事 -->
+    <section id="birth">
+      <p class="eyebrow"><span class="tick">02</span>一次请求的诞生 · 滚动叙事</p>
+      <h2>往下滚，看一次请求被逐层组装出来</h2>
+      <p class="muted small" style="margin-top:6px;">左边是粘性画布：滚到哪一步，哪一层就落位。想亲手拨开关，去 <a href="labs/prompt.html">02 输入组装</a>。</p>
+      <div class="birth-grid">
+        <div class="birth-viz-wrap">
+          <div class="birth-viz" id="birth-viz" aria-hidden="true">
+            <div class="bv-tag">POST /responses · 负载示意</div>
+            <div class="bv-layer" data-l="1"><b>instructions</b><span>base_instructions · 模型身份</span></div>
+            <div class="bv-layer" data-l="2"><b>tools</b><span>内置 + API + MCP 工具清单</span></div>
+            <div class="bv-layer" data-l="3"><b>input[0]</b><span>developer message · 沙箱声明</span></div>
+            <div class="bv-layer" data-l="4"><b>input[1]</b><span>developer_instructions · 可选</span></div>
+            <div class="bv-layer" data-l="5"><b>input[2]</b><span>user · AGENTS.md 层叠</span></div>
+            <div class="bv-layer" data-l="6"><b>input[3]</b><span>environment context · 本地环境</span></div>
+            <div class="bv-layer" data-l="7"><b>input[4+]</b><span>conversation history · 全量历史</span></div>
+            <div class="bv-out">组装完成 · 出站 ↗</div>
+          </div>
+        </div>
+        <div class="birth-steps">
+          <div class="birth-card" data-step="1">
+            <span class="bc-no">01</span><h3>先给模型一个身份</h3>
+            <p>base_instructions 随 CLI 打包：「你是 Codex CLI、一个基于终端的编码助手」——外加可用操作清单。config.toml 里指定 model_instructions_file 时整体替换这一层。</p>
+          </div>
+          <div class="birth-card" data-step="2">
+            <span class="bc-no">02</span><h3>再给它一份工具清单</h3>
+            <p>内置 shell、API 侧工具、MCP 接入的外部工具，合并成一份 tools 字段。模型照着它决定调什么——注意只有内置那部分被沙箱管着。</p>
+          </div>
+          <div class="birth-card" data-step="3">
+            <span class="bc-no">03</span><h3>一条沙箱声明</h3>
+            <p>role=developer 的消息，告诉模型它当前被允许碰什么：工作目录、临时目录、网络。它是描述，不是墙本身——墙在 03。</p>
+          </div>
+          <div class="birth-card" data-step="4">
+            <span class="bc-no">04</span><h3>你的长期偏好（可选）</h3>
+            <p>config.toml 里的 developer_instructions，存在才注入。适合放「永远用中文回复」这类个人约定。</p>
+          </div>
+          <div class="birth-card" data-step="5">
+            <span class="bc-no">05</span><h3>沿目录层叠的项目约定</h3>
+            <p>从 ~/.codex 沿 git root 一路读到当前目录的 AGENTS.md，越近的越具体。层叠总量受 32 KiB 上限约束，触顶截断发生在读入侧。</p>
+          </div>
+          <div class="birth-card" data-step="6">
+            <span class="bc-no">06</span><h3>告诉它身处的机器</h3>
+            <p>role=user 的环境消息：当前工作目录、shell。换一台电脑这层就不一样——模型知道自己在哪，才知道命令该怎么写。</p>
+          </div>
+          <div class="birth-card" data-step="7">
+            <span class="bc-no">07</span><h3>全量历史，然后出站</h3>
+            <p>之前的对话逐条重发（含 reasoning 与工具输出），保持请求无状态。POST /responses 出站，SSE 开始回流——01 循环回路接手。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <hr class="sep">
 
     <!-- 三步上手：这是真实顺序 -->
     <section>
-      <p class="eyebrow"><span class="tick">02</span>三步上手</p>
+      <p class="eyebrow"><span class="tick">03</span>三步上手</p>
       <h2 style="margin-top:6px;">第一次来，按顺序走这三步</h2>
       <table class="rt">
         <thead>
@@ -150,7 +202,7 @@
 
     <!-- 五条主线 + 支线 -->
     <section>
-      <p class="eyebrow"><span class="tick">03</span>线路总览
+      <p class="eyebrow"><span class="tick">04</span>线路总览
         <span class="readout" id="qp-sum" style="margin-left:14px;text-transform:none;letter-spacing:.04em;"></span></p>
       <h2 style="margin-top:6px;">五条主线，一台支线</h2>
 
@@ -257,7 +309,7 @@
 
     <!-- 按问题路由 -->
     <section id="route">
-      <p class="eyebrow"><span class="tick">04</span>信号路由</p>
+      <p class="eyebrow"><span class="tick">05</span>信号路由</p>
       <h2 style="margin-top:6px;">按你的问题选入口</h2>
       <div class="search-row" style="margin-bottom:2px;">
         <input type="text" id="route-q" class="search-box"
@@ -293,7 +345,7 @@
 
     <!-- 全站速通 -->
     <section id="speedrun">
-      <p class="eyebrow"><span class="tick">05</span>全站速通
+      <p class="eyebrow"><span class="tick">06</span>全站速通
         <span class="readout" style="margin-left:14px;text-transform:none;letter-spacing:.04em;">8 题随机 · 每题 20 秒 · 最佳成绩存本机</span></p>
       <h2 style="margin-top:6px;">敢不敢现在就验收一遍</h2>
       <div class="panel" style="margin-top:16px;">
@@ -681,6 +733,36 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
     var n = parseInt(e.key, 10);
     if (n >= 1 && n <= opts.children.length) opts.children[n - 1].click();
   });
+})();
+</script>
+<script>
+/* ---------- 一次请求的诞生：滚动驱动逐层组装 ---------- */
+(function () {
+  "use strict";
+  var viz = document.getElementById("birth-viz");
+  var cards = document.querySelectorAll(".birth-card");
+  if (!viz || !cards.length) return;
+  var layers = viz.querySelectorAll(".bv-layer");
+  var out = viz.querySelector(".bv-out");
+  var reduced = window.PrefersReducedMotion === true;
+
+  function setActive(n) {
+    layers.forEach(function (l) {
+      l.classList.toggle("on", reduced ? true : parseInt(l.getAttribute("data-l"), 10) <= n);
+    });
+    out.classList.toggle("on", reduced ? true : n >= 7);
+    cards.forEach(function (c) {
+      c.classList.toggle("on", reduced ? true : parseInt(c.getAttribute("data-step"), 10) === n);
+    });
+  }
+  if (reduced) { setActive(7); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) setActive(parseInt(en.target.getAttribute("data-step"), 10));
+    });
+  }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
+  cards.forEach(function (c) { io.observe(c); });
+  setActive(0);
 })();
 </script>
 </body>
