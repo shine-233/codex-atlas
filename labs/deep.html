@@ -646,6 +646,27 @@ let total_added: usize = rows.iter().map(|r| r.added).sum();
 let total_removed: usize = rows.iter().map(|r| r.removed).sum();
 let file_count = rows.len();</span></pre>
        </details>
+       <p class="small muted" style="margin:14px 0 0;">按 Esc 不只是打断——在主视图里它先「预演回溯」：←→ 在历史用户消息间移动，Enter 确认回到那条重新开分支。选中状态是一份小心维护的快照：线程一切换，全部作废。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · BacktrackState：Esc 预演模式的四件套</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/app_backtrack.rs :57-82 · @343074d4 实测</span>
+<span class="src-code">/// Aggregates all backtrack-related state used by the App.
+pub(crate) struct BacktrackState {
+    /// True when Esc has primed backtrack mode in the main view.
+    pub(crate) primed: bool,
+    /// Session id of the base thread whose transcript is being inspected.
+    ///
+    /// If the current thread changes, backtrack selections become invalid and must be ignored.
+    pub(crate) base_id: Option&lt;ThreadId&gt;,
+    /// Index of the currently highlighted user message.
+    ///
+    /// This is an index into the filtered "user messages since the last session start" view,
+    /// not an index into `transcript_cells`. `usize::MAX` indicates "no selection".
+    pub(crate) nth_user_message: usize,
+    /// True when the transcript overlay is showing a backtrack preview.
+    pub(crate) overlay_preview_active: bool,
+}</span></pre>
+       </details>
      </section>
 
     <!-- ================ E · EXT ================ -->
