@@ -612,6 +612,40 @@ pub(crate) struct MarkdownStreamCollector {
 /// Append a raw streaming delta to the internal source buffer.
 pub fn push_delta(&amp;mut self, delta: &amp;str) { ... }</span></pre>
        </details>
+       <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · 宽度契约：表格放不下就降级成键值对</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/markdown_render.rs :294-304 · @343074d4 实测</span>
+<span class="src-code">/// Render markdown constrained to a known terminal width.
+///
+/// The renderer preserves columnar table structure while values remain
+/// scannable and falls back to key/value records when body rows cannot fit
+/// readably. Passing `None` keeps intrinsic line widths and disables
+/// width-driven wrapping in the markdown writer. Local file links render
+/// relative to the current process working directory.
+pub(crate) fn render_markdown_text_with_width(input: &amp;str, width: Option&lt;usize&gt;) -&gt; Text&lt;'static&gt; {
+    let cwd = std::env::current_dir().ok();
+    render_markdown_text_with_width_and_cwd(input, width, cwd.as_deref())
+}</span></pre>
+       </details>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · diff 头部的 (+N -N) 是怎么来的</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :400-408, 422-425 · @343074d4 实测</span>
+<span class="src-code">fn render_line_count_summary(added: usize, removed: usize) -&gt; Vec&lt;RtSpan&lt;'static&gt;&gt; {
+    let mut spans = Vec::new();
+    spans.push("(".into());
+    spans.push(format!("+{added}").green());
+    spans.push(" ".into());
+    spans.push(format!("-{removed}").red());
+    spans.push(")".into());
+    spans
+}
+
+// Header
+let total_added: usize = rows.iter().map(|r| r.added).sum();
+let total_removed: usize = rows.iter().map(|r| r.removed).sum();
+let file_count = rows.len();</span></pre>
+       </details>
      </section>
 
     <!-- ================ E · EXT ================ -->
