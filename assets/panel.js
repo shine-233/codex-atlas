@@ -534,13 +534,15 @@
     var seenCount = ALLPAGES.filter(function (p) { return seen[p]; }).length;
 
     var quiz = window.CAProgress ? CAProgress.read() : {};
+    var MAIN5 = ["loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html"];
     var quizRows = "", cleared = 0;
     ALLPAGES.forEach(function (p) {
       if (!PNAME[p]) return;
       var rec = quiz[p];
       var pct = rec && rec.t ? Math.round(rec.c / rec.t * 100) : 0;
-      if (rec && rec.t && rec.c >= rec.t) cleared++;
-      quizRows += "<tr><td>" + PNAME[p] + "</td><td>" +
+      /* 只数五条主线，与首页「五条全通」口径一致（deep 是支线，单独展示不计入） */
+      if (MAIN5.indexOf(p) !== -1 && rec && rec.t && rec.c >= rec.t) cleared++;
+      quizRows += "<tr><td>" + PNAME[p] + (MAIN5.indexOf(p) !== -1 ? "" : " · 支线") + "</td><td>" +
         (rec ? "答对 <b>" + rec.c + "</b> / " + rec.t : "<span style='color:var(--faint);'>还没做过</span>") +
         '<span class="prof-meter" aria-hidden="true"><i style="width:' + pct + '%;"></i></span></td></tr>';
     });
@@ -564,7 +566,7 @@
       '<button type="button" class="btn" id="prof-copy">复制档案 JSON</button>' +
       '<button type="button" class="btn" id="prof-reset">重置全部进度</button>' +
       "</div>" +
-      '<p class="small muted">「复制」把上面这些打成一段 JSON，换设备前可以留个底。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
+      '<p class="small muted">「复制」把上面这些打成一段 JSON 存档留念（不含恢复导入——数据只在这台浏览器的 localStorage 里）。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
 
     card.querySelector("#prof-copy").addEventListener("click", function () {
       var payload = { site: "codex-atlas", exportedAt: new Date().toISOString(), pagesSeen: seenCount, quiz: quiz, flashcardsKnown: flash };
@@ -702,6 +704,7 @@
         var b = document.createElement("button");
         b.type = "button";
         b.className = "cmdk-item" + (i === hot ? " hot" : "");
+        b.id = "cmdk-opt-" + i;
         b.setAttribute("role", "option");
         b.setAttribute("aria-selected", i === hot ? "true" : "false");
         b.innerHTML =
@@ -712,6 +715,8 @@
         b.addEventListener("mousemove", function () { if (hot !== i) { hot = i; paintHot(); } });
         listBox.appendChild(b);
       });
+      /* 读屏跟随高亮项（aria-activedescendant 挂在输入框上） */
+      input.setAttribute("aria-activedescendant", shown.length ? "cmdk-opt-" + hot : "");
     }
 
     function run(i) {
@@ -747,6 +752,7 @@
       }
       if (layer.classList.contains("open")) {
         if (e.key === "Escape") { e.preventDefault(); close(); }
+        else if (e.key === "Tab") { e.preventDefault(); }   /* 焦点陷阱：aria-modal 弹层不留焦 */
         else if (e.key === "ArrowDown") { e.preventDefault(); hot = Math.min(shown.length - 1, hot + 1); paintHot(); }
         else if (e.key === "ArrowUp") { e.preventDefault(); hot = Math.max(0, hot - 1); paintHot(); }
         else if (e.key === "Enter") { e.preventDefault(); run(hot); }

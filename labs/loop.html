@@ -954,7 +954,7 @@
     var bReset = document.getElementById("sim-reset");
     if (!logBox || !bInput || !taskChip) return;
 
-    var running = false, laps = 0, hist = 0, seq = 0;
+    var running = false, laps = 0, hist = 0, seq = 0, merged = 0;
 
     function pad(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -993,17 +993,20 @@
     bInput.addEventListener("click", function () {
       if (running) return;
       log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）');
-      running = true; laps = 1; hist += 10;
+      running = true; laps = 1; hist += 10; merged = 0;
       log('<span class="lg-ev">← Event</span>　TaskStarted → TurnStarted');
-      log('<span class="lg-note">build_prompt：历史 ≈' + hist + ' 单位 + 本轮输入，整体重发</span>');
+      log('<span class="lg-note">build_prompt：历史 ≈' + hist + ' 单位（含本轮输入），整体重发</span>');
       log('<span class="lg-req">→ 采样 #1</span>　POST /responses · SSE 开始回流');
       paint();
     });
 
     bSteer.addEventListener("click", function () {
       if (!running) return;
-      log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）');
-      log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮，不是排队</span>');
+      merged++;
+      hist += 6;   /* 插话也进历史：下一次采样会带上它 */
+      log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）· 第 ' + merged + ' 句插话');
+      log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮——不排队，下一轮采样就能看到这句</span>');
+      paint();
     });
 
     bTool.addEventListener("click", function () {

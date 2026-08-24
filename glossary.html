@@ -426,19 +426,24 @@
         fcard.style.transition = "none";
       }
     });
-    function end() {
+    function end(judging) {
       if (!dragging) return;
       dragging = false;
-      swiped = Math.abs(dx);
+      /* 只有真正完成判分的滑动才吞掉随后的 click 翻面；
+         轻晃、斜拖、被浏览器接管的滚动都不许吃掉下一次点按 */
+      swiped = judging ? Math.abs(dx) : 0;
       fcard.style.transition = "";
       fcard.style.transform = "";
-      if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (judging) {
         mark(dx > 0);
       }
       dx = dy = 0;
     }
-    fcard.addEventListener("pointerup", end);
-    fcard.addEventListener("pointercancel", end);
+    fcard.addEventListener("pointerup", function (e) {
+      var judging = dragging && Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4;
+      end(judging);
+    });
+    fcard.addEventListener("pointercancel", function () { end(false); });
   })();
 
   document.getElementById("d-prev").addEventListener("click", function () { step(-1); });

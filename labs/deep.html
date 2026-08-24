@@ -321,7 +321,7 @@
           <div id="ck-keys"></div>
           <p class="small muted" style="margin:10px 0 0;">
             这里只收最常被打听的一批键。完整名单以固定提交下的
-            <code>docs/config.md</code> 为准——那才是正典，这页是导览手册。
+            <a href="https://developers.openai.com/codex/config-reference" target="_blank" rel="noopener">config-reference</a> 为准（仓库 docs/config.md 在固定提交下只是指路页）——那才是正典，这页是导览手册。
           </p>
         </div>
         <div>
@@ -476,7 +476,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 <code>docs/config.md</code> 的常用子集，完整键位以该文档为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名，接口形态未定——地图有效，解剖无效。基线 openai/codex@343074d4。
+      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名，接口形态未定——地图有效，解剖无效。基线 openai/codex@343074d4。
     </aside>
 
   </main>

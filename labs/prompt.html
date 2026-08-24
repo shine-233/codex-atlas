@@ -799,9 +799,10 @@
     }
     stack.addEventListener("pointerup", endDrag);
     stack.addEventListener("pointercancel", endDrag);
-    /* 拖过就不算点选：捕获阶段拦一次 click，防止误开明细卡 */
+    /* 拖过就不算点选：捕获阶段拦一次「真实」click，防止误开明细卡。
+       isTrusted=false 的程序化 .click()（LOADOUT 分段联动）直接放行。 */
     stack.addEventListener("click", function (e) {
-      if (moved > 6) {
+      if (moved > 6 && e.isTrusted) {
         e.stopPropagation();
         e.preventDefault();
         moved = 0;

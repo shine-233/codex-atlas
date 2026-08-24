@@ -116,7 +116,8 @@
       enabled = !enabled;
       try { localStorage.setItem(KEY, enabled ? "1" : "0"); } catch (e) { /* 内存态也行 */ }
       paint(btn);
-      if (enabled) play("ok");   /* 这次点击本身就是解锁 AudioContext 的手势 */
+      /* 这次点击本身就是解锁 AudioContext 的手势 */
+      if (enabled) play("toggleOn"); else play("toggleOff");
     });
     document.body.appendChild(btn);
 
@@ -124,7 +125,7 @@
     document.addEventListener("pointerdown", function (e) {
       if (!enabled || e.button !== 0) return;
       var el = e.target.closest && e.target.closest(
-        ".btn, .seg button, .act, .cell, .cr, .cq-opt, .rail-ch, .cmdk-item"
+        ".btn, .seg button, .act, .cell, .cr, .cq-opt, .rail-ch, .cmdk-item, .stage-item, .lm-node, .budget-seg, .mode-card"
       );
       if (el) play("click");
     }, { passive: true });

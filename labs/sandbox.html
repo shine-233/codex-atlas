@@ -169,6 +169,51 @@
     transition: color .15s, border-color .15s;
   }
   .cmd-ex button:hover { color: var(--amber); border-color: var(--amber); }
+
+  /* ---------- SANDBOX YARD · 空间沙盘：把"墙"画出来 ---------- */
+  .yard-wrap { position: relative; margin-top: 4px; }
+  .yard-wrap svg { width: 100%; height: auto; display: block; }
+  .yard-zone { fill: var(--bg2); stroke: var(--line-strong); }
+  .yard-zone-label { fill: var(--faint); font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; }
+  .yard-file { fill: var(--bg1); stroke: var(--line-strong); }
+  .yard-file-label { fill: var(--dim); font-family: var(--mono); font-size: 9.5px; }
+  .yard-fence {
+    fill: none; stroke: rgba(255, 180, 84, .8); stroke-width: 2.5;
+    stroke-dasharray: 10 7; transition: opacity .35s, stroke .35s, stroke-dasharray .35s;
+  }
+  .yard-fence.wall { stroke: rgba(240, 121, 106, .85); stroke-dasharray: none; }
+  .yard-fence.off { opacity: .1; }
+  .yard-fence.open { opacity: .3; stroke-dasharray: 3 10; }
+  .yard-netwall { stroke: var(--line-strong); stroke-width: 2; stroke-dasharray: 6 5; }
+  .yard-dot { fill: #ffb454; filter: drop-shadow(0 0 6px rgba(255, 180, 84, .85)); }
+  .yard-echo { fill: none; stroke: rgba(255, 180, 84, .5); stroke-width: 1.5; }
+  .yard-tag { font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; paint-order: stroke; stroke: var(--bg0); stroke-width: 4; }
+  .yard-tag.allow { fill: var(--ok); }
+  .yard-tag.deny { fill: var(--deny); }
+  .yard-tag.cond { fill: var(--amber); }
+  .yard-shake { animation: yard-shake .4s var(--ease); transform-box: fill-box; transform-origin: center; }
+  @keyframes yard-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    55% { transform: translateX(5px); }
+    80% { transform: translateX(-3px); }
+  }
+  .yard-ask {
+    position: absolute; z-index: 6;
+    transform: translate(-50%, -130%);
+    background: var(--bg1); border: 1px solid var(--amber);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
+    padding: 8px 10px; display: none; gap: 7px; align-items: center;
+    font-size: 12px; color: var(--dim); white-space: nowrap;
+  }
+  .yard-ask.show { display: flex; animation: ca-rise .18s ease-out both; }
+  .yard-ask button {
+    font-family: var(--mono); font-size: 11px; padding: 2px 9px;
+    cursor: pointer; background: none; border: 1px solid var(--line-strong); color: var(--dim);
+  }
+  .yard-ask button.yes { border-color: var(--ok); color: var(--ok); }
+  .yard-ask button.no { border-color: var(--deny); color: var(--deny); }
+  .yard-ask button:hover { background: var(--bg2); }
 </style>
 </head>
 <body>
@@ -320,6 +365,29 @@
       </p>
     </section>
 
+    <!-- SANDBOX YARD · 空间沙盘 -->
+    <section class="panel" id="yard-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>SANDBOX YARD · 沙盘：围墙在哪，命令包往哪走</h3>
+        <span class="readout">随上方判定器联动 · 换动作看包的路线</span>
+      </div>
+      <div class="yard-wrap">
+        <div id="yard" role="img"
+             aria-label="沙盘示意图：工作区与临时目录在围墙内，家目录与网络在墙外。琥珀色命令包按当前选定的动作移动：放行就到达目标，被拒就撞墙弹回，条件放行会停在墙边等你签字。"></div>
+        <div class="yard-ask" id="yard-ask">
+          <span>越墙写入 <b style="font-family:var(--mono);">~/.bashrc</b>？</span>
+          <button type="button" class="yes" id="yard-yes">批准</button>
+          <button type="button" class="no" id="yard-no">拒绝</button>
+        </div>
+      </div>
+      <p class="small muted" style="margin:10px 0 0;">
+        琥珀小包就是你选的那条命令。虚线围墙圈住 workspace-write 的可写白名单（工作目录 + 临时目录）；
+        切到 read-only，围墙变红墙——一个字节都出不去；danger-full-access 直接把墙拆了。
+        选「改写墙外路径」时，小包会停在墙边等你签字：批准开门、拒绝退回。
+        读取永远穿墙——全盘可读是设计取舍，不是漏洞。
+      </p>
+    </section>
+
     <section>
       <h2>全景矩阵</h2>
       <p class="muted small">六行三列一览全部组合，格子随当前审批策略重新着色；点任意格联动上方判定器。</p>
@@ -431,7 +499,7 @@
           <pre class="cfg-pre" id="cfg-toml" aria-live="polite"></pre>
           <div class="cfg-cli" id="cfg-cli" aria-live="polite"></div>
           <div id="cfg-notes" aria-live="polite"></div>
-          <div class="cfg-where">配置文件位置：~/.codex/config.toml · 键名出自固定提交下 docs/config.md</div>
+          <div class="cfg-where">配置文件位置：~/.codex/config.toml · 键名以 <a href="https://developers.openai.com/codex/config-reference" target="_blank" rel="noopener">config-reference</a> 为准（仓库 docs/config.md 在固定提交下只是指路页）</div>
         </div>
       </div>
     </section>
@@ -445,7 +513,7 @@
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
       三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
-      审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以固定提交下的 <code>docs/config.md</code> 为准。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>)与「CLI 旗标覆盖配置文件」的优先级同出该文档；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
+      审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以 <a href="https://developers.openai.com/codex/config-reference" target="_blank" rel="noopener">config-reference</a> 为准（仓库 docs/config.md 在固定提交下只是指路页）。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>）与「CLI 旗标覆盖配置文件」的优先级同出该参考；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
   </main>
@@ -621,9 +689,17 @@
   }
 
   /* 审批策略对基础判定的修正（简化模型，见证据边界）：
-     never 把「条件放行」压成拒绝；untrusted 把白名单外动作升级为先问。 */
+     never 把「条件放行」压成拒绝；untrusted 把白名单外动作升级为先问。
+     net 动作在 workspace-write 下受 CONFIG BRIDGE 的 network_access 开关影响：打开即放行。 */
+  function netIsOn() {
+    var nb = document.getElementById("cfg-net");
+    return !!(nb && nb.checked);
+  }
   function effVerdict(act, mode) {
     var base = act.v[mode];
+    if (act.id === "net" && mode === "ww" && netIsOn()) {
+      return { v: "allow", note: "network_access 已打开：workspace-write 的断网默认被显式推翻。" };
+    }
     if (curPol === "never" && base === "cond") {
       return { v: "deny", note: "策略 never：不会弹窗征求同意，拿不到的权限直接失败。" };
     }
@@ -641,6 +717,7 @@
       comboReadout.innerHTML = "";
       renderPipe(null);
       markMatrixSel();
+      if (window.__yardRender) window.__yardRender(null);
       return;
     }
     var eff = effVerdict(curAct, curMode);
@@ -657,6 +734,7 @@
     PanelState.write({ os: curOs, m: curMode, a: curAct.id, p: curPol });
     renderPipe(eff);
     markMatrixSel();
+    if (window.__yardRender) window.__yardRender(eff);
   }
 
   function renderMech(act, eff) {
@@ -1046,7 +1124,12 @@
         render();
       });
     });
-    netBox.addEventListener("change", render);
+    netBox.addEventListener("change", function () {
+      render();
+      /* network_access 开关会真实改变 net 动作的判定：矩阵重着色 + 判定器/沙盘重放 */
+      buildMatrix();
+      renderVerdict();
+    });
 
     /* 判定器那边的 OS/模式/策略变化也会走到这里（setMode / 策略点击 / 状态恢复） */
     cfgRender = function () { syncSegHi(); render(); };
@@ -1058,6 +1141,204 @@
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
+
+  /* ---------- SANDBOX YARD：空间沙盘。zones + boundaries + approval gate 的手写版。
+     围墙随模式变化（ww=琥珀虚线 / ro=红墙 / full=拆墙），命令包按判定结果走三条剧本：
+     放行直达、被拒撞墙弹回、条件放行停在墙边等签字。 ---------- */
+  (function () {
+    var host = document.getElementById("yard");
+    var askBox = document.getElementById("yard-ask");
+    if (!host || !askBox) return;
+    var NS = "http://www.w3.org/2000/svg";
+    function E(n, a) { var x = document.createElementNS(NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+    var REDUCED = window.PrefersReducedMotion === true;
+
+    var svg = E("svg", { viewBox: "0 0 760 330", preserveAspectRatio: "xMidYMid meet" });
+
+    /* 区域 */
+    function zone(x, y, w, h, label) {
+      svg.appendChild(E("rect", { class: "yard-zone", x: x, y: y, width: w, height: h }));
+      var t = E("text", { class: "yard-zone-label", x: x + 8, y: y - 8 });
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+    zone(48, 100, 296, 180, "工作区 · ~/proj/api");
+    zone(372, 100, 148, 180, "/tmp · $TMPDIR");
+    zone(576, 100, 150, 180, "~ 家目录 · 墙外");
+
+    /* 文件位 */
+    function file(x, y, w, name) {
+      svg.appendChild(E("rect", { class: "yard-file", x: x, y: y, width: w, height: 20 }));
+      var t = E("text", { class: "yard-file-label", x: x + 6, y: y + 14 });
+      t.textContent = name;
+      svg.appendChild(t);
+    }
+    file(110, 138, 52, "src/");
+    file(220, 140, 52, "tests/");
+    file(110, 236, 58, "README");
+    file(420, 180, 58, "build.log");
+    file(620, 140, 58, ".ssh/");
+    file(620, 236, 64, ".bashrc");
+
+    /* 网络：云 + 独立闸口线 */
+    svg.appendChild(E("ellipse", { class: "yard-zone", cx: 650, cy: 44, rx: 54, ry: 22 }));
+    var cloudT = E("text", { class: "yard-zone-label", x: 650, y: 49, "text-anchor": "middle" });
+    cloudT.textContent = "网络";
+    svg.appendChild(cloudT);
+    svg.appendChild(E("line", { class: "yard-netwall", x1: 560, y1: 22, x2: 560, y2: 88 }));
+    var netT = E("text", { class: "yard-zone-label", x: 568, y: 18 });
+    netT.textContent = "网络闸口";
+    svg.appendChild(netT);
+
+    /* 围墙（class 随模式切换） */
+    var fence = E("rect", { class: "yard-fence", x: 34, y: 88, width: 498, height: 204, rx: 2 });
+    svg.appendChild(fence);
+    var fenceT = E("text", { class: "yard-zone-label", x: 36, y: 80 });
+    fenceT.textContent = "可写白名单围墙";
+    svg.appendChild(fenceT);
+
+    /* 命令包（回声圈 + 本体）与结果标签 */
+    var echo = E("circle", { class: "yard-echo", cx: 196, cy: 210, r: 12 });
+    svg.appendChild(echo);
+    var dot = E("circle", { class: "yard-dot", cx: 196, cy: 210, r: 7 });
+    svg.appendChild(dot);
+    var tag = E("text", { class: "yard-tag", x: 0, y: 0, "text-anchor": "middle", opacity: "0" });
+    svg.appendChild(tag);
+    host.appendChild(svg);
+
+    var POS = {
+      home: [196, 210],
+      rw: [136, 148],
+      ww: [139, 246],
+      ra: [649, 150],
+      wt: [449, 190],
+      wo: [652, 246],
+      net: [650, 44],
+      fenceTop: [532, 150],
+      fenceMid: [532, 246],
+      netGate: [552, 52],
+      netMid: [380, 62],
+      tmpEdge: [340, 190]
+    };
+
+    function setDot(p) {
+      dot.setAttribute("cx", p[0]);
+      dot.setAttribute("cy", p[1]);
+      echo.setAttribute("cx", p[0]);
+      echo.setAttribute("cy", p[1]);
+    }
+    var walkRaf = 0;
+    function walk(points, done) {
+      if (walkRaf) { cancelAnimationFrame(walkRaf); walkRaf = 0; }
+      if (points.length < 2 || REDUCED) { setDot(points[points.length - 1]); if (done) done(); return; }
+      var segs = [], total = 0, i;
+      for (i = 0; i < points.length - 1; i++) {
+        segs.push(Math.hypot(points[i + 1][0] - points[i][0], points[i + 1][1] - points[i][1]));
+        total += segs[i];
+      }
+      var t0 = performance.now();
+      walkRaf = requestAnimationFrame(function fr(now) {
+        var dist = Math.min(total, (now - t0) * 0.42);
+        var acc = 0, k = 0;
+        while (k < segs.length - 1 && acc + segs[k] < dist) { acc += segs[k]; k++; }
+        var r = segs[k] ? (dist - acc) / segs[k] : 1;
+        setDot([points[k][0] + (points[k + 1][0] - points[k][0]) * r,
+                points[k][1] + (points[k + 1][1] - points[k][1]) * r]);
+        if (dist < total) walkRaf = requestAnimationFrame(fr);
+        else { walkRaf = 0; if (done) done(); }
+      });
+    }
+    function shake() {
+      dot.classList.remove("yard-shake");
+      dot.getBoundingClientRect();   /* 强制重排，让抖动动画可重放 */
+      dot.classList.add("yard-shake");
+    }
+    function showTag(p, text, cls) {
+      tag.setAttribute("x", Math.max(90, Math.min(670, p[0])));
+      tag.setAttribute("y", Math.max(20, p[1] - 18));
+      tag.setAttribute("class", "yard-tag " + (cls || ""));
+      tag.textContent = text;
+      tag.setAttribute("opacity", "1");
+    }
+    function hideTag() { tag.setAttribute("opacity", "0"); }
+    function hideAsk() { askBox.classList.remove("show"); }
+    function placeAsk(p) {
+      askBox.style.left = (p[0] / 760 * 100) + "%";
+      askBox.style.top = (p[1] / 330 * 100) + "%";
+      askBox.classList.add("show");
+    }
+
+    function paintFence() {
+      fence.classList.remove("wall", "off", "open");
+      if (curMode === "ro") fence.classList.add("wall");
+      else if (curMode === "full") fence.classList.add("off");
+    }
+
+    function denyAt(p, text) {
+      walk([p], function () {
+        shake();
+        showTag(p, text, "deny");
+      });
+    }
+
+    function render(eff) {
+      hideAsk();
+      hideTag();
+      paintFence();
+      fence.classList.remove("open");
+      var v = eff ? eff.v : null;
+      if (!curAct) { walk([POS.home], null); return; }
+      var id = curAct.id;
+
+      if (id === "rw") {
+        walk([POS.home, POS.rw], function () { showTag(POS.rw, "读工作区 · 放行", "allow"); });
+      } else if (id === "ra") {
+        walk([POS.home, POS.fenceTop, POS.ra], function () { showTag(POS.ra, "全盘可读 · 穿墙也放行", "allow"); });
+      } else if (id === "ww") {
+        if (v === "allow") walk([POS.home, POS.ww], function () { showTag(POS.ww, "白名单内 · 放行", "allow"); });
+        else denyAt(POS.ww, "红墙：一个字节都不写");
+      } else if (id === "wt") {
+        if (v === "allow") walk([POS.home, POS.wt], function () { showTag(POS.wt, "临时目录 = 工作区延伸", "allow"); });
+        else denyAt(POS.tmpEdge, "read-only 连 /tmp 都不给写");
+      } else if (id === "wo") {
+        if (v === "allow") {
+          walk([POS.home, POS.fenceMid, POS.wo], function () { showTag(POS.wo, "全放开 · 毫无阻拦", "allow"); });
+        } else if (v === "cond") {
+          walk([POS.home, POS.fenceMid], function () {
+            placeAsk(POS.fenceMid);   /* 停在墙边，等你签字 */
+          });
+        } else {
+          denyAt(POS.fenceMid, "策略 never：不弹窗，直接失败");
+        }
+      } else if (id === "net") {
+        if (v === "allow") {
+          walk([POS.home, POS.netMid, POS.netGate, POS.net], function () { showTag(POS.net, "出网放行", "allow"); });
+        } else {
+          walk([POS.home, POS.netMid, POS.netGate], function () {
+            shake();
+            if (v === "cond") showTag(POS.netGate, "默认断网 · 审批或配置可升级", "cond");
+            else showTag(POS.netGate, "断网", "deny");
+          });
+        }
+      }
+    }
+
+    /* 墙边裁决 */
+    document.getElementById("yard-yes").addEventListener("click", function () {
+      hideAsk();
+      fence.classList.add("open");
+      try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: "cond" } })); } catch (e) { }
+      walk([POS.fenceMid, POS.wo], function () { showTag(POS.wo, "已放行 · 签的是这一次", "cond"); });
+    });
+    document.getElementById("yard-no").addEventListener("click", function () {
+      hideAsk();
+      try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: "deny" } })); } catch (e) { }
+      walk([POS.fenceMid, POS.home], function () { showTag(POS.home, "没批 · 模型自己换思路", "deny"); });
+    });
+
+    window.__yardRender = render;
+    render(curAct ? effVerdict(curAct, curMode) : null);
+  })();
 
   if (window.CATilt) CATilt(document.querySelectorAll(".mode-card"));
 
