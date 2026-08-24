@@ -456,7 +456,7 @@
       <table class="rt">
         <thead><tr><th>策略</th><th>行为</th></tr></thead>
         <tbody>
-          <tr><td><code>untrusted</code></td><td>最保守：除少数白名单命令外都要人工批准。</td></tr>
+          <tr><td><code>untrusted</code></td><td>最保守：除白名单命令外都要人工批准。白名单由 <code>execpolicy</code> 的 Starlark 规则驱动（<code>policy.rs</code> 的 get_allowed_prefixes）——旧版 core 里的静态 safe_commands 表在固定提交下已不存在，具体放行哪些以规则文件为准。</td></tr>
           <tr><td><code>on-failure</code></td><td>沙箱内先跑；失败或被拦时请求升级重试。full-auto 预设 = workspace-write + on-failure。</td></tr>
           <tr><td><code>on-request</code></td><td>模型自行判断何时申请提权。</td></tr>
           <tr><td><code>never</code></td><td>从不打扰：拿不到的就直接失败，绝不弹窗。无人值守跑批常用。</td></tr>

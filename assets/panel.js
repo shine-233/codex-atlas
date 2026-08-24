@@ -200,6 +200,29 @@
 
       host.appendChild(list);
       updateScore();
+
+      /* 重做本节：清空作答状态重来一遍（存档成绩会在重答时覆盖） */
+      var redo = document.createElement("button");
+      redo.type = "button";
+      redo.className = "btn cq-redo";
+      redo.textContent = "↺ 重做本节";
+      redo.style.marginTop = "14px";
+      redo.addEventListener("click", function () {
+        correct = 0;
+        allClearShown = false;
+        updateScore();
+        Array.prototype.forEach.call(list.querySelectorAll(".cq-item"), function (li) {
+          li.classList.remove("done");
+          var ex2 = li.querySelector(".cq-ex");
+          if (ex2) ex2.innerHTML = "";
+          Array.prototype.forEach.call(li.querySelectorAll(".cq-opt"), function (btn) {
+            btn.disabled = false;
+            btn.classList.remove("right", "wrong", "mute");
+          });
+        });
+        Array.prototype.forEach.call(host.querySelectorAll(".cq-allclear"), function (b2) { b2.remove(); });
+      });
+      host.appendChild(redo);
     }
   };
 })();
