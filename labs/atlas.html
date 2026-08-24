@@ -149,6 +149,32 @@
   #galaxy canvas { display: block; }
   @media (max-width: 720px) { #galaxy { height: 340px; } }
   .galaxy-cap { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .05em; margin: 8px 0 0; line-height: 1.7; }
+  /* 力学视图：力导向依赖图 */
+  #force { height: 480px; }
+  @media (max-width: 720px) { #force { height: 360px; } }
+  .force-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    margin-top: 10px;
+  }
+  .fb-chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+    color: var(--dim); background: none;
+    border: 1px solid var(--line);
+    padding: 4px 9px; cursor: pointer;
+    transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  }
+  .fb-chip:hover { border-color: var(--amber); color: var(--ink); }
+  .fb-chip.on { border-color: var(--amber); color: var(--amber); background: rgba(255,180,84,.08); }
+  .force-tip {
+    position: absolute; z-index: 5; pointer-events: none;
+    font-family: var(--mono); font-size: 11px; line-height: 1.55;
+    color: var(--ink); background: var(--bg2);
+    border: 1px solid var(--line-strong);
+    padding: 6px 9px; max-width: 260px; white-space: nowrap;
+    box-shadow: 0 8px 22px rgba(0,0,0,.35);
+    opacity: 0; transition: opacity var(--t-fast) var(--ease);
+  }
+  .force-tip.show { opacity: 1; }
   .tm-band-tag {
     position: absolute; z-index: 3; pointer-events: none;
     font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
@@ -254,6 +280,7 @@
           <button data-vw="list" class="on">列表视图</button>
           <button data-vw="tree">面积树图</button>
           <button data-vw="galaxy">3D 星系</button>
+          <button data-vw="force">力学视图</button>
         </div>
         <span class="view-note" id="vw-note">列表模式：九条带分组 · 点击成员看注解</span>
       </div>
@@ -263,6 +290,13 @@
       <div id="galaxy" class="tm-wrap" hidden></div>
       <p class="galaxy-cap" id="galaxy-cap" hidden>135 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。</b></p>
       <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
+
+      <div id="force" class="tm-wrap" hidden></div>
+      <p class="galaxy-cap" id="force-cap" hidden><span id="force-edges"></span>每个圆点是一个 crate，半径按依赖数（入 + 出）画。布局由物理模拟实时算出：连线是弹簧，点与点互斥，拖任意一点，整张网跟着重新找平衡；<b style="color:var(--dim);">悬停看名字和直接依赖，点击进下方注解卡。</b></p>
+      <div class="force-bar" id="force-bar" hidden>
+        <span class="fb-chips" id="force-chips" role="group" aria-label="按带高亮"></span>
+        <button class="btn" id="force-shake" type="button">↻ 摇一摇重排</button>
+      </div>
 
       <div id="bands"></div>
 
@@ -912,6 +946,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     function setView(v) {
       var tree = v === "tree";
       var gal = v === "galaxy";
+      var frc = v === "force";
       Array.prototype.forEach.call(document.querySelectorAll("[data-vw]"), function (x) {
         x.classList.toggle("on", x.getAttribute("data-vw") === v);
       });
@@ -922,16 +957,25 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       if (galBox) galBox.hidden = !gal;
       if (galCap) galCap.hidden = !gal;
       if (galTour) galTour.hidden = !gal || window.PrefersReducedMotion === true;
-      bandsBox.style.display = (tree || gal) ? "none" : "";
-      PanelState.write({ vw: tree ? "tree" : (gal ? "galaxy" : "") });
+      var frcBox = document.getElementById("force");
+      var frcCap = document.getElementById("force-cap");
+      var frcBar = document.getElementById("force-bar");
+      if (frcBox) frcBox.hidden = !frc;
+      if (frcCap) frcCap.hidden = !frc;
+      if (frcBar) frcBar.hidden = !frc;
+      bandsBox.style.display = (tree || gal || frc) ? "none" : "";
+      PanelState.write({ vw: tree ? "tree" : (gal ? "galaxy" : (frc ? "force" : "")) });
       var note = document.getElementById("vw-note");
       if (note) note.textContent = tree
         ? "树图模式：格子面积 = 该带成员数占比 · 悬停看全名 · 点击选中"
         : gal
           ? "星系模式：拖拽旋转（松手带惯性）· 滚轮 / 双指缩放 · 悬停看名字 · 点击选中进详情"
-          : "列表模式：九条带分组 · 点击成员看注解";
+          : frc
+            ? "力学模式：拖任意点整张网重新找平衡 · 滚轮缩放 · 悬停看依赖 · 点击选中进详情"
+            : "列表模式：九条带分组 · 点击成员看注解";
       if (tree) render();
       if (window.CAGalaxy) { gal ? CAGalaxy.wake() : CAGalaxy.sleep(); }
+      if (window.CAForce) { frc ? CAForce.wake() : CAForce.sleep(); }
     }
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-vw]"), function (b) {
@@ -945,11 +989,13 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         rzT = setTimeout(render, 160);
       }
       if (window.CAGalaxy && !document.getElementById("galaxy").hidden) CAGalaxy.wake();
+      if (window.CAForce && !document.getElementById("force").hidden) CAForce.wake();
     });
 
     var v0 = PanelState.read().vw;
     if (v0 === "tree") setView("tree");
     else if (v0 === "galaxy") setView("galaxy");
+    else if (v0 === "force") setView("force");
   })();
 
   /* ---------- 3D 星系视图：OrbitControls 交互词汇表（拖拽旋转+阻尼惯性 /
@@ -1352,6 +1398,438 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     };
   })();
 
+  /* ---------- 力学视图：力导向依赖图（手写物理，零依赖）。
+     物理模型与 d3-force 同族：连线当 Hooke 弹簧，节点两两互斥，
+     向心重力收拢，速度衰减模拟介质阻尼；拖住任意一点，全网重新找平衡。
+     初始布局种子取自基线提交号前缀——同基线下第一帧可复现。
+     数据：CA_DEPS 全量边表；计数按有向算，画线时双向重复合成一条无向边。 ---------- */
+  (function () {
+    var host = document.getElementById("force");
+    if (!host || !window.CanvasRenderingContext2D || typeof CA_DEPS !== "object") return;
+    var canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:default;";
+    host.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    var REDUCED = window.PrefersReducedMotion === true;
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+    var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+    /* 种子 = 基线提交号前缀。确定性 LCG，同基线下初始排布可复现 */
+    var seed = 343074;
+    function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+    /* ---- 点与边：入度出度按有向全量统计；画线用去重后的无向边 ---- */
+    var NODES = [], IDX = {};
+    BANDS.forEach(function (b, bi) {
+      b.crates.forEach(function (n) {
+        IDX[n] = NODES.length;
+        NODES.push({ name: n, bi: bi, deg: CA_DEG[n] || 0,
+          out: 0, "in": 0, x: 0, y: 0, vx: 0, vy: 0 });
+      });
+    });
+    Object.keys(CA_DEPS).forEach(function (src) {
+      var si = IDX[src];
+      if (si === undefined) return;
+      var deps = CA_DEPS[src];
+      NODES[si].out += deps.length;
+      deps.forEach(function (dst) {
+        var di = IDX[dst];
+        if (di !== undefined && di !== si) NODES[di]["in"]++;
+      });
+    });
+    var LINKS = [], seenL = {};
+    Object.keys(CA_DEPS).forEach(function (src) {
+      var si = IDX[src];
+      if (si === undefined) return;
+      CA_DEPS[src].forEach(function (dst) {
+        var di = IDX[dst];
+        if (di === undefined || di === si) return;
+        var k = Math.min(si, di) + "_" + Math.max(si, di);
+        if (seenL[k]) return;
+        seenL[k] = 1;
+        LINKS.push([Math.min(si, di), Math.max(si, di)]);
+      });
+    });
+
+    function radius(n) { return 3 + Math.min(10, Math.sqrt(n.deg) * 1.55); }
+
+    /* ---- 视口 ---- */
+    var W = 1, H = 1, dpr = 1, S = 1, panX = 0, panY = 0;
+    function size() {
+      var r = host.getBoundingClientRect();
+      W = Math.max(1, Math.round(r.width));
+      H = Math.max(1, Math.round(r.height));
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function sx(x) { return x * S + panX; }
+    function sy(y) { return y * S + panY; }
+    function wx(px2) { return (px2 - panX) / S; }
+    function wy(py2) { return (py2 - panY) / S; }
+
+    /* ---- 物理状态 ---- */
+    var alpha = 0, hoverI = -1, dragI = -1, panning = false, bandFocus = null;
+    var neighbor = null;
+
+    function scatter() {
+      seed = 343074;
+      var R = Math.min(W, H) * 0.36;
+      BANDS.forEach(function (b, bi) {
+        var ang = bi / BANDS.length * 6.2832 - 1.5708;
+        var cx = W / 2 + Math.cos(ang) * R;
+        var cy = H / 2 + Math.sin(ang) * R * 0.82;
+        b.crates.forEach(function (name) {
+          var nd = NODES[IDX[name]];
+          nd.x = cx + (rnd() * 2 - 1) * 26;
+          nd.y = cy + (rnd() * 2 - 1) * 22;
+          nd.vx = 0; nd.vy = 0;
+        });
+      });
+    }
+    function tick() {
+      var i, j, a, b, fx, fy;
+      /* 斥力：O(n²)，135 点约 9 千对，一帧绰绰有余 */
+      for (i = 0; i < NODES.length; i++) {
+        a = NODES[i];
+        for (j = i + 1; j < NODES.length; j++) {
+          b = NODES[j];
+          var dx = a.x - b.x, dy = a.y - b.y;
+          var d2 = dx * dx + dy * dy;
+          if (d2 > 34000 || d2 === 0) continue;
+          var f = 1500 * alpha / d2;
+          var d = Math.sqrt(d2);
+          fx = dx / d * f; fy = dy / d * f;
+          a.vx += fx; a.vy += fy;
+          b.vx -= fx; b.vy -= fy;
+        }
+      }
+      /* 弹簧：连线两端拉回静息长度 */
+      for (i = 0; i < LINKS.length; i++) {
+        a = NODES[LINKS[i][0]]; b = NODES[LINKS[i][1]];
+        var ldx = b.x - a.x, ldy = b.y - a.y;
+        var ld = Math.sqrt(ldx * ldx + ldy * ldy) || 1;
+        var rest = 46 + (radius(a) + radius(b)) * 0.9;
+        var g = (ld - rest) * 0.028 * alpha;
+        var ux = ldx / ld * g, uy = ldy / ld * g;
+        a.vx += ux; a.vy += uy;
+        b.vx -= ux; b.vy -= uy;
+      }
+      /* 向心 + 越界回推 + 积分 */
+      var cx2 = W / 2, cy2 = H / 2;
+      for (i = 0; i < NODES.length; i++) {
+        a = NODES[i];
+        a.vx += (cx2 - a.x) * 0.0022 * alpha;
+        a.vy += (cy2 - a.y) * 0.0032 * alpha;
+        if (a.x < -40) a.vx += (-40 - a.x) * 0.02;
+        if (a.x > W + 40) a.vx -= (a.x - W - 40) * 0.02;
+        if (a.y < -30) a.vy += (-30 - a.y) * 0.02;
+        if (a.y > H + 30) a.vy -= (a.y - H - 30) * 0.02;
+        if (i !== dragI) {
+          a.vx *= 0.86; a.vy *= 0.86;
+          a.x += Math.max(-14, Math.min(14, a.vx));
+          a.y += Math.max(-14, Math.min(14, a.vy));
+        }
+      }
+      alpha *= 0.988;
+      if (alpha < 0.012) alpha = 0;
+    }
+
+    /* ---- 高亮：悬停邻居 / 带聚焦 / 检索词，三者可叠加 ---- */
+    function buildNeighbors(i) {
+      neighbor = {};
+      for (var k = 0; k < LINKS.length; k++) {
+        if (LINKS[k][0] === i) neighbor[LINKS[k][1]] = 1;
+        else if (LINKS[k][1] === i) neighbor[LINKS[k][0]] = 1;
+      }
+    }
+    function matchesQ(n) {
+      if (!FILTER_Q) return true;
+      var q = FILTER_Q.toLowerCase();
+      var bd = BANDS[n.bi];
+      return n.name.toLowerCase().indexOf(q) !== -1 ||
+        bd.no.toLowerCase().indexOf(q) !== -1 ||
+        bd.name.indexOf(FILTER_Q) !== -1 ||
+        bd.en.toLowerCase().indexOf(q) !== -1;
+    }
+    function dimFactor(n, i) {
+      var f = 1;
+      if (bandFocus !== null && n.bi !== bandFocus) f *= 0.14;
+      if (hoverI >= 0 && i !== hoverI && !neighbor[i]) f *= 0.2;
+      if (FILTER_Q && !matchesQ(n)) f *= 0.12;
+      return Math.max(0.07, f);
+    }
+
+    /* ---- 渲染 ---- */
+    var tip = document.createElement("div");
+    tip.className = "force-tip";
+    host.appendChild(tip);
+    function hideTip() { tip.classList.remove("show"); }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      var light = window.CATheme && CATheme.isLight();
+      var i, a, b;
+      for (i = 0; i < LINKS.length; i++) {
+        a = NODES[LINKS[i][0]]; b = NODES[LINKS[i][1]];
+        var hot = hoverI >= 0 && (LINKS[i][0] === hoverI || LINKS[i][1] === hoverI);
+        var eA = hot ? 0.85 : 0.10;
+        if (bandFocus !== null && a.bi !== bandFocus && b.bi !== bandFocus) eA *= 0.25;
+        ctx.strokeStyle = hot
+          ? "rgba(" + STEEL + "," + eA + ")"
+          : "rgba(" + AMBER + "," + Math.min(1, eA * (light ? 1.35 : 1)).toFixed(3) + ")";
+        ctx.lineWidth = hot ? 1.4 : 1;
+        ctx.beginPath();
+        ctx.moveTo(sx(a.x), sy(a.y));
+        ctx.lineTo(sx(b.x), sy(b.y));
+        ctx.stroke();
+      }
+      var lab = [];
+      for (i = 0; i < NODES.length; i++) {
+        a = NODES[i];
+        var f = dimFactor(a, i);
+        var r = radius(a);
+        var isSel = selCrate === a.name;
+        var isHov = i === hoverI;
+        var isNb = hoverI >= 0 && !!neighbor[i];
+        ctx.globalAlpha = f;
+        ctx.fillStyle = "rgba(" + AMBER + "," + RIBBON_ALPHA[a.bi].toFixed(3) + ")";
+        ctx.beginPath();
+        ctx.arc(sx(a.x), sy(a.y), r * S, 0, 6.2832);
+        ctx.fill();
+        if (isHov || isNb || isSel) {
+          ctx.strokeStyle = "rgba(" + STEEL + ",0.95)";
+          ctx.lineWidth = (isHov || isSel) ? 1.8 : 1.2;
+          ctx.beginPath();
+          ctx.arc(sx(a.x), sy(a.y), (r + 3.5) * S, 0, 6.2832);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        if ((a.deg >= 16 || isHov || isNb || isSel ||
+            (bandFocus !== null && a.bi === bandFocus && a.deg >= 6)) && f > 0.35) {
+          lab.push([a, f]);
+        }
+      }
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.textBaseline = "middle";
+      var shown = lab.slice(0, 42);
+      for (i = 0; i < shown.length; i++) {
+        var n = shown[i][0], lf = shown[i][1];
+        ctx.fillStyle = light
+          ? "rgba(34,48,60," + (0.78 * lf).toFixed(2) + ")"
+          : "rgba(" + INKRGB + "," + (0.72 * lf).toFixed(2) + ")";
+        ctx.fillText(n.name, sx(n.x) + radius(n) * S + 4, sy(n.y));
+      }
+    }
+
+    /* ---- 主循环：动才烧帧，静就熄火 ---- */
+    var running = false, raf = 0, inView = true, everWoken = false;
+    function loop() {
+      if (!running) return;
+      tick();
+      draw();
+      if (alpha <= 0 && dragI < 0) { running = false; return; }
+      raf = requestAnimationFrame(loop);
+    }
+    function startLoop() {
+      if (running || REDUCED || document.hidden || !inView) return;
+      running = true;
+      raf = requestAnimationFrame(loop);
+    }
+    function preRun() {
+      for (var k = 0; k < 320; k++) tick();
+      alpha = 0;
+    }
+    function wake() {
+      size();
+      if (!everWoken) {
+        everWoken = true;
+        scatter();
+        if (REDUCED) { preRun(); draw(); return; }
+        alpha = 1;
+        startLoop();
+        return;
+      }
+      if (REDUCED) { draw(); return; }
+      /* 回到这个视图 / 窗口尺寸变化：轻轻推一把，让边界修正自然演完 */
+      alpha = Math.max(alpha, 0.28);
+      startLoop();
+    }
+    function sleep() {
+      running = false;
+      cancelAnimationFrame(raf);
+      hideTip();
+    }
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) {
+          inView = en.isIntersecting;
+          if (!inView) { running = false; cancelAnimationFrame(raf); }
+          else if (!REDUCED && alpha > 0) startLoop();
+          else if (REDUCED && everWoken) draw();
+        });
+      }, { rootMargin: "80px" }).observe(host);
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) { running = false; cancelAnimationFrame(raf); }
+      else if (!REDUCED && alpha > 0 && inView) startLoop();
+    });
+
+    /* ---- 指针交互：抓点 / 平移背景 / 悬停 / 点击选中 ---- */
+    var movedPx = 0, downX = 0, downY = 0, lastPX = 0, lastPY = 0, suppressClick = false;
+    function localXY(e) {
+      var rect = host.getBoundingClientRect();
+      return [e.clientX - rect.left, e.clientY - rect.top];
+    }
+    function pickAt(x, y) {
+      var best = -1, bd = 1e9;
+      for (var i = 0; i < NODES.length; i++) {
+        var n = NODES[i];
+        var dx = sx(n.x) - x, dy = sy(n.y) - y;
+        var d = dx * dx + dy * dy;
+        var rr = (radius(n) + 6) * S;
+        rr *= rr;
+        if (d < rr && d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+    function moveTip(x, y, i) {
+      var n = NODES[i], bd = BANDS[n.bi];
+      tip.innerHTML = "<b style='color:var(--amber);'>" + n.name + "</b> · " + bd.no + " " + bd.name +
+        "<br>依赖 " + n.out + " 个成员 · 被 " + n["in"] + " 个成员依赖";
+      tip.style.left = Math.max(4, Math.min(W - 216, x + 14)) + "px";
+      tip.style.top = Math.max(4, Math.min(H - 56, y + 12)) + "px";
+      tip.classList.add("show");
+    }
+    canvas.addEventListener("pointerdown", function (e) {
+      if (e.button !== undefined && e.button > 0) return;
+      size();
+      var xy = localXY(e);
+      downX = lastPX = e.clientX; downY = lastPY = e.clientY; movedPx = 0;
+      var hit = pickAt(xy[0], xy[1]);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
+      if (hit >= 0) {
+        dragI = hit;
+        NODES[hit].vx = 0; NODES[hit].vy = 0;
+        alpha = Math.max(alpha, 0.32);
+        if (!REDUCED) startLoop();
+        canvas.style.cursor = "grabbing";
+      } else {
+        panning = true;
+        canvas.style.cursor = "grabbing";
+      }
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      var xy = localXY(e);
+      var x = xy[0], y = xy[1];
+      movedPx += Math.abs(e.clientX - lastPX) + Math.abs(e.clientY - lastPY);
+      lastPX = e.clientX; lastPY = e.clientY;
+      if (dragI >= 0) {
+        var n = NODES[dragI];
+        n.x = wx(x); n.y = wy(y);
+        n.vx = 0; n.vy = 0;
+        alpha = Math.max(alpha, 0.3);
+        if (!REDUCED) startLoop(); else draw();
+        moveTip(x, y, dragI);
+        return;
+      }
+      if (panning) {
+        panX += e.clientX - downX; panY += e.clientY - downY;
+        downX = e.clientX; downY = e.clientY;
+        draw();
+        return;
+      }
+      var hit = pickAt(x, y);
+      if (hit !== hoverI) {
+        hoverI = hit;
+        neighbor = null;
+        if (hit >= 0) buildNeighbors(hit);
+        canvas.style.cursor = hit >= 0 ? "grab" : "default";
+        draw();
+      }
+      if (hit >= 0) moveTip(x, y, hit); else hideTip();
+    });
+    function endPointer() {
+      var wasBusy = dragI >= 0;
+      dragI = -1; panning = false;
+      canvas.style.cursor = hoverI >= 0 ? "grab" : "default";
+      if (wasBusy || movedPx > 5) suppressClick = true;
+    }
+    canvas.addEventListener("pointerup", endPointer);
+    canvas.addEventListener("pointercancel", endPointer);
+    canvas.addEventListener("click", function (e) {
+      if (suppressClick) { suppressClick = false; return; }
+      var xy = localXY(e);
+      var hit = pickAt(xy[0], xy[1]);
+      if (hit < 0) return;
+      var n = NODES[hit];
+      selectCrate(BANDS[n.bi], n.name, canvas);
+      draw();
+    });
+    canvas.addEventListener("mouseleave", function () {
+      hoverI = -1; neighbor = null; hideTip();
+      if (!running) draw();
+    });
+    canvas.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      size();
+      var xy = localXY(e);
+      var old = S;
+      S *= e.deltaY < 0 ? 1.12 : 0.89;
+      S = Math.max(0.45, Math.min(3.2, S));
+      panX = xy[0] - (xy[0] - panX) * (S / old);
+      panY = xy[1] - (xy[1] - panY) * (S / old);
+      draw();
+    }, { passive: false });
+    canvas.addEventListener("dblclick", function () {
+      S = 1; panX = 0; panY = 0;
+      draw();
+    });
+
+    /* 工具条：带色芯片高亮一条带，摇一摇换一种初始摆法重新长出来 */
+    var chips = document.getElementById("force-chips");
+    if (chips) {
+      BANDS.forEach(function (b, bi) {
+        var c = document.createElement("button");
+        c.type = "button";
+        c.className = "fb-chip";
+        c.textContent = b.no + " " + b.name;
+        c.setAttribute("aria-pressed", "false");
+        c.addEventListener("click", function () {
+          bandFocus = bandFocus === bi ? null : bi;
+          c.classList.toggle("on", bandFocus === bi);
+          c.setAttribute("aria-pressed", bandFocus === bi ? "true" : "false");
+          if (window.CASound) CASound.play(bandFocus === bi ? "toggleOn" : "toggleOff");
+          draw();
+        });
+        chips.appendChild(c);
+      });
+    }
+    var shakeBtn = document.getElementById("force-shake");
+    if (shakeBtn) shakeBtn.addEventListener("click", function () {
+      scatter();
+      if (REDUCED) { preRun(); draw(); return; }
+      alpha = 1;
+      startLoop();
+    });
+
+    /* 检索框打字时同步暗化画布（列表和树图由 applyFilter 管） */
+    qInput.addEventListener("input", function () {
+      if (document.getElementById("force").hidden) return;
+      if (!running) draw();
+    });
+
+    var edgeNote = document.getElementById("force-edges");
+    if (edgeNote) edgeNote.textContent =
+      NODES.length + " 点 · " + LINKS.length + " 条无向边（CA_DEPS 全量、双向去重）· ";
+
+    window.CAForce = { wake: wake, sleep: sleep };
+  })();
+
   function selectCrate(band, name, chipEl) {
     selCrate = name;
     PanelState.write({ sel: name });
@@ -1712,7 +2190,7 @@ window.CATOUR_STEPS = [
   { sel: "#q", title: "检索与定位", text: "中英文都能搜：试试 mcp、记忆、沙箱。命中的成员高亮，其余暗化——三个视图联动。" },
   { sel: "#ribbon", title: "构成比例带", text: "段宽 = 该带成员数占比（合计 135）。点段跳到对应带。" },
   { sel: "#flowmap", title: "带间依赖动线", text: "本站归纳的调用方向：入口 → 协议接入 → 核心引擎 → 工具执行 → 沙箱安全。点节点跳带。" },
-  { sel: ".view-row", title: "三种视图", text: "列表 / 面积树图 / 3D 星系。星系支持拖拽旋转、缩放、带聚焦、自动导览，固定种子可复现。" },
+  { sel: ".view-row", title: "四种视图", text: "列表 / 面积树图 / 3D 星系 / 力学视图。星系支持拖拽旋转、缩放、带聚焦、自动导览；力学视图是真实的物理模拟，拖任意一点整张网重新找平衡。" },
   { sel: "#repo-tree", title: "仓库全景", text: "本站管到哪一层、哪些明确不管——覆盖粒度三级：crate 级 / 文件级 / 函数级。" }
 ];
 </script>
