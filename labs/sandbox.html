@@ -377,6 +377,35 @@
         一条命令从发起到落地要过三道闸：审批策略管「要不要先问你」，沙箱模式管「能不能过」，
         内核机制负责真正执行。颜色即判定：绿 = 放行，琥珀 = 先问，红 = 拦下。
       </p>
+      <details class="src-details">
+        <summary>⌨ 看真实源码 · workspace_write() 可写白名单的装配</summary>
+        <pre><span class="src-loc">codex-rs/protocol/src/permissions.rs :746-779 · @343074d4 实测（截取）</span>
+<span class="src-code">pub fn workspace_write(
+    writable_roots: &amp;[AbsolutePathBuf],
+    exclude_tmpdir_env_var: bool,
+    exclude_slash_tmp: bool,
+) -&gt; Self {
+    let mut entries = vec![FileSystemSandboxEntry::new(
+        FileSystemPath::Special { value: FileSystemSpecialPath::Root },
+        FileSystemAccessMode::Read,
+    )];
+    entries.push(FileSystemSandboxEntry::new(
+        FileSystemPath::Special { value: FileSystemSpecialPath::project_roots(None) },
+        FileSystemAccessMode::Write,
+    ));
+    if !exclude_slash_tmp {
+        entries.push(FileSystemSandboxEntry::new(
+            FileSystemPath::Special { value: FileSystemSpecialPath::SlashTmp },
+            FileSystemAccessMode::Write,
+        ));
+    }
+    if !exclude_tmpdir_env_var {
+        entries.push(FileSystemSandboxEntry::new(
+            FileSystemPath::Special { value: FileSystemSpecialPath::Tmpdir },
+            FileSystemAccessMode::Write,
+        ));
+    }</span></pre>
+      </details>
     </section>
 
     <!-- SANDBOX YARD · 空间沙盘 -->

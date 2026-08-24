@@ -297,6 +297,28 @@
       </div>
       <pre id="dj-pre" style="display:none;"></pre>
       <p class="small muted" id="dj-desc" style="margin:10px 0 0;">字段名与嵌套为<b>示意形状</b>：v2 协议以固定提交下的 protocol crate 与 <code>codex app-server generate-ts</code> 输出为准。</p>
+      <details class="src-details">
+        <summary>⌨ 看真实源码 · ServerRequest 里的审批变体（注意 DEPRECATED 标注）</summary>
+        <pre><span class="src-loc">codex-rs/app-server-protocol/src/protocol/common.rs :1721-1733 · @343074d4 实测</span>
+<span class="src-code">/// DEPRECATED APIs below
+/// Request to approve a patch.
+/// This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).
+ApplyPatchApproval {
+    params: v1::ApplyPatchApprovalParams,
+    response: v1::ApplyPatchApprovalResponse,
+},
+/// Request to exec a command.
+/// This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).
+ExecCommandApproval {
+    params: v1::ExecCommandApprovalParams,
+    response: v1::ExecCommandApprovalResponse,
+},</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          读出声：这两个变体标着 <b>DEPRECATED</b>——只服务于旧版 API 发起的 Turn。现行时间线用的门牌是
+          <code>item/commandExecution/requestApproval</code>（本页第 11 条已按此标注）。
+          同枚举里还有 <code>mcpServer/elicitation/request</code>：MCP 服务器也能通过这条通道向你要输入。
+        </p>
+      </details>
     </section>
 
     <section>

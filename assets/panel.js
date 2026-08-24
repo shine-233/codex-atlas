@@ -21,7 +21,12 @@
   });
 
   /* 主题：尽早应用，避免首帧闪错色 */
-  try { if (localStorage.getItem("ca-theme") === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) { /* 忽略 */ }
+  try {
+    var savedTheme = localStorage.getItem("ca-theme");
+    if (savedTheme === "light") document.documentElement.setAttribute("data-theme", "light");
+    else if (!savedTheme && window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches)
+      document.documentElement.setAttribute("data-theme", "light");
+  } catch (e) { /* 忽略 */ }
 
   /* hash 状态：#s=3&x=1 形式的键值对读写 */
   window.PanelState = {

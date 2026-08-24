@@ -309,6 +309,34 @@
               <pre id="au-json" aria-live="polite"></pre>
             </details>
           </div>
+          <details class="src-details">
+            <summary>⌨ 看真实源码 · AuthDotJson 结构体（比示意多四个字段）</summary>
+            <pre><span class="src-loc">codex-rs/login/src/auth/storage.rs :38-61 · @343074d4 实测</span>
+<span class="src-code">/// Expected structure for $CODEX_HOME/auth.json.
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+pub struct AuthDotJson {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_mode: Option&lt;AuthMode&gt;,
+
+    #[serde(rename = "OPENAI_API_KEY")]
+    pub openai_api_key: Option&lt;String&gt;,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens: Option&lt;TokenData&gt;,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_refresh: Option&lt;DateTime&lt;Utc&gt;&gt;,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_identity: Option&lt;AgentIdentityStorage&gt;,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub personal_access_token: Option&lt;String&gt;,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bedrock_api_key: Option&lt;BedrockApiKeyAuth&gt;,
+}</span></pre>
+          </details>
           <p class="small muted" style="margin:10px 0 0;" id="au-note"></p>
 
           <!-- 续期时序：401 之后发生了什么 -->
@@ -343,6 +371,25 @@
         </div>
         <div>
           <pre class="cfg-pre" id="ck-toml" aria-live="polite" style="background:var(--bg0);border:1px solid var(--line-strong);padding:14px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;margin:0 0 12px;"></pre>
+
+          <details class="src-details">
+            <summary>⌨ 看真实源码 · 这些键在 config_toml.rs 里的原始定义</summary>
+            <pre><span class="src-loc">codex-rs/config/src/config_toml.rs · @343074d4 实测（各行真实行号，原文拼接）</span>
+<span class="src-code">/// Token usage threshold triggering auto-compaction of conversation history.   // L167
+pub model_auto_compact_token_limit: Option&lt;i64&gt;,                              // L168
+
+/// Default approval policy for executing commands.                           // L174
+pub approval_policy: Option&lt;AskForApproval&gt;,                                  // L176
+
+/// Sandbox mode to use.                                                      // L204
+pub sandbox_mode: Option&lt;SandboxMode&gt;,                                        // L205
+
+/// Sandbox configuration to apply if `sandbox` is `WorkspaceWrite`.          // L207
+pub sandbox_workspace_write: Option&lt;SandboxWorkspaceWrite&gt;,                   // L208
+
+/// Developer instructions inserted as a `developer` role message.            // L226
+pub developer_instructions: Option&lt;String&gt;,                                   // L228</span></pre>
+          </details>
 
           <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">优先级阶梯 · 谁覆盖谁</div>
           <div class="ladder" id="ck-ladder">
@@ -440,6 +487,28 @@
             <p class="small muted" id="sl-out" style="margin:8px 0 0;" aria-live="polite">
               这些命令是 TUI 在客户端本地处理的，根本不会发给模型——它们更像浏览器的地址栏协议，不像聊天内容。
             </p>
+            <details class="src-details">
+              <summary>⌨ 看真实源码 · SlashCommand 枚举开头（顺序即弹窗展示顺序）</summary>
+              <pre><span class="src-loc">codex-rs/tui/src/slash_command.rs :12-29 · @343074d4 实测（截取）</span>
+<span class="src-code">pub enum SlashCommand {
+    // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
+    // more frequently used commands should be listed first.
+    Model,
+    Ide,
+    Permissions,
+    Keymap,
+    Vim,
+    #[strum(serialize = "setup-default-sandbox")]
+    ElevateSandbox,
+    #[strum(serialize = "sandbox-add-read-dir")]
+    SandboxReadRoot,
+    Experimental,
+    #[strum(to_string = "approve")]
+    AutoReview,
+    Memories,
+    Skills,
+    Import,</span></pre>
+            </details>
           </div>
         </div>
         <div class="tui-side">
