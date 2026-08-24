@@ -956,6 +956,10 @@
 
     var running = false, laps = 0, hist = 0, seq = 0, merged = 0;
 
+    function persist() {
+      PanelState.write({ sr: running ? 1 : 0, sl: laps, sh: hist, sm: merged });
+    }
+
     function pad(n) { return (n < 10 ? "0" : "") + n; }
 
     function log(html) {
@@ -997,6 +1001,7 @@
       log('<span class="lg-ev">← Event</span>　TaskStarted → TurnStarted');
       log('<span class="lg-note">build_prompt：历史 ≈' + hist + ' 单位（含本轮输入），整体重发</span>');
       log('<span class="lg-req">→ 采样 #1</span>　POST /responses · SSE 开始回流');
+      persist();
       paint();
     });
 
@@ -1006,6 +1011,7 @@
       hist += 6;   /* 插话也进历史：下一次采样会带上它 */
       log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）· 第 ' + merged + ' 句插话');
       log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮——不排队，下一轮采样就能看到这句</span>');
+      persist();
       paint();
     });
 
@@ -1016,6 +1022,7 @@
       log('<span class="lg-note">工具输出写回历史 → 回到 build_prompt 再采样</span>');
       laps++;
       log('<span class="lg-req">→ 采样 #' + laps + '</span>　POST /responses · 历史 ≈' + hist + ' 单位');
+      persist();
       paint();
     });
 
@@ -1024,16 +1031,34 @@
       log('<span class="lg-ev">← Event</span>　OutputItemDone(assistant message) · 纯文本，needs_follow_up = false');
       log('<span class="lg-ok">← Event</span>　<b>TurnComplete</b> · 本轮收束，环断开');
       running = false;
+      persist();
       paint();
     });
 
     bReset.addEventListener("click", function () {
-      running = false; laps = 0; hist = 0; seq = 0;
+      running = false; laps = 0; hist = 0; seq = 0; merged = 0;
+      PanelState.write({ sr: "", sl: "", sh: "", sm: "" });
       logBox.innerHTML = '<p class="sim-empty">// 队列对空转中。发一条输入，看 Submission → Event 两侧怎么动。</p>';
       paint();
     });
 
     paint();
+
+    /* 从地址栏恢复计数状态（日志不回放） */
+    (function () {
+      var s0 = PanelState.read();
+      var h0 = parseInt(s0.sh, 10) || 0;
+      if (!h0 && s0.sr !== "1") return;
+      running = s0.sr === "1";
+      laps = parseInt(s0.sl, 10) || 0;
+      hist = h0;
+      merged = parseInt(s0.sm, 10) || 0;
+      log('<span class="lg-note">已从地址栏恢复：' + (running ? "运行中" : "空闲") +
+        " · 采样 " + laps + " 次 · 历史 ≈ " + hist + " 单位" +
+        (merged ? " · 并入 " + merged + " 句插话" : "") +
+        "（日志不回放）</span>");
+      paint();
+    })();
   })();
 
   /* ---------- 第 11 站现场：SSE 事件瀑布（示意） ---------- */

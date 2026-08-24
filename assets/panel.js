@@ -33,11 +33,15 @@
       return out;
     },
     write: function (obj) {
-      var parts = [];
+      /* 合并语义：同页多台仪器共用一个 hash，写入只动自己的键。
+         传空串 = 显式清除该键（各仪器的 reset 都依赖这一点）。 */
+      var cur = window.PanelState.read();
       Object.keys(obj).forEach(function (k) {
-        if (obj[k] !== "" && obj[k] != null) {
-          parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(obj[k]));
-        }
+        if (obj[k] === "" || obj[k] == null) delete cur[k];
+        else cur[k] = obj[k];
+      });
+      var parts = Object.keys(cur).map(function (k) {
+        return encodeURIComponent(k) + "=" + encodeURIComponent(cur[k]);
       });
       var s = parts.length ? "#" + parts.join("&") : "";
       history.replaceState(null, "", location.pathname + location.search + s);
@@ -646,6 +650,8 @@
       { no: "02", name: "输入组装 · 组装仪", sub: "七层开关", href: P("labs/prompt.html"), kw: "prompt payload agents 层叠 32kib 负载" },
       { no: "03", name: "权限沙箱 · 场景判定器", sub: "模式×审批×动作", href: P("labs/sandbox.html"), kw: "sandbox 权限 沙箱 seatbelt landlock wfp 判定 审批" },
       { name: "↳ CONFIG BRIDGE · 配置片段生成", sub: "", href: P("labs/sandbox.html") + "#cfg-panel", kw: "config toml 配置 cli 片段" },
+      { name: "↳ SANDBOX YARD · 空间沙盘", sub: "围墙在哪，包往哪走", href: P("labs/sandbox.html") + "#yard-panel", kw: "yard 沙盘 围墙 空间 可视化 fence" },
+      { name: "↳ MCP DETOUR · 双路径对比", sub: "内置穿墙 / MCP 绕墙", href: P("labs/sandbox.html") + "#mcp-lane-panel", kw: "mcp detour 双路径 rmcp 绕墙 外部服务器" },
       { no: "04", name: "协议线路 · 报文时间线", sub: "审批分支 · 双向通道", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
       { no: "05", name: "Crate 图谱", sub: "135 成员 · 列表/树图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
       { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
@@ -796,7 +802,9 @@
     "成本对照上面有个小赌局——先猜缓存能省几倍，再拉滑杆对答案。",
     "右下角的 ♪ 打开后，盖章、答对、通关都会响。默认是关的，不打扰。",
     "左栏底部有「学习档案」：自检成绩和翻卡进度都在里面，能导出也能一键清空。",
-    "03 底部那个审批弹窗是真的能点的——批准一次、本轮允许和拒绝，给的结果各不相同。"
+    "03 底部那个审批弹窗是真的能点的——批准一次、本轮允许和拒绝，给的结果各不相同。",
+    "03 的沙盘把围墙画了出来：换动作看命令包走位，撞墙、等签字、穿墙，全是活的。",
+    "02 答疑表下面有个 compact 演示：拖到触顶，亲眼看历史被压成一段加密摘要。"
   ];
   var tipIdx = -1;
   function nextTip() {

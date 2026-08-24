@@ -1469,21 +1469,25 @@
 var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider":15,"plugin":12,"protocol":70,"state":13,"utils/absolute-path":53,"http-client":28,"codex-api":16,"codex-backend-openapi-models":1,"install-context":8,"ext/agent":1,"analytics":7,"app-server-transport":2,"arg0":8,"aws-auth":2,"backend-client":5,"cloud-config":4,"code-mode":5,"config":24,"connectors":8,"core":25,"core-plugins":7,"diagnostics":3,"exec-server":17,"ext/extension-api":16,"external-agent-migration":1,"features":12,"feedback":6,"file-search":3,"file-watcher":1,"ext/git-attribution":3,"ext/goal":1,"ext/guardian-v2":1,"ext/history-notes":1,"codex-home":5,"hooks":4,"ext/image-generation":4,"codex-mcp":8,"ext/mcp":1,"ext/memories":1,"memories/write":3,"model-provider-info":16,"models-manager":8,"otel":23,"ext/queue":1,"rmcp-client":4,"rollout":9,"sandboxing":7,"shell-command":11,"skills":4,"ext/skills":4,"thread-store":5,"tools":10,"utils/cargo-bin":13,"utils/cli":7,"utils/json-to-toml":2,"utils/path-uri":25,"utils/pty":7,"ext/web-search":2,"uds":4,"utils/rustls-provider":7,"utils/home-dir":9,"app-server":2,"app-server-protocol-noop-macros":1,"codex-experimental-api-macros":1,"ext/items":8,"history":8,"secrets":4,"utils/redacted-string":6,"apply-patch":3,"linux-sandbox":1,"shell-escalation":2,"code-mode-protocol":3,"websocket-client":3,"code-mode-runtime":1,"agent-identity":3,"cloud-tasks-client":2,"cloud-tasks-mock-client":1,"tui":2,"app-server-daemon":1,"app-server-test-client":1,"cloud-tasks":1,"exec":1,"execpolicy":5,"mcp-server":1,"responses-api-proxy":1,"rollout-trace":3,"stdio-to-uds":1,"terminal-detection":5,"utils/path-utils":7,"file-system":7,"network-proxy":8,"utils/string":9,"agent-graph-store":1,"async-utils":3,"codex-client":3,"context-fragments":3,"exec-server/tests/support":4,"memories/read":1,"prompts":1,"response-debug-context":2,"test-binary-support":2,"utils/audio":1,"utils/cache":3,"utils/image":3,"utils/output-truncation":8,"utils/plugins":6,"utils/stream-parser":1,"keyring-store":3,"app-server-client":2,"utils/oss":2,"utils/sandbox-summary":2,"exec-server-protocol":3,"utils/template":6,"ext/connectors":1,"process-hardening":2,"workload-identity":1,"collaboration-mode-templates":1,"ansi-escape":1,"utils/approval-presets":1,"utils/elapsed":1,"utils/fuzzy-match":1,"utils/sleep-inhibitor":1,"lmstudio":1,"ollama":1,"core-api":1};
 
     /* ---------- 依赖探查器：详情卡里显示实测出/入依赖（点名字跳那个 crate） ---------- */
+    function depChips(arr) {
+      var shown = arr.slice(0, 24).map(function (d) {
+        return '<button type="button" class="cr xref" data-x="' + d + '">' + d + "</button>";
+      }).join(" ");
+      return shown + (arr.length > 24 ? ' …等 <b>' + arr.length + "</b> 条（其余用检索框）" : "");
+    }
     function depFactsHtml(name) {
-      var outs = CA_DEPS[name];
-      var din = CA_DEG[name] || 0;
+      var outs = CA_DEPS[name] || [];
+      var ins = [];
+      Object.keys(CA_DEPS).forEach(function (p) {
+        if (p !== name && CA_DEPS[p].indexOf(name) !== -1) ins.push(p);
+      });
       var head = '<p style="margin:12px 0 0;border-top:1px dashed var(--line-strong);padding-top:10px;">' +
         '<b>实测依赖</b>（823 条边 · 爬自 135 份 Cargo.toml）：<br>';
-      if (outs && outs.length) {
-        var shown = outs.slice(0, 24).map(function (d) {
-          return '<button type="button" class="cr xref" data-x="' + d + '">' + d + "</button>";
-        }).join(" ");
-        var more = outs.length > 24 ? ' …等 <b>' + outs.length + "</b> 条（检索框可查其余）" : "";
-        return head + '出 <b>' + outs.length + "</b> 条" + (din ? " · 入 <b>" + din + "</b> 条" : " · 入 0 条") +
-          "：<br>" + shown + more + "</p>";
-      }
-      if (din) return head + '出 0 条 · 入 <b>' + din + "</b> 条——纯提供方，别人靠它干活。</p>";
-      return head + "无内部依赖——叶子 crate，独来独往。</p>";
+      if (!outs.length && !ins.length) return head + "无内部依赖——叶子 crate，独来独往。</p>";
+      var parts = [];
+      if (outs.length) parts.push('出 <b>' + outs.length + "</b> 条：<br>" + depChips(outs));
+      if (ins.length) parts.push('入 <b>' + ins.length + "</b> 条：<br>" + depChips(ins));
+      return head + parts.join("<br>") + "</p>";
     }
     dcBody.addEventListener("click", function (e) {
       var t = e.target;

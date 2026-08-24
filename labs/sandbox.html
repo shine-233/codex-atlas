@@ -214,6 +214,20 @@
   .yard-ask button.yes { border-color: var(--ok); color: var(--ok); }
   .yard-ask button.no { border-color: var(--deny); color: var(--deny); }
   .yard-ask button:hover { background: var(--bg2); }
+
+  /* ---------- MCP DETOUR · 双路径对比 ---------- */
+  .mcp-wrap svg { width: 100%; height: auto; display: block; }
+  .mcp-node rect { fill: var(--bg2); stroke: var(--line-strong); }
+  .mcp-node text { fill: var(--dim); font-family: var(--mono); font-size: 11.5px; }
+  .mcp-node.hot rect { stroke: var(--amber); filter: drop-shadow(0 0 5px rgba(255,180,84,.4)); }
+  .mcp-node.hot text { fill: var(--amber); }
+  .mcp-node.ext rect { stroke-dasharray: 5 4; }
+  .mcp-edge { stroke: var(--line-strong); stroke-width: 1.3; fill: none; }
+  .mcp-edge.hot { stroke: rgba(255,180,84,.8); stroke-width: 2; }
+  .mcp-fence rect { fill: rgba(255,180,84,.14); stroke: rgba(255,180,84,.8); stroke-width: 2; stroke-dasharray: 7 5; }
+  .mcp-fence text { fill: var(--amber); font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em; }
+  .mcp-lane-label { fill: var(--faint); font-family: var(--mono); font-size: 10px; letter-spacing: .1em; }
+  .mcp-dot { fill: #ffb454; filter: drop-shadow(0 0 6px rgba(255,180,84,.85)); }
 </style>
 </head>
 <body>
@@ -412,6 +426,28 @@
           能拦住它的只有两样：MCP 服务器自己的权限设计，和你会不会点那个「拒绝」。
         </p>
       </div>
+    </section>
+
+    <!-- MCP 双路径对比仪 -->
+    <section class="panel" id="mcp-lane-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>MCP DETOUR · 两条工具路径，围墙只管一条</h3>
+        <span class="readout">选一条路径 · 看包怎么走</span>
+      </div>
+      <div class="mcp-wrap">
+        <div id="mcp-lanes" role="img"
+             aria-label="双路径示意图：上路是内置 shell 工具，从 ToolRouter 穿过 Seatbelt/Landlock/WFP 围墙到系统执行；下路是 MCP 工具，从 ToolRouter 经 rmcp-client 直接出墙到外部 MCP 服务器进程，围墙完全不在它的路径上。"></div>
+      </div>
+      <div class="controls" style="border:none;padding:10px 0 0;">
+        <button class="btn primary" id="mcp-run-builtin" type="button">▶ 跑一次内置 shell</button>
+        <button class="btn" id="mcp-run-mcp" type="button">▶ 跑一次 MCP 工具</button>
+        <span class="match-readout" id="mcp-cap" aria-live="polite">选一条路径开始</span>
+      </div>
+      <p class="small muted" style="margin:10px 0 0;">
+        上路的内置工具被围墙全程管着；下路的 MCP 工具从 ToolRouter 直接出墙——围墙对它视而不见。
+        能拦住它的只有两样：MCP 服务器自己的权限设计，和你会不会点「拒绝」。
+        这就是 02 第 2 层把「内置 + API + MCP」合并成一份工具清单、却只给内置那部分配沙箱声明的原因。
+      </p>
     </section>
 
     <section>
@@ -1338,6 +1374,144 @@
 
     window.__yardRender = render;
     render(curAct ? effVerdict(curAct, curMode) : null);
+  })();
+
+  /* ---------- MCP DETOUR：内置工具穿墙 vs MCP 工具绕墙，包走给你看 ---------- */
+  (function () {
+    var host = document.getElementById("mcp-lanes");
+    var cap = document.getElementById("mcp-cap");
+    var bB = document.getElementById("mcp-run-builtin");
+    var bM = document.getElementById("mcp-run-mcp");
+    if (!host || !cap) return;
+    var NS = "http://www.w3.org/2000/svg";
+    function E(n, a) { var x = document.createElementNS(NS, n); for (var k in a) x.setAttribute(k, a[k]); return x; }
+    var REDUCED = window.PrefersReducedMotion === true;
+
+    var svg = E("svg", { viewBox: "0 0 760 280", preserveAspectRatio: "xMidYMid meet" });
+    host.appendChild(svg);
+
+    var nodes = {};
+    function node(id, x, y, w, h, label, ext) {
+      var g = E("g", { class: "mcp-node" + (ext ? " ext" : "") });
+      g.appendChild(E("rect", { x: x, y: y, width: w, height: h, rx: "2" }));
+      var lines = label.split("\n");
+      lines.forEach(function (ln, i) {
+        var t = E("text", { x: x + w / 2, y: y + h / 2 + 4 + (i - (lines.length - 1) / 2) * 16, "text-anchor": "middle" });
+        t.textContent = ln;
+        g.appendChild(t);
+      });
+      svg.appendChild(g);
+      nodes[id] = g;
+      return g;
+    }
+    function edge(d) {
+      var p = E("path", { class: "mcp-edge", d: d });
+      svg.appendChild(p);
+      return p;
+    }
+    function label(x, y, txt) {
+      var t = E("text", { class: "mcp-lane-label", x: x, y: y });
+      t.textContent = txt;
+      svg.appendChild(t);
+    }
+
+    node("model", 30, 112, 122, 56, "模型\ntool_call");
+    node("router", 208, 112, 112, 56, "ToolRouter");
+    label(30, 92, "内置 shell · 上路");
+    label(30, 262, "MCP 工具 · 下路");
+
+    /* 围墙：只立在上路 */
+    var fence = E("g", { class: "mcp-fence" });
+    fence.appendChild(E("rect", { x: 366, y: 56, width: 18, height: 66 }));
+    var ft = E("text", { x: 375, y: 46, "text-anchor": "middle" });
+    ft.textContent = "Seatbelt / Landlock / WFP";
+    fence.appendChild(ft);
+    svg.appendChild(fence);
+
+    node("sys", 446, 60, 118, 52, "系统执行");
+    node("back1", 628, 60, 104, 52, "写回历史");
+    node("rmcp", 446, 184, 118, 52, "rmcp-client\nJSON-RPC·stdio");
+    node("server", 628, 184, 112, 52, "MCP 服务器\n外部进程", true);
+    node("back2", 628, 258, 0, 0, "");
+
+    var e1 = edge("M 152 140 L 208 140");
+    var eTop = edge("M 320 140 L 344 140 L 344 86 L 366 86");
+    var eTop2 = edge("M 384 86 L 446 86");
+    var eTop3 = edge("M 564 86 L 628 86");
+    var eBot = edge("M 320 140 L 344 140 L 344 210 L 446 210");
+    var eBot2 = edge("M 564 210 L 628 210");
+
+    var dot = E("circle", { class: "mcp-dot", cx: 91, cy: 140, r: 7, opacity: "0" });
+    svg.appendChild(dot);
+
+    var PATHS = {
+      builtin: {
+        pts: [[91, 140], [264, 140], [344, 140], [344, 86], [375, 86], [505, 86], [680, 86]],
+        hot: ["model", "router", "sys", "back1"],
+        edges: [e1, eTop, eTop2, eTop3],
+        caps: [
+          "模型发出 tool_call：shell",
+          "ToolRouter 认出内置工具，准备落执行",
+          "穿墙：Seatbelt / Landlock / WFP 全程在管",
+          "系统里执行——围墙没离开过这一程",
+          "输出写回历史。这一程被沙箱包着"
+        ],
+        done: "内置工具 · 全程在围墙内", doneCls: "allow"
+      },
+      mcp: {
+        pts: [[91, 140], [264, 140], [344, 140], [344, 210], [505, 210], [628, 210]],
+        hot: ["model", "router", "rmcp", "server"],
+        edges: [e1, eBot, eBot2],
+        caps: [
+          "模型发出 tool_call：MCP 工具",
+          "ToolRouter 转交 rmcp-client",
+          "JSON-RPC over stdio 出墙——围墙没碰它",
+          "外部服务器进程自己决定给不给",
+          "结果写回历史。防护责任在提供方 + 你的审批"
+        ],
+        done: "MCP 工具 · 围墙外，责任在墙外", doneCls: "cond"
+      }
+    };
+
+    var walkRaf = 0, stepTimers = [];
+    function clearRun() {
+      if (walkRaf) { cancelAnimationFrame(walkRaf); walkRaf = 0; }
+      stepTimers.forEach(clearTimeout);
+      stepTimers = [];
+      Object.keys(nodes).forEach(function (k) { nodes[k].classList.remove("hot"); });
+      [e1, eTop, eTop2, eTop3, eBot, eBot2].forEach(function (p) { p.classList.remove("hot"); });
+      dot.setAttribute("opacity", "0");
+    }
+    function run(kind) {
+      var P = PATHS[kind];
+      clearRun();
+      cap.textContent = P.caps[0];
+      if (REDUCED) {
+        P.pts.forEach(function (p) { dot.setAttribute("cx", p[0]); dot.setAttribute("cy", p[1]); });
+        dot.setAttribute("opacity", "1");
+        P.hot.forEach(function (k) { if (nodes[k]) nodes[k].classList.add("hot"); });
+        P.edges.forEach(function (p) { p.classList.add("hot"); });
+        cap.textContent = P.done;
+        return;
+      }
+      dot.setAttribute("opacity", "1");
+      var HOP = 620;
+      P.pts.forEach(function (p, i) {
+        if (i === 0) { dot.setAttribute("cx", p[0]); dot.setAttribute("cy", p[1]); return; }
+        stepTimers.push(setTimeout(function () {
+          dot.setAttribute("cx", p[0]);
+          dot.setAttribute("cy", p[1]);
+          if (P.hot[i - 1] && nodes[P.hot[i - 1]]) nodes[P.hot[i - 1]].classList.add("hot");
+          if (P.edges[i - 1]) P.edges[i - 1].classList.add("hot");
+          if (P.caps[i]) cap.textContent = P.caps[i];
+        }, HOP * i));
+      });
+      stepTimers.push(setTimeout(function () {
+        cap.innerHTML = "<b style='color:var(--" + (P.doneCls === "allow" ? "ok" : "amber") + ");'>" + P.done + "</b>";
+      }, HOP * P.pts.length));
+    }
+    bB.addEventListener("click", function () { run("builtin"); });
+    bM.addEventListener("click", function () { run("mcp"); });
   })();
 
   if (window.CATilt) CATilt(document.querySelectorAll(".mode-card"));

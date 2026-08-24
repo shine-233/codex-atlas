@@ -119,6 +119,35 @@
   .pj-seg { -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background .15s, box-shadow .15s; }
   .pj-seg.hl { background: rgba(255, 180, 84, .13); box-shadow: inset 2px 0 0 var(--amber); }
   .lyr.hl { border-color: var(--amber); }
+
+  /* COMPACT 演示 */
+  .cd-track {
+    position: relative;
+    height: 18px;
+    background: var(--bg0);
+    border: 1px solid var(--line-strong);
+    overflow: hidden;
+  }
+  .cd-track i {
+    display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, rgba(255,180,84,.4), rgba(255,180,84,.8));
+    transition: width .3s cubic-bezier(0.2, 0.8, 0.2, 1), background .3s;
+  }
+  .cd-track i.over { background: linear-gradient(90deg, rgba(240,121,106,.5), rgba(240,121,106,.85)); }
+  .cd-track em {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: repeating-linear-gradient(-45deg, rgba(143,199,232,.4) 0 6px, rgba(143,199,232,.15) 6px 12px);
+    border-right: 1px solid rgba(143,199,232,.6);
+  }
+  .cd-track b {
+    position: absolute; top: -2px; bottom: -2px; left: 66%;
+    width: 0; border-left: 2px dashed var(--deny);
+  }
+  .cd-track b::after {
+    content: "阈值";
+    position: absolute; top: -15px; left: -10px;
+    font-family: var(--mono); font-size: 9.5px; color: var(--deny);
+  }
 </style>
 </head>
 <body>
@@ -253,6 +282,23 @@
           </tr>
         </tbody>
       </table>
+      <!-- COMPACT 演示 -->
+      <div class="compact-demo" style="margin-top:18px;border:1px dashed var(--line-strong);padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">COMPACT 演示 · 历史增长与自动压缩（示意刻度）</span>
+          <span class="match-readout">第 <b id="cd-round">1</b> 轮 · 上下文 ≈ <b id="cd-tok">20</b> 单位 · 已压缩 <b id="cd-count">0</b> 次</span>
+        </div>
+        <div class="cd-track" id="cd-track">
+          <i id="cd-fill"></i>
+          <em id="cd-sum" hidden title="encrypted_content：被压掉的旧轮次变成一段加密摘要"></em>
+          <b id="cd-limit" title="model_auto_compact_token_limit 阈值"></b>
+        </div>
+        <div class="cost-slider" style="margin-top:10px;">
+          <input type="range" id="cd-slider" min="1" max="14" step="1" value="5" aria-label="模拟对话轮数">
+          <span class="cost-laps-readout">拖我：模拟一轮轮聊下去</span>
+        </div>
+        <p class="small muted" id="cd-note" style="margin:8px 0 0;" aria-live="polite"></p>
+      </div>
       <p class="small muted">
         相关线路：<a href="loop.html">01 循环回路</a> 第 9–10 步是这些层的装配现场；
         <a href="sandbox.html">03 权限沙箱</a> 解释第 3 层声明的权限到底怎么落地。
@@ -708,6 +754,53 @@
     if (sg && sg.dataset.l && layerEls[sg.dataset.l]) layerEls[sg.dataset.l].classList.remove("hl");
   });
   if (window.CACopyAttach) CACopyAttach(pjPre);
+
+  /* ---------- COMPACT 演示：历史爬升 → 触顶 → 压成加密摘要 → 继续对话 ---------- */
+  (function () {
+    var slider = document.getElementById("cd-slider");
+    var fill = document.getElementById("cd-fill");
+    var sum = document.getElementById("cd-sum");
+    var note = document.getElementById("cd-note");
+    var rOut = document.getElementById("cd-round");
+    var tOut = document.getElementById("cd-tok");
+    var cOut = document.getElementById("cd-count");
+    if (!slider || !fill) return;
+    var LIMIT = 80, MAX = 120, STEP = 12, SETTLE = 34;
+
+    function render() {
+      var rounds = parseInt(slider.value, 10);
+      var tok = STEP, compacts = 0, lastAt = -1, sumW = 0;
+      for (var r = 2; r <= rounds; r++) {
+        tok += STEP;
+        if (tok >= LIMIT) {
+          compacts++;
+          lastAt = r;
+          sumW = Math.max(sumW, SETTLE);
+          tok = SETTLE + STEP;
+        }
+      }
+      rOut.textContent = rounds;
+      tOut.textContent = tok;
+      cOut.textContent = compacts;
+      fill.style.width = Math.min(100, tok / MAX * 100) + "%";
+      fill.classList.toggle("over", tok >= LIMIT);
+      sum.style.width = (compacts ? sumW / MAX * 100 : 0) + "%";
+      sum.hidden = !compacts;
+      if (compacts && lastAt === rounds) {
+        note.innerHTML = "<b>第 " + rounds + " 轮触顶：</b>token 摸到 model_auto_compact_token_limit 阈值（红虚线），" +
+          "自动调用 /responses/compact——旧轮次压成一段 encrypted_content 摘要（蓝色斜纹块），" +
+          "上下文从 " + (SETTLE + STEP) + " 掉回 " + tok + " 单位，对话接着走。压缩对模型透明：它靠摘要延续理解。";
+      } else if (compacts) {
+        note.innerHTML = "已压缩 <b>" + compacts + "</b> 次（最近一次在第 " + lastAt + " 轮）。蓝斜纹块就是那段 encrypted_content 摘要占的位置——旧轮次没有消失，变成了更小的自己。";
+      } else if (tok >= LIMIT - STEP) {
+        note.textContent = "快到阈值了。再聊一两轮，看自动压缩怎么接手。";
+      } else {
+        note.textContent = "每轮全量重发让上下文爬升（01 的成本对照画过这条曲线的账单面）。继续拖。";
+      }
+    }
+    slider.addEventListener("input", render);
+    render();
+  })();
 
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
