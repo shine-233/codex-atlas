@@ -592,6 +592,26 @@ pub(crate) fn insert_history_lines_with_mode_and_wrap_policy&lt;B&gt;(...)
     )
 }</span></pre>
        </details>
+       <p class="small muted" style="margin:14px 0 0;">正在流式输出的那段回答是另一条路：边收 delta 边找「稳定边界」，生产环境不做增量解析——宽度一变，从累积的源串整体重渲染。这就是为什么答案长到一半时格式也不会错乱。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · 流式 Markdown 收集器：只管边界，不管解析</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/markdown_stream.rs :24-38, 76-78 · @343074d4 实测</span>
+<span class="src-code">/// completed portion. This design lets the stream controller re-render the entire accumulated
+/// source while only appending new content.
+///
+/// The collector does not parse markdown in production. It only defines stable source boundaries;
+/// rendering lives in the stream controllers so width changes can re-render from one accumulated
+/// source string.
+pub(crate) struct MarkdownStreamCollector {
+    buffer: String,
+    committed_source_len: usize,
+    width: Option&lt;usize&gt;,
+    /* #[cfg(test)] 字段省略 */
+}
+
+/// Append a raw streaming delta to the internal source buffer.
+pub fn push_delta(&amp;mut self, delta: &amp;str) { ... }</span></pre>
+       </details>
      </section>
 
     <!-- ================ E · EXT ================ -->
