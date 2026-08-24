@@ -136,6 +136,12 @@
     background: linear-gradient(90deg, rgba(255,180,84,.45), rgba(255,180,84,.85));
     transition: width .45s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  /* 历史增长折线仪：跟着单步仪逐圈长点 */
+  #hist-curve {
+    position: relative; height: 150px; margin-top: 12px;
+    border: 1px solid var(--line); background: var(--bg0);
+  }
+  #hist-curve canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
   /* 第 11 站现场：SSE 事件瀑布 */
   .sse-grid {
     display: grid; grid-template-columns: 1.15fr .85fr;
@@ -306,6 +312,16 @@
           <span class="match-readout">已转 <b id="lap-n">0</b> 圈 · ≈ <b id="hist-n">10</b> 单位</span>
         </div>
         <div class="lap-track"><i id="lap-fill"></i></div>
+        <div class="lap-head" style="margin-top:16px;">
+          <span class="lap-tag">HISTORY CURVE · 历史增长折线 · 跟着仪器逐圈长点</span>
+          <span class="match-readout" id="hc-read">走一圈，多点一个数据点</span>
+        </div>
+        <div id="hist-curve" aria-hidden="true"></div>
+        <p class="small muted" style="margin:8px 0 0;">
+          横轴圈数，纵轴下一次采样携带的历史（同一套示意刻度）。悬停看单圈读数；
+          <b style="color:var(--dim);">点任意数据点，单步仪直接跳到那一圈的第 9 站。</b>
+          钢青虚线是线性外推——真实历史长不到那里：触顶会被 compact 压回去，02 的 COMPACT 演示有现场。
+        </p>
       </div>
     </section>
 
@@ -572,7 +588,177 @@ Ok(active_turn_id.clone())</span></pre>
     histN.textContent = 10 * (laps + 1);
     lapFill.style.width = Math.min(100, (laps + 1) * 10) + "%";
     if (flash) CAFlash(lapFill.parentElement);
+    if (window.CAHistCurve) CAHistCurve.sync(laps);
   }
+
+  /* ---------- HISTORY CURVE · 历史增长折线仪（canvas，零依赖）。
+     每转一圈记一个点：第 n 圈 ≈ 10n 单位，与上方历史条同一套示意刻度。
+     悬停看单圈读数；点数据点跳回那一圈的第 9 站（CAHistJump 由单步仪提供）。
+     钢青虚线 = 线性外推，仅作对照——真实历史触顶会被 compact 压回。 ---------- */
+  window.CAHistCurve = (function () {
+    var host = document.getElementById("hist-curve");
+    if (!host || !window.CanvasRenderingContext2D) return null;
+    var read = document.getElementById("hc-read");
+    var canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;";
+    host.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    var REDUCed = window.PrefersReducedMotion === true;
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+    var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+
+    var W = 1, H = 1, dpr = 1;
+    function size() {
+      var r = host.getBoundingClientRect();
+      if (r.width < 4) return false;
+      W = Math.round(r.width); H = Math.round(r.height);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return true;
+    }
+
+    var PADL = 46, PADR = 16, PADT = 14, PADB = 26;
+    var MAXLAP = 10, MAXU = 110;   /* 刻度固定 10 圈 / 110 单位，和成本对照对齐 */
+    function xOf(i) { return PADL + (W - PADL - PADR) * (i / (MAXLAP - 1)); }
+    function yOf(u) { return H - PADB - (H - PADT - PADB) * (u / MAXU); }
+
+    var pts = [];        /* pts[i] = 第 i+1 圈的历史单位 */
+    var hoverI = -1;
+    var pulseT0 = 0;     /* 新点落地的一圈涟漪 */
+
+    function sync(laps) {
+      var n = laps + 1;
+      while (pts.length < n) { pts.push(10 * (pts.length + 1)); if (!REDUCed) pulseT0 = performance.now(); }
+      while (pts.length > n) pts.pop();
+      if (hoverI >= pts.length) hoverI = -1;
+      draw();
+      if (read) read.innerHTML = pts.length
+        ? '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位'
+        : "走一圈，多点一个数据点";
+    }
+
+    function draw() {
+      var light = window.CATheme && CATheme.isLight();
+      ctx.clearRect(0, 0, W, H);
+      var i;
+      /* 网格与轴 */
+      ctx.strokeStyle = "rgba(" + FAINT + "," + (light ? 0.28 : 0.22) + ")";
+      ctx.lineWidth = 1;
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+      for (i = 0; i <= 5; i++) {
+        var gy = yOf(i * 20);
+        ctx.beginPath(); ctx.moveTo(PADL, gy); ctx.lineTo(W - PADR, gy); ctx.stroke();
+        ctx.textAlign = "right";
+        ctx.fillText(String(i * 20), PADL - 7, gy);
+      }
+      ctx.textAlign = "center";
+      for (i = 0; i < MAXLAP; i++) {
+        ctx.fillText(String(i + 1), xOf(i), H - 10);
+      }
+      ctx.fillText("圈", W - PADR + 2, H - 10);
+
+      /* 线性外推（对照用，不是预言） */
+      if (pts.length >= 2) {
+        ctx.strokeStyle = "rgba(" + STEEL + ",0.55)";
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(xOf(pts.length - 1), yOf(10 * pts.length));
+        ctx.lineTo(xOf(MAXLAP - 1), yOf(10 * MAXLAP));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      /* 主折线 */
+      if (pts.length) {
+        ctx.strokeStyle = "rgba(" + AMBER + ",0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (i = 0; i < pts.length; i++) {
+          i ? ctx.lineTo(xOf(i), yOf(pts[i])) : ctx.moveTo(xOf(i), yOf(pts[i]));
+        }
+        ctx.stroke();
+        for (i = 0; i < pts.length; i++) {
+          var isCur = i === pts.length - 1;
+          var isHov = i === hoverI;
+          ctx.fillStyle = (isCur || isHov) ? "rgba(" + AMBER + ",1)" : "rgba(" + AMBER + ",0.55)";
+          ctx.beginPath();
+          ctx.arc(xOf(i), yOf(pts[i]), isCur ? 5 : (isHov ? 5 : 3.5), 0, 6.2832);
+          ctx.fill();
+          if (isHov || isCur) {
+            ctx.strokeStyle = "rgba(" + STEEL + ",0.9)";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(xOf(i), yOf(pts[i]), 8.5, 0, 6.2832);
+            ctx.stroke();
+          }
+        }
+        /* 新点涟漪 */
+        if (!REDUCed && pulseT0) {
+          var dt = performance.now() - pulseT0;
+          if (dt < 700) {
+            var k = dt / 700;
+            ctx.strokeStyle = "rgba(" + AMBER + "," + (0.7 * (1 - k)).toFixed(3) + ")";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.arc(xOf(pts.length - 1), yOf(pts[pts.length - 1]), 6 + k * 16, 0, 6.2832);
+            ctx.stroke();
+            requestAnimationFrame(draw);
+          } else { pulseT0 = 0; }
+        }
+      }
+      /* 空态提示 */
+      if (!pts.length) {
+        ctx.fillStyle = "rgba(" + FAINT + ",0.85)";
+        ctx.textAlign = "center";
+        ctx.font = "11px 'IBM Plex Mono', monospace";
+        ctx.fillText("在第 13 站再按一次「下一步」——环转回第 9 站，这里落下第一个点", W / 2, H / 2);
+      }
+    }
+
+    function pick(x, y) {
+      var best = -1, bd = 400;   /* 20px 命中半径 */
+      for (var i = 0; i < pts.length; i++) {
+        var dx = xOf(i) - x, dy = yOf(pts[i]) - y;
+        var d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+    canvas.addEventListener("pointermove", function (e) {
+      var r = host.getBoundingClientRect();
+      var hit = pick(e.clientX - r.left, e.clientY - r.top);
+      if (hit !== hoverI) { hoverI = hit; draw(); }
+      if (read) read.innerHTML = hit >= 0
+        ? '第 <b>' + (hit + 1) + '</b> 圈 · 采样携带 ≈ <b>' + pts[hit] + '</b> 单位 · 点击跳到这一圈的第 9 站'
+        : '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位';
+    });
+    canvas.addEventListener("pointerleave", function () {
+      hoverI = -1; draw();
+      if (read) read.innerHTML = '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位';
+    });
+    canvas.addEventListener("click", function (e) {
+      var r = host.getBoundingClientRect();
+      var hit = pick(e.clientX - r.left, e.clientY - r.top);
+      if (hit < 0 || !window.CAHistJump) return;
+      CAHistJump(hit);
+      if (window.CASound) CASound.play("click");
+    });
+
+    var rzT = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(rzT);
+      rzT = setTimeout(function () { if (size()) draw(); }, 140);
+    });
+    if (size()) draw();
+    return { sync: sync };
+  })();
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -650,6 +836,14 @@ Ok(active_turn_id.clone())</span></pre>
     if (!keepPlaying) PanelState.write({ s: cur });
     if (!keepPlaying && playing && cur >= STAGES.length) stop();
   }
+
+  /* 折线仪点击数据点：定圈数，落到那一圈的第 9 站（重新采样起点） */
+  window.CAHistJump = function (lap) {
+    stop();
+    laps = Math.max(0, lap | 0);
+    renderLaps(false);
+    setStage(9);
+  };
 
   /* 构建左侧轨道 */
   STAGES.forEach(function (st, idx) {

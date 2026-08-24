@@ -75,6 +75,27 @@
   .rung.win .rg-nm { color: var(--amber); }
   .scn-out { margin-top: 12px; min-height: 44px; }
 
+  /* ---------- canvas 仪器：A 房凭据环流仪 / B 房优先级汇流图 ---------- */
+  .ca-canvas-box {
+    position: relative; margin-top: 10px;
+    border: 1px solid var(--line); background: var(--bg0);
+    overflow: hidden;
+  }
+  #cred-circuit { height: 240px; }
+  #cfg-flow { height: 210px; }
+  @media (max-width: 720px) { #cred-circuit { height: 200px; } #cfg-flow { height: 180px; } }
+  .ca-canvas-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .ca-tip {
+    position: absolute; z-index: 5; pointer-events: none;
+    font-family: var(--mono); font-size: 11px; line-height: 1.55;
+    color: var(--ink); background: var(--bg2);
+    border: 1px solid var(--line-strong);
+    padding: 6px 9px; max-width: 280px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.35);
+    opacity: 0; transition: opacity var(--t-fast, .15s) ease;
+  }
+  .ca-tip.show { opacity: 1; }
+
   /* ---------- C · PATCH LAB ---------- */
   .pl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 960px) { .pl-grid { grid-template-columns: 1fr; } }
@@ -350,6 +371,19 @@ pub struct AuthDotJson {
             <div class="auth-flow" id="rf-flow"></div>
             <p class="small muted" style="margin:8px 0 0;" id="rf-note">走到第 3 步时，留意上面 auth.json 的 last_refresh——它会当场刷新。</p>
           </div>
+
+          <!-- 凭据环流仪：一枚令牌的一生（canvas） -->
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--steel);text-transform:uppercase;margin:24px 0 2px;">凭据环流仪 · 一枚令牌的一生（示意拓扑）</div>
+          <div class="controls" style="border:none;padding:8px 0 0;">
+            <button class="btn" id="cc-pause" type="button">⏸ 暂停环流</button>
+            <span class="pos" id="cc-read" style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:8px;">悬停节点看说明，点击钉住</span>
+          </div>
+          <div class="ca-canvas-box" id="cred-circuit" aria-hidden="true"></div>
+          <p class="small muted" style="margin:8px 0 0;">
+            琥珀包 = 携带令牌的请求出站，钢青包 = 续期回路。上面的认证方式开关同时切这台仪器：
+            ChatGPT 路线每三圈走一次 401 → refresh 的续期小环，API key 路线压根没有过期这回事，环流是直的。
+            拓扑为示意，出站域名见 <a href="loop.html#s=10">01 第 10 站</a>。
+          </p>
         </div>
       </div>
     </section>
@@ -392,6 +426,11 @@ pub developer_instructions: Option&lt;String&gt;,                               
           </details>
 
           <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">优先级阶梯 · 谁覆盖谁</div>
+          <div id="cfg-flow" class="ca-canvas-box" aria-hidden="true"></div>
+          <p class="small muted" style="margin:8px 0 0;">
+            四条来路汇进同一个键：包越靠下出发得越晚，<b style="color:var(--ink);">晚到的直接盖掉早到的</b>——汇合点上最后压下来的那枚决定生效值。
+            悬停看每一路的来路；点下面的场景按钮，看那一局是哪枚包最后落进汇合点。
+          </p>
           <div class="ladder" id="ck-ladder">
             <div class="rung" data-layer="def"><span class="rg-no">L0</span><span class="rg-nm">内置默认值</span><span class="rg-sub">编译进去的兜底</span></div>
             <div class="rung" data-layer="toml"><span class="rg-no">L1</span><span class="rg-nm">~/.codex/config.toml</span><span class="rg-sub">你的长期偏好</span></div>
@@ -1477,6 +1516,495 @@ window.CATOUR_STEPS = [
   { sel: "#mod-e", title: "E · 扩展机制", text: "挂点卡与主干管线互相指。下方 hooks 事件轴有 8 个实测事件名，逐个点着看挂点。" },
   { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" }
 ];
+</script>
+
+<script>
+/* ---------- A 房 · 凭据环流仪：一枚令牌的一生（canvas，零依赖）。
+   节点拓扑为示意；上面的「认证方式」开关同时切这台仪器——
+   ChatGPT 路线每三圈走一次 401 → refresh 的续期小环，API key 路线是直线。 ---------- */
+(function () {
+  var host = document.getElementById("cred-circuit");
+  if (!host || !window.CanvasRenderingContext2D) return;
+  var read = document.getElementById("cc-read");
+  var pauseBtn = document.getElementById("cc-pause");
+  var canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default;";
+  host.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var REDUCED = window.PrefersReducedMotion === true;
+  var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+  var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+  var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+  var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+  var W = 1, H = 1, dpr = 1;
+  function size() {
+    var r = host.getBoundingClientRect();
+    if (r.width < 4) return false;
+    W = Math.round(r.width); H = Math.round(r.height);
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+
+  /* 节点：fx/fy 为画布比例坐标 */
+  var NODES = {
+    login:   { fx: 0.10, fy: 0.30, w: 96, label: "codex login", tip: "<b>codex login</b> · 浏览器 OAuth 拿回三件套：id_token / access_token / refresh_token。localhost:1455 只是本地回调端口。" },
+    store:   { fx: 0.34, fy: 0.30, w: 100, label: "auth.json 落盘", tip: "<b>auth.json</b> · 令牌写进 ~/.codex/auth.json。真实字段比示意多四个——见上方「看真实源码」抽屉里的 AuthDotJson。" },
+    attach:  { fx: 0.60, fy: 0.30, w: 104, label: "请求附带令牌", tip: "<b>每次出站</b> · Authorization: Bearer &lt;access_token&gt;。API key 路线带的则是 OPENAI_API_KEY。" },
+    backend: { fx: 0.87, fy: 0.30, w: 92, label: "出站 · 后端", tip: "<b>后端</b> · ChatGPT 路线打到 chatgpt.com/backend-api/codex（01 第 10 站实测域名）；API key 走 api.openai.com。" },
+    e401:    { fx: 0.72, fy: 0.76, w: 84, label: "401 过期", tip: "<b>401</b> · access_token 有有效期，过期后端拒绝——这一步只发生在 ChatGPT 路线。" },
+    refresh: { fx: 0.45, fy: 0.76, w: 100, label: "refresh 换新", tip: "<b>静默续期</b> · 拿 refresh_token 换一对新的，last_refresh 当场落盘（上方续期时序第 3 步）。" }
+  };
+  var MAIN = ["login", "store", "attach", "backend"];
+  var LOOP = ["backend", "e401", "refresh", "attach"];
+
+  var mode = "chatgpt";
+  function currentMode() {
+    var on = document.querySelector("[data-auth].on");
+    return on ? on.getAttribute("data-auth") : "chatgpt";
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-auth]"), function (b) {
+    b.addEventListener("click", function () {
+      mode = b.getAttribute("data-auth") || "chatgpt";
+      trip = 0; route = MAIN.slice(); seg = 0; t = 0;
+      draw();
+      if (read) read.innerHTML = mode === "chatgpt"
+        ? "ChatGPT 路线 · 每三圈走一次续期小环"
+        : "API key 路线 · 没有过期，环流是直的";
+    });
+  });
+
+  /* 包的行程状态 */
+  var route = MAIN.slice(), seg = 0, t = 0, trip = 0, paused = false;
+  function nodePos(n) {
+    var nd = NODES[n];
+    return { x: nd.fx * W, y: nd.fy * H };
+  }
+  function routeColor() { return route[0] === "backend" ? STEEL : AMBER; }
+
+  function drawPacket() {
+    if (REDUCED || paused || !route.length) return;
+    var a = nodePos(route[seg]), b = nodePos(route[Math.min(seg + 1, route.length - 1)]);
+    var x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
+    var c = routeColor();
+    var back = t - 0.07;
+    var tx = a.x + (b.x - a.x) * Math.max(0, back);
+    var ty = a.y + (b.y - a.y) * Math.max(0, back);
+    ctx.strokeStyle = "rgba(" + c + ",0.35)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = "rgba(" + c + ",0.95)";
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.2832); ctx.fill();
+  }
+
+  function step(dt) {
+    t += dt * 0.9;
+    if (t < 1) return;
+    t = 0;
+    seg++;
+    var lastId = route[route.length - 1];
+    if (seg >= route.length - 1) {
+      if (lastId === "backend") {
+        trip++;
+        if (mode === "chatgpt" && trip % 3 === 0) {
+          route = LOOP.slice(); seg = 0;   /* 401 → refresh → 回到 attach 重放 */
+        } else {
+          route = MAIN.slice(); seg = 0;   /* 下一轮请求从头出发 */
+        }
+      } else if (lastId === "attach") {
+        route = ["attach", "backend"]; seg = 0;   /* 换新后重放 */
+      } else {
+        route = MAIN.slice(); seg = 0;
+      }
+    }
+  }
+
+  function draw() {
+    var light = window.CATheme && CATheme.isLight();
+    ctx.clearRect(0, 0, W, H);
+    var i, n, p, q;
+    /* 连线 */
+    function edge(a, b, steel, dashed) {
+      p = nodePos(a); q = nodePos(b);
+      ctx.strokeStyle = "rgba(" + (steel ? STEEL : FAINT) + "," + (steel ? 0.6 : (light ? 0.5 : 0.4)) + ")";
+      ctx.lineWidth = steel ? 1.4 : 1.2;
+      if (dashed) ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.setLineDash([]);
+      /* 箭头 */
+      var ang = Math.atan2(q.y - p.y, q.x - p.x);
+      var bx = q.x - Math.cos(ang) * 46, by = q.y - Math.sin(ang) * 46;
+      ctx.fillStyle = "rgba(" + (steel ? STEEL : FAINT) + ",0.85)";
+      ctx.beginPath();
+      ctx.moveTo(bx + Math.cos(ang) * 6, by + Math.sin(ang) * 6);
+      ctx.lineTo(bx + Math.cos(ang + 2.5) * 6, by + Math.sin(ang + 2.5) * 6);
+      ctx.lineTo(bx + Math.cos(ang - 2.5) * 6, by + Math.sin(ang - 2.5) * 6);
+      ctx.fill();
+    }
+    for (i = 0; i < MAIN.length - 1; i++) edge(MAIN[i], MAIN[i + 1], false, false);
+    if (mode === "chatgpt") for (i = 0; i < LOOP.length - 1; i++) edge(LOOP[i], LOOP[i + 1], true, true);
+    else {
+      /* API key 模式：续期小环的两个节点画成暗态，说明它们不参与 */
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = "rgba(" + FAINT + ",0.75)";
+      ctx.textAlign = "center";
+      ctx.fillText("API key：无过期 · 无续期小环", W * 0.585, H * 0.76);
+    }
+    /* 节点 */
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    Object.keys(NODES).forEach(function (id) {
+      n = NODES[id];
+      if (mode !== "chatgpt" && (id === "e401" || id === "refresh")) return;
+      p = nodePos(id);
+      var hov = hoverId === id;
+      ctx.fillStyle = hov ? "rgba(" + AMBER + ",0.16)" : "rgba(" + AMBER + ",0.06)";
+      ctx.strokeStyle = "rgba(" + AMBER + "," + (hov ? 0.95 : 0.5) + ")";
+      ctx.lineWidth = hov ? 1.6 : 1;
+      var ww = Math.max(n.w, ctx.measureText(n.label).width + 22);
+      ctx.fillRect(p.x - ww / 2, p.y - 15, ww, 30);
+      ctx.strokeRect(p.x - ww / 2, p.y - 15, ww, 30);
+      ctx.fillStyle = "rgba(" + INKRGB + "," + (hov ? 1 : 0.82) + ")";
+      ctx.fillText(n.label, p.x, p.y + 0.5);
+    });
+    drawPacket();
+  }
+
+  /* 悬停 / 点按 */
+  var hoverId = null, pinnedId = null;
+  function pick(x, y) {
+    var ids = Object.keys(NODES).filter(function (id) {
+      return mode === "chatgpt" || (id !== "e401" && id !== "refresh");
+    });
+    for (var i = 0; i < ids.length; i++) {
+      var p = nodePos(ids[i]);
+      var n = NODES[ids[i]];
+      if (Math.abs(x - p.x) < Math.max(n.w, 90) / 2 + 4 && Math.abs(y - p.y) < 20) return ids[i];
+    }
+    return null;
+  }
+  function showNode(id) {
+    if (!id) { if (read) read.textContent = "悬停节点看说明，点击钉住"; return; }
+    if (read) read.innerHTML = NODES[id].tip;
+  }
+  canvas.addEventListener("pointermove", function (e) {
+    if (W < 4 && !size()) return;
+    var r = host.getBoundingClientRect();
+    var id = pick(e.clientX - r.left, e.clientY - r.top);
+    if (id !== hoverId) { hoverId = id; draw(); }
+    showNode(pinnedId || id);
+    var tip = host.querySelector(".ca-tip");
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "ca-tip";
+      host.appendChild(tip);
+    }
+    if (id && !pinnedId) {
+      var plain = NODES[id].tip.replace(/<[^>]+>/g, "");
+      tip.textContent = plain;
+      tip.style.left = Math.max(4, Math.min(W - 250, e.clientX - r.left + 12)) + "px";
+      tip.style.top = Math.max(4, Math.min(H - 60, e.clientY - r.top + 12)) + "px";
+      tip.classList.add("show");
+    } else { tip.classList.remove("show"); }
+  });
+  canvas.addEventListener("pointerleave", function () {
+    hoverId = null; draw();
+    showNode(pinnedId);
+    var tip = host.querySelector(".ca-tip");
+    if (tip) tip.classList.remove("show");
+  });
+  canvas.addEventListener("click", function (e) {
+    var r = host.getBoundingClientRect();
+    var id = pick(e.clientX - r.left, e.clientY - r.top);
+    pinnedId = (id && id !== pinnedId) ? id : null;
+    showNode(pinnedId || hoverId);
+    draw();
+  });
+
+  if (pauseBtn) pauseBtn.addEventListener("click", function () {
+    paused = !paused;
+    pauseBtn.textContent = paused ? "▶ 恢复环流" : "⏸ 暂停环流";
+    pauseBtn.setAttribute("aria-pressed", paused ? "true" : "false");
+  });
+
+  /* 主循环：离屏 / 隐藏页签自动停 */
+  var running = false, raf = 0, inView = true, last = 0;
+  function loop(ts) {
+    if (!running) return;
+    if (!last) last = ts;
+    var dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    if (!paused && !document.hidden) step(dt);
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+  function startLoop() {
+    if (running || REDUCED) return;
+    running = true; last = 0;
+    raf = requestAnimationFrame(loop);
+  }
+  function stopLoop() { running = false; cancelAnimationFrame(raf); }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) {
+        inView = en.isIntersecting;
+        if (inView) { size(); draw(); startLoop(); }
+        else stopLoop();
+      });
+    }, { rootMargin: "80px" }).observe(host);
+  } else { startLoop(); }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) stopLoop();
+    else if (inView) startLoop();
+  });
+  var rzT = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rzT);
+    rzT = setTimeout(function () { if (size()) draw(); }, 140);
+  });
+
+  mode = currentMode();
+  if (size()) draw();
+  if (REDUCED) {
+    if (read) read.textContent = "已按系统设置停用动画：静态拓扑 + 悬停说明仍然可用";
+  } else { startLoop(); }
+})();
+
+/* ---------- B 房 · 优先级汇流图：四路来路谁的话算数（canvas，零依赖）。
+   四条来路汇进同一个键，晚到的盖早到的；点场景按钮看那一局谁最后落进汇合点。 ---------- */
+(function () {
+  var host = document.getElementById("cfg-flow");
+  if (!host || !window.CanvasRenderingContext2D) return;
+  var canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default;";
+  host.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var REDUCED = window.PrefersReducedMotion === true;
+  var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+  var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+  var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+  var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
+
+  var LANES = [
+    { no: "L0", name: "内置默认", short: "内置默认", fy: 0.14, a: 0.22,
+      tip: "<b>L0 内置默认值</b> · 编译进二进制的兜底，永远在，永远先被盖。" },
+    { no: "L1", name: "config.toml", short: "config.toml", fy: 0.38, a: 0.45,
+      tip: "<b>L1 config.toml</b> · ~/.codex/config.toml，你的长期偏好，启动时读一次，日常的大多数定制住在这层。" },
+    { no: "L2", name: "[profiles]", short: "[profiles]", fy: 0.62, a: 0.7,
+      tip: "<b>L2 场景包</b> · [profiles.xxx]，--profile 激活，整组键一起换——团队统一档位放这里。" },
+    { no: "L3", name: "CLI / -c", short: "CLI / -c", fy: 0.86, a: 1.0,
+      tip: "<b>L3 CLI / -c</b> · 一次性的当场指令，优先级最高：同键相争，它说了算。" }
+  ];
+
+  var W = 1, H = 1, dpr = 1;
+  function size() {
+    var r = host.getBoundingClientRect();
+    if (r.width < 4) return false;
+    W = Math.round(r.width); H = Math.round(r.height);
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+  function laneY(i) { return H * LANES[i].fy; }
+  function mergeX() { return W * 0.8; }
+  function startX() { return W * 0.13; }
+
+  /* 包：layer 号越大越临时、越算数 */
+  var packets = [];   /* {li, t, sp, winner} */
+  var winner = 0;     /* 本轮生效的层 */
+  var roundT = 0;
+  function spawn(li, sp, winnerPkt) {
+    packets.push({ li: li, t: 0, sp: sp || 0.24 + Math.random() * 0.1, winner: !!winnerPkt });
+  }
+  /* 场景 → 哪一层赢 */
+  var SCN_WINNER = { try: 3, team: 2, ci: 3 };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-scn]"), function (b) {
+    b.addEventListener("click", function () {
+      var w = SCN_WINNER[b.getAttribute("data-scn")] || 3;
+      burst(w);
+    });
+  });
+  function burst(w) {
+    if (REDUCED) { winner = w; draw(); return; }
+    packets.length = 0;
+    var order = [0, 1, 2, 3].sort(function (a, b2) { return a - b2; });
+    order.forEach(function (li) {
+      /* 赢家最后到：给它的速度慢一点 */
+      spawn(li, li === w ? 0.16 : 0.3 + (3 - li) * 0.05, li === w);
+    });
+  }
+
+  function step(dt) {
+    roundT += dt;
+    if (roundT > 4.2) { roundT = 0; burst(3); }   /* 没有场景输入时，默认演一遍 CLI 压场 */
+    for (var i = packets.length - 1; i >= 0; i--) {
+      var p = packets[i];
+      p.t += p.sp * dt;
+      if (p.t >= 1) {
+        if (p.winner) winner = p.li;
+        packets.splice(i, 1);
+      }
+    }
+  }
+
+  function draw() {
+    var light = window.CATheme && CATheme.isLight();
+    ctx.clearRect(0, 0, W, H);
+    var i;
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textBaseline = "middle";
+    /* 泳道 */
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    for (i = 0; i < LANES.length; i++) {
+      var ln = LANES[i], y = laneY(i);
+      var hov = hoverLi === i;
+      ctx.strokeStyle = "rgba(" + (hov ? AMBER : FAINT) + "," + (hov ? 0.85 : (light ? 0.4 : 0.3)) + ")";
+      ctx.lineWidth = hov ? 1.6 : 1;
+      ctx.setLineDash(hov ? [] : [4, 4]);
+      ctx.beginPath(); ctx.moveTo(startX(), y); ctx.lineTo(mergeX(), y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(" + (hov ? AMBER : INKRGB) + "," + (hov ? 1 : 0.78) + ")";
+      ctx.fillText(ln.no + " " + ln.short, startX() - 8, y);
+    }
+    /* 汇合点 */
+    var mx = mergeX(), my = H / 2;
+    for (i = 0; i < LANES.length; i++) {
+      ctx.strokeStyle = "rgba(" + FAINT + "," + (light ? 0.35 : 0.25) + ")";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(startX(), laneY(i));
+      ctx.quadraticCurveTo((startX() + mx) / 2, laneY(i), mx - 34, my + (laneY(i) - my) * 0.12);
+      ctx.stroke();
+    }
+    var wl = LANES[winner];
+    ctx.fillStyle = "rgba(" + AMBER + ",0.1)";
+    ctx.strokeStyle = "rgba(" + AMBER + ",0.95)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(mx, my, 26, 0, 6.2832); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "rgba(" + STEEL + ",0.8)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(mx, my, 32, 0, 6.2832); ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(" + INKRGB + ",1)";
+    ctx.font = "12px 'IBM Plex Mono', monospace";
+    ctx.fillText("生效值", mx, my - 6);
+    ctx.fillStyle = "rgba(" + AMBER + ",1)";
+    ctx.fillText(wl.no + " 说算", mx, my + 10);
+    /* 出线 */
+    ctx.strokeStyle = "rgba(" + FAINT + ",0.5)";
+    ctx.beginPath(); ctx.moveTo(mx + 34, my); ctx.lineTo(W - 12, my); ctx.stroke();
+    ctx.fillStyle = "rgba(" + FAINT + ",0.9)";
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "right";
+    ctx.fillText("→ Config", W - 14, my - 12);
+
+    /* 包 */
+    for (i = 0; i < packets.length; i++) {
+      var p = packets[i];
+      var y0 = laneY(p.li);
+      /* 沿泳道直行，接近汇合点时弯向圆心 */
+      var px, py;
+      if (p.t < 0.72) {
+        px = startX() + (mx - 40 - startX()) * (p.t / 0.72);
+        py = y0;
+      } else {
+        var k2 = (p.t - 0.72) / 0.28;
+        px = (mx - 40) + (mx - 14 - (mx - 40)) * k2;
+        py = y0 + (my - y0) * k2;
+      }
+      var c = "rgba(" + AMBER + "," + LANES[p.li].a + ")";
+      ctx.fillStyle = p.winner ? "rgba(" + STEEL + ",1)" : c;
+      ctx.beginPath(); ctx.arc(px, py, p.winner ? 5.5 : 4, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = p.winner ? "rgba(" + STEEL + ",0.4)" : "rgba(" + AMBER + ",0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py, p.winner ? 9 : 7, 0, 6.2832); ctx.stroke();
+    }
+    if (!packets.length && REDUCED) {
+      ctx.fillStyle = "rgba(" + FAINT + ",0.85)";
+      ctx.textAlign = "center";
+      ctx.fillText("动画已按系统设置停用：点场景按钮直接看结论", W * 0.45, H - 12);
+    }
+  }
+
+  /* 悬停泳道 */
+  var hoverLi = -1;
+  canvas.addEventListener("pointermove", function (e) {
+    var r = host.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    var hit = -1;
+    for (var i = 0; i < LANES.length; i++) {
+      if (x > 4 && x < mergeX() && Math.abs(y - laneY(i)) < H * 0.11) { hit = i; break; }
+    }
+    if (hit !== hoverLi) { hoverLi = hit; draw(); }
+    var tip = host.querySelector(".ca-tip");
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "ca-tip";
+      host.appendChild(tip);
+    }
+    if (hit >= 0) {
+      tip.innerHTML = LANES[hit].tip;
+      tip.style.left = Math.max(4, Math.min(W - 250, x + 12)) + "px";
+      tip.style.top = Math.max(4, Math.min(H - 56, y + 10)) + "px";
+      tip.classList.add("show");
+      canvas.style.cursor = "help";
+    } else {
+      tip.classList.remove("show");
+      canvas.style.cursor = "default";
+    }
+  });
+  canvas.addEventListener("pointerleave", function () {
+    hoverLi = -1; draw();
+    var tip = host.querySelector(".ca-tip");
+    if (tip) tip.classList.remove("show");
+  });
+
+  var running = false, raf = 0, inView = true, last = 0;
+  function loop(ts) {
+    if (!running) return;
+    if (!last) last = ts;
+    var dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    if (!document.hidden) step(dt);
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+  function startLoop() {
+    if (running || REDUCED) return;
+    running = true; last = 0;
+    raf = requestAnimationFrame(loop);
+  }
+  function stopLoop() { running = false; cancelAnimationFrame(raf); }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) {
+        inView = en.isIntersecting;
+        if (inView) { size(); draw(); startLoop(); }
+        else stopLoop();
+      });
+    }, { rootMargin: "80px" }).observe(host);
+  } else { startLoop(); }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) stopLoop();
+    else if (inView) startLoop();
+  });
+  var rzT = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rzT);
+    rzT = setTimeout(function () { if (size()) draw(); }, 140);
+  });
+
+  if (size()) draw();
+  if (REDUCED) { winner = 3; draw(); } else { burst(3); startLoop(); }
+})();
 </script>
 
 <script src="../assets/terms.js"></script>

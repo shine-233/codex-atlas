@@ -292,7 +292,7 @@
       <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
 
       <div id="force" class="tm-wrap" hidden></div>
-      <p class="galaxy-cap" id="force-cap" hidden><span id="force-edges"></span>每个圆点是一个 crate，半径按依赖数（入 + 出）画。布局由物理模拟实时算出：连线是弹簧，点与点互斥，拖任意一点，整张网跟着重新找平衡；<b style="color:var(--dim);">悬停看名字和直接依赖，点击进下方注解卡。</b></p>
+      <p class="galaxy-cap" id="force-cap" hidden><span id="force-edges"></span>每个圆点是一个 crate，半径按依赖数（入 + 出）画。布局由物理模拟实时算出：连线是弹簧，点与点互斥，拖任意一点，整张网跟着重新找平衡；滚轮 / 双指捏合缩放，双击复位；<b style="color:var(--dim);">悬停看名字和直接依赖，点击进下方注解卡。</b></p>
       <div class="force-bar" id="force-bar" hidden>
         <span class="fb-chips" id="force-chips" role="group" aria-label="按带高亮"></span>
         <button class="btn" id="force-shake" type="button">↻ 摇一摇重排</button>
@@ -971,7 +971,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         : gal
           ? "星系模式：拖拽旋转（松手带惯性）· 滚轮 / 双指缩放 · 悬停看名字 · 点击选中进详情"
           : frc
-            ? "力学模式：拖任意点整张网重新找平衡 · 滚轮缩放 · 悬停看依赖 · 点击选中进详情"
+            ? "力学模式：拖任意点整张网重新找平衡 · 滚轮 / 双指缩放 · 悬停看依赖 · 点击选中进详情"
             : "列表模式：九条带分组 · 点击成员看注解";
       if (tree) render();
       if (window.CAGalaxy) { gal ? CAGalaxy.wake() : CAGalaxy.sleep(); }
@@ -1684,8 +1684,10 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       else if (!REDUCED && alpha > 0 && inView) startLoop();
     });
 
-    /* ---- 指针交互：抓点 / 平移背景 / 悬停 / 点击选中 ---- */
+    /* ---- 指针交互：抓点 / 平移背景 / 悬停 / 点击选中 / 双指捏合缩放 ---- */
     var movedPx = 0, downX = 0, downY = 0, lastPX = 0, lastPY = 0, suppressClick = false;
+    var pointers = {};   /* pointerId -> {x, y}，双指捏合用 */
+    var pinch0 = null;   /* 进入捏合那一刻的基准：距离 / 中点 / 视口 */
     function localXY(e) {
       var rect = host.getBoundingClientRect();
       return [e.clientX - rect.left, e.clientY - rect.top];
@@ -1713,10 +1715,25 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     canvas.addEventListener("pointerdown", function (e) {
       if (e.button !== undefined && e.button > 0) return;
       size();
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ids = Object.keys(pointers);
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
+      if (ids.length === 2) {
+        /* 第二根手指落下：终止拖点 / 平移，进入捏合 */
+        dragI = -1; panning = false;
+        var p0 = pointers[ids[0]], p1 = pointers[ids[1]];
+        pinch0 = {
+          d: Math.max(20, Math.hypot(p0.x - p1.x, p0.y - p1.y)),
+          mx: (p0.x + p1.x) / 2, my: (p0.y + p1.y) / 2,
+          S: S, panX: panX, panY: panY
+        };
+        canvas.style.cursor = "grabbing";
+        return;
+      }
+      if (ids.length > 2) return;
       var xy = localXY(e);
       downX = lastPX = e.clientX; downY = lastPY = e.clientY; movedPx = 0;
       var hit = pickAt(xy[0], xy[1]);
-      try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
       if (hit >= 0) {
         dragI = hit;
         NODES[hit].vx = 0; NODES[hit].vy = 0;
@@ -1729,6 +1746,23 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       }
     });
     canvas.addEventListener("pointermove", function (e) {
+      if (pointers[e.pointerId]) { pointers[e.pointerId].x = e.clientX; pointers[e.pointerId].y = e.clientY; }
+      if (pinch0) {
+        var ids = Object.keys(pointers);
+        if (ids.length >= 2) {
+          var p0 = pointers[ids[0]], p1 = pointers[ids[1]];
+          var d = Math.max(20, Math.hypot(p0.x - p1.x, p0.y - p1.y));
+          var r = host.getBoundingClientRect();
+          var mx = (p0.x + p1.x) / 2 - r.left, my = (p0.y + p1.y) / 2 - r.top;
+          /* 捏合中点下的那一点钉在原地：world = (mid - pan) / S 保持不变 */
+          S = Math.max(0.45, Math.min(3.2, pinch0.S * d / pinch0.d));
+          panX = mx - (pinch0.mx - r.left - pinch0.panX) * (S / pinch0.S);
+          panY = my - (pinch0.my - r.top - pinch0.panY) * (S / pinch0.S);
+          movedPx += 4;   /* 捏合不算点击 */
+          draw();
+          return;
+        }
+      }
       var xy = localXY(e);
       var x = xy[0], y = xy[1];
       movedPx += Math.abs(e.clientX - lastPX) + Math.abs(e.clientY - lastPY);
@@ -1758,7 +1792,9 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       }
       if (hit >= 0) moveTip(x, y, hit); else hideTip();
     });
-    function endPointer() {
+    function endPointer(e) {
+      if (e && pointers[e.pointerId]) delete pointers[e.pointerId];
+      if (Object.keys(pointers).length < 2) pinch0 = null;
       var wasBusy = dragI >= 0;
       dragI = -1; panning = false;
       canvas.style.cursor = hoverI >= 0 ? "grab" : "default";
