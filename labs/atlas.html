@@ -87,6 +87,30 @@
   }
   .view-note { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .06em; }
   .tm-wrap { position: relative; margin-top: 12px; border: 1px solid var(--line-strong); background: var(--bg0); overflow: hidden; }
+  /* 仓库覆盖面全景树 */
+  .repo-tree {
+    border: 1px solid var(--line); background: var(--bg0);
+    padding: 14px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 2;
+  }
+  .repo-tree details { margin: 2px 0; }
+  .repo-tree summary { cursor: pointer; color: var(--ink); list-style: none; }
+  .repo-tree summary::-webkit-details-marker { display: none; }
+  .repo-tree summary::before { content: "▸ "; color: var(--faint); }
+  .repo-tree details[open] > summary::before { content: "▾ "; }
+  .repo-tree ul { list-style: none; margin: 2px 0 4px; padding-left: 22px; border-left: 1px dashed var(--line-strong); }
+  .repo-tree a { color: var(--dim); text-decoration: none; display: inline-block; }
+  .repo-tree a:hover { color: var(--amber); }
+  .repo-tree a:hover code { color: var(--amber); }
+  .repo-tree code { color: var(--ink); }
+  .tree-mute { color: var(--faint); }
+  .cov {
+    display: inline-block; margin-left: 10px; padding: 0 8px;
+    font-size: 10.5px; letter-spacing: .04em; vertical-align: 1px;
+    border: 1px solid var(--line-strong); color: var(--faint);
+  }
+  .cov-yes { border-color: rgba(123, 201, 139, .5); color: var(--ok); background: var(--ok-dim); }
+  .cov-part { border-color: rgba(255, 180, 84, .5); color: var(--amber); background: var(--amber-dim); }
+  .cov-no { border-color: var(--line-strong); }
   /* 3D 星系视图 */
   #galaxy { height: 440px; }
   #galaxy canvas { display: block; }
@@ -204,7 +228,8 @@
       <div id="treemap" class="tm-wrap" hidden></div>
 
       <div id="galaxy" class="tm-wrap" hidden></div>
-      <p class="galaxy-cap" id="galaxy-cap" hidden>135 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮或双指缩放；闲置时自转。</p>
+      <p class="galaxy-cap" id="galaxy-cap" hidden>135 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。</b></p>
+      <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
 
       <div id="bands"></div>
 
@@ -230,6 +255,55 @@
           <tr><td>想给 CI 写非交互自动化</td><td>第 1 带 <b>exec</b>：codex exec "任务"，与 TUI 共用同一个核心</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <!-- 仓库覆盖面全景：本站管到哪、不管到哪 -->
+    <section>
+      <h2>仓库全景：本站覆盖到哪一层</h2>
+      <p class="muted small">
+        「135 个 crate」只是 openai/codex 仓库的一部分。这张树把固定提交下的顶层结构摊开：
+        <b style="color:var(--ink);">绿色 = 本站有仪器讲到</b>，灰色 = 站外，点绿节点直达对应线路。
+        结构为示意，完整清单以固定提交下的仓库实况为准。
+      </p>
+      <div class="repo-tree" id="repo-tree">
+        <details open>
+          <summary><code>openai/codex @ 343074d4</code><span class="cov cov-part">部分覆盖</span></summary>
+          <ul>
+            <li>
+              <details open>
+                <summary><code>codex-rs/</code><span class="cov cov-yes">135 crate · 全覆盖</span></summary>
+                <ul>
+                  <li><a href="loop.html"><code>core/</code><span class="cov cov-yes">队列对 · run_turn · 工具分发</span></a></li>
+                  <li><a href="loop.html"><code>tui/</code><span class="cov cov-yes">终端界面 · 07D 房</span></a></li>
+                  <li><a href="loop.html"><code>cli/</code><span class="cov cov-yes">入口分发 · 第 2 站</span></a></li>
+                  <li><a href="appserver.html"><code>app-server/</code><span class="cov cov-yes">协议服务端 · 04</span></a></li>
+                  <li><a href="appserver.html"><code>app-server-protocol/</code><span class="cov cov-yes">三原语 · 04</span></a></li>
+                  <li><a href="sandbox.html"><code>sandboxing/ · linux-sandbox/ · bwrap/</code><span class="cov cov-yes">三套内核闸 · 03</span></a></li>
+                  <li><a href="atlas.html"><code>apply-patch/ · exec/ · rollout/ · hooks/ · memories/ …</code><span class="cov cov-yes">逐带逐条注解 · 05</span></a></li>
+                  <li><span class="tree-mute">其余 120+ crate —— 在上方列表 / 树图 / 星系里按带检索</span></li>
+                </ul>
+              </details>
+            </li>
+            <li><a href="loop.html"><code>codex-cli/</code><span class="cov cov-yes">npm 启动器 · 第 1 站</span></a></li>
+            <li>
+              <details>
+                <summary><code>docs/</code><span class="cov cov-part">两篇有仪器 · 其余站外</span></summary>
+                <ul>
+                  <li><a href="deep.html"><code>config.md</code><span class="cov cov-yes">B 房键位与优先级</span></a></li>
+                  <li><a href="deep.html"><code>authentication.md</code><span class="cov cov-yes">A 房凭据流</span></a></li>
+                  <li><span class="tree-mute">其余文档 —— 未覆盖</span></li>
+                </ul>
+              </details>
+            </li>
+            <li><span class="tree-mute"><code>.github/</code><span class="cov cov-no">CI 与发布流水线 · 未覆盖</span></span></li>
+            <li><span class="tree-mute"><code>README · LICENSE</code><span class="cov cov-no">上游门面 · 未覆盖</span></span></li>
+          </ul>
+        </details>
+      </div>
+      <p class="small muted" style="margin:10px 0 0;">
+        覆盖粒度三级：crate 级（135 全注解）→ 文件级（五条主干线路上的关键路径）→ 函数级（循环体关键节点）。
+        SDK 客户端（Go / Python / TS / Swift / Kotlin）由 <code>generate-ts</code> 从协议生成，04 有讲到机制本身。
+      </p>
     </section>
 
     <section class="panel" style="margin-top:26px;">
@@ -731,8 +805,10 @@
       tmBox.hidden = !tree;
       var galBox = document.getElementById("galaxy");
       var galCap = document.getElementById("galaxy-cap");
+      var galTour = document.getElementById("gal-tour");
       if (galBox) galBox.hidden = !gal;
       if (galCap) galCap.hidden = !gal;
+      if (galTour) galTour.hidden = !gal || window.PrefersReducedMotion === true;
       bandsBox.style.display = (tree || gal) ? "none" : "";
       PanelState.write({ vw: tree ? "tree" : (gal ? "galaxy" : "") });
       var note = document.getElementById("vw-note");
@@ -823,7 +899,15 @@
     var dragging = false, moved = 0, lastX = 0, lastY = 0;
     var mx = -1, my = -1, hover = -1;
     var lastInteract = 0, running = false, raf = 0, t0 = 0;
-    var pointers = {}, pinchDist = 0;
+    var pointers = {}, pinchDist = 0, pinchMidX = 0, pinchMidY = 0;
+    var panX = 0, panY = 0, panning = false;
+    function clampPan() {
+      var lim = Math.min(W, H) * 0.345 * zoomv;
+      if (panX > lim) panX = lim;
+      if (panX < -lim) panX = -lim;
+      if (panY > lim) panY = lim;
+      if (panY < -lim) panY = -lim;
+    }
 
     function frame(ts) {
       var now = ts || performance.now();
@@ -853,7 +937,7 @@
         var y2 = y * cax - z1 * sax;
         var z2 = y * sax + z1 * cax;
         var per = FOV / (FOV + z2);
-        return { sx: cx0 + x1 * radBase * per, sy: cy0 + y2 * radBase * per, z: z2, per: per };
+        return { sx: cx0 + panX + x1 * radBase * per, sy: cy0 + panY + y2 * radBase * per, z: z2, per: per };
       }
 
       ctx.clearRect(0, 0, W, H);
@@ -957,23 +1041,34 @@
     }
 
     function wake() { viewOn = true; size(); sync(); }
-    function sleep() { viewOn = false; stop(); }
+    function sleep() { viewOn = false; stopTour(); stop(); }
 
     canvas.addEventListener("pointerdown", function (e) {
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
-      if (Object.keys(pointers).length === 2) {
-        var ks = Object.keys(pointers);
+      var ks = Object.keys(pointers);
+      if (ks.length === 2) {
         pinchDist = Math.hypot(pointers[ks[0]].x - pointers[ks[1]].x, pointers[ks[0]].y - pointers[ks[1]].y);
+        pinchMidX = (pointers[ks[0]].x + pointers[ks[1]].x) / 2;
+        pinchMidY = (pointers[ks[0]].y + pointers[ks[1]].y) / 2;
       }
-      dragging = true; moved = 0;
+      if (e.button === 2) { panning = true; }
+      else { dragging = true; moved = 0; }
       lastX = e.clientX; lastY = e.clientY;
       lastInteract = performance.now();
-      canvas.style.cursor = "grabbing";
+      canvas.style.cursor = panning ? "move" : "grabbing";
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
     });
     canvas.addEventListener("pointermove", function (e) {
       var rect = canvas.getBoundingClientRect();
       mx = e.clientX - rect.left; my = e.clientY - rect.top;
+      if (panning) {
+        panX += e.clientX - lastX;
+        panY += e.clientY - lastY;
+        clampPan();
+        lastX = e.clientX; lastY = e.clientY;
+        lastInteract = performance.now();
+        return;
+      }
       if (dragging) {
         if (Object.keys(pointers).length === 2 && pointers[e.pointerId]) {
           pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
@@ -981,7 +1076,14 @@
           var d2 = Math.hypot(pointers[ks2[0]].x - pointers[ks2[1]].x, pointers[ks2[0]].y - pointers[ks2[1]].y);
           if (pinchDist > 0) {
             zoomv = Math.max(0.55, Math.min(2.4, zoomv * d2 / pinchDist));
+            clampPan();
           }
+          var midX = (pointers[ks2[0]].x + pointers[ks2[1]].x) / 2;
+          var midY = (pointers[ks2[0]].y + pointers[ks2[1]].y) / 2;
+          panX += midX - pinchMidX;
+          panY += midY - pinchMidY;
+          clampPan();
+          pinchMidX = midX; pinchMidY = midY;
           pinchDist = d2;
           lastInteract = performance.now();
           return;
@@ -998,11 +1100,31 @@
     });
     function endPointer(e) {
       delete pointers[e.pointerId];
-      if (dragging && moved < 6 && hover >= 0) {
-        var p = PTS[hover];
-        selectCrate(BANDS[p.bi], p.name, null);
+      /* 快速点按时 rAF 可能没来得及刷新 hover，这里同步算最近点 */
+      if (dragging && moved < 6) {
+        var rect = canvas.getBoundingClientRect();
+        var px2 = e.clientX - rect.left, py2 = e.clientY - rect.top;
+        /* 先看是不是点了带心：聚焦该带（镜头转过去、其余变暗），再点一次解除。
+            多个带心挤在阈值内时取最近的一个。 */
+        var hitC = -1, hitD = 676;
+        for (var ci2 = 0; ci2 < lastPC.length; ci2++) {
+          var ddx = lastPC[ci2].sx - px2, ddy = lastPC[ci2].sy - py2;
+          var dd = ddx * ddx + ddy * ddy;
+          if (dd < hitD) { hitD = dd; hitC = ci2; }
+        }
+        if (hitC !== -1) {
+          if (focusBi === hitC) { focusBi = null; tween = null; stopTour(); }
+          else { focusBand(hitC); stopTour(); }
+          dragging = false; pinchDist = 0;
+          lastInteract = performance.now();
+          canvas.style.cursor = "pointer";
+          return;
+        }
+        var i = pickAt(px2, py2);
+        if (i >= 0) selectCrate(BANDS[PTS[i].bi], PTS[i].name, null);
       }
       dragging = false;
+      panning = false;
       pinchDist = 0;
       lastInteract = performance.now();
       canvas.style.cursor = hover >= 0 ? "pointer" : "grab";
@@ -1010,11 +1132,24 @@
     canvas.addEventListener("pointerup", endPointer);
     canvas.addEventListener("pointercancel", endPointer);
     canvas.addEventListener("pointerleave", function () { mx = -1; my = -1; });
+    canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     canvas.addEventListener("wheel", function (e) {
       e.preventDefault();
-      zoomv = Math.max(0.55, Math.min(2.4, zoomv * (e.deltaY < 0 ? 1.09 : 0.917)));
+      var rect = canvas.getBoundingClientRect();
+      var mx2 = e.clientX - rect.left, my2 = e.clientY - rect.top;
+      var nz = Math.max(0.55, Math.min(2.4, zoomv * (e.deltaY < 0 ? 1.09 : 0.917)));
+      var kk = nz / zoomv;
+      /* zoom-to-cursor：光标下的点留在原地（OrbitControls 的 zoomToCursor） */
+      panX = mx2 - rect.width / 2 - (mx2 - rect.width / 2 - panX) * kk;
+      panY = my2 - rect.height / 2 - (my2 - rect.height / 2 - panY) * kk;
+      zoomv = nz;
+      clampPan();
       lastInteract = performance.now();
     }, { passive: false });
+    canvas.addEventListener("dblclick", function () {
+      zoomv = 1; panX = 0; panY = 0;
+      lastInteract = performance.now();
+    });
 
     function pickAt(x, y) {
       var best = -1, bd = 196;
@@ -1026,6 +1161,47 @@
         if (dd < bd) { bd = dd; best = i; }
       }
       return best;
+    }
+
+    /* 聚焦第 bi 条带：镜头缓动转过去（点带心与自动导览共用） */
+    function focusBand(bi) {
+      focusBi = bi;
+      var C0 = CENTERS[bi];
+      var hh = Math.hypot(C0.x, C0.z) || 0.001;
+      var tay2 = Math.atan2(C0.x, -C0.z);
+      var tax2 = Math.atan2(-C0.y, hh);
+      while (tay2 - ay > Math.PI) tay2 -= 6.2832;
+      while (tay2 - ay < -Math.PI) tay2 += 6.2832;
+      if (tax2 > 1.25) tax2 = 1.25;
+      if (tax2 < -1.25) tax2 = -1.25;
+      tween = [tax2, tay2];
+    }
+
+    /* 自动导览：九条带挨个聚焦，任何手动操作即停 */
+    var tourBtn = document.getElementById("gal-tour");
+    var tourTimer = null, tourIdx = 0;
+    function stopTour() {
+      if (tourTimer) { clearInterval(tourTimer); tourTimer = null; }
+      if (tourBtn) tourBtn.textContent = "▶ 自动导览：九条带挨个看";
+    }
+    function startTour() {
+      tourIdx = 0;
+      focusBand(0);
+      if (tourBtn) tourBtn.textContent = "■ 停止导览";
+      if (REDUCED) return;   /* 只聚焦第一条，不自动轮播 */
+      tourTimer = setInterval(function () {
+        tourIdx++;
+        if (tourIdx >= CENTERS.length) { stopTour(); return; }
+        focusBand(tourIdx);
+      }, 2400);
+    }
+    if (tourBtn && !REDUCED) {
+      tourBtn.hidden = false;
+      tourBtn.addEventListener("click", function () {
+        if (tourTimer) stopTour(); else startTour();
+      });
+      canvas.addEventListener("pointerdown", function () { if (tourTimer) stopTour(); }, true);
+      canvas.addEventListener("wheel", function () { if (tourTimer) stopTour(); }, { capture: true, passive: true });
     }
 
     window.addEventListener("resize", function () { if (viewOn) { size(); sync(); } });
@@ -1041,7 +1217,7 @@
         var i = pickAt(x, y);
         return i >= 0 ? { name: PTS[i].name, band: BANDS[PTS[i].bi].no, x: PTS[i]._sx, y: PTS[i]._sy } : null;
       },
-      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pts: PTS.length, running: running }; }
+      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi }; }
     };
   })();
 

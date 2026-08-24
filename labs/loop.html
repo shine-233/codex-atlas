@@ -411,7 +411,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；个别类型名（如 <code>Op::UserTurn</code> 与 <code>Op::UserInput</code> 的分工）随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
     </aside>
 
   </main>
@@ -438,7 +438,7 @@
       body:"你按下回车，TUI 通过 active thread routing 把这轮输入送进 App Server。<b>TurnStartParams</b> 里带着 input、工作目录、模型、审批策略与沙箱覆盖项，字段以 camelCase 暴露给协议调用方。",
       next:"协议词（thread / turn / request）在这里首次登场，它们不属于任何一个 UI 组件。" },
     { n:"转成核心操作", files:["codex-rs/app-server/src/*"], ev:["process_request","turn_start","submit_core_op"],
-      body:"分发层把客户端请求收束成 core 能理解的操作：校验输入大小与 thread 状态，做 v2 输入到核心输入的转换，构造 <b>Op::UserInput</b>，经 submit_core_op 送入 submit_with_trace 入队。<b>它自己不跑模型。</b>",
+      body:"分发层把客户端请求收束成 core 能理解的操作：校验输入大小与 thread 状态，做 v2 输入到核心输入的转换，构造 <b>Op::TurnInput</b>（把 UserInput 输入项装进核心操作），经 submit_core_op 送入 submit_with_trace 入队。<b>它自己不跑模型。</b>",
       next:"投递路径应读成 turn_start → submit_core_op → submit_with_trace，不是一步直达。" },
     { n:"队列对：Submission 进 Event 出", files:["core/src/session/mod.rs"], ev:["Codex::spawn","submission_loop","Op::Shutdown"],
       body:"核心抽象 <b>Codex 是一个队列对</b>：一边收 Submission/Op，一边吐 Event。spawn 创建 Session 并启动后台 submission_loop 常驻循环，直到收到 Op::Shutdown 才退出。submit 只负责生成 submission id 并入队。",
@@ -455,8 +455,8 @@
     { n:"POST /responses · 读 SSE 流", files:["codex-api（HTTP 客户端）"], ev:["POST responses","SSE"],
       body:"向 Responses API 端点发起 HTTP POST：ChatGPT 登录走 chatgpt.com/backend-api/codex/responses，API key 走 api.openai.com/v1/responses，本地模型走 localhost 端点。然后循环读取 SSE 事件流。<b>每次都发送完整历史</b>，不用 previous_response_id——保持请求无状态以兼容零数据保留配置。",
       next:"发送量确实一圈比一圈大。大多少、怎么省，下面的成本对照按圈在算。" },
-    { n:"ResponseEvent 流水线", files:["core/src（ModelClientSession::stream）"], ev:["OutputItemAdded","OutputTextDelta","OutputItemDone","Completed"],
-      body:"core 把服务器 SSE 事件重新发布为内部事件对象：<b>OutputItemAdded</b> 表示条目开始（UI 可立即渲染），OutputTextDelta 支持流式输出，<b>OutputItemDone</b> 可能触发工具分发，Completed 带回 token usage 并给出 needs_follow_up 标记。",
+    { n:"ResponseEvent 流水线", files:["codex-api/src/common.rs","core/src（ModelClientSession::stream）"], ev:["OutputItemAdded","OutputTextDelta","OutputItemDone","Completed"],
+      body:"core 把服务器 SSE 事件重新发布为内部事件对象：<b>OutputItemAdded</b> 表示条目开始（UI 可立即渲染），OutputTextDelta 支持流式输出，<b>OutputItemDone</b> 可能触发工具分发，Completed 带回 token usage 并给出 needs_follow_up 标记。枚举本体定义在 codex-api crate，core 经 client_common 重导出——找定义别找错地方。",
       next:"事件驱动意味着 UI 不需要读 core 内部任务状态，只消费 EventMsg。" },
     { n:"function_call → 工具分发", files:["core/src/tools/handlers/*","sandboxing"], ev:["handle_output_item_done","ToolRouter::build_tool_call"],
       body:"handle_output_item_done 用 <b>ToolRouter::build_tool_call</b> 识别工具并创建 in-flight future。只要有工具调用就置 <b>needs_follow_up = true</b>——工具输出还要反馈给模型继续推理。执行发生在沙箱策略之下：macOS Seatbelt、Linux Landlock+bwrap、Windows WFP。",
@@ -966,7 +966,7 @@
 
     bInput.addEventListener("click", function () {
       if (running) return;
-      log('<span class="lg-req">→ Submission</span>　Op::UserInput 入队');
+      log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）');
       running = true; laps = 1; hist += 10;
       log('<span class="lg-ev">← Event</span>　TaskStarted → TurnStarted');
       log('<span class="lg-note">build_prompt：历史 ≈' + hist + ' 单位 + 本轮输入，整体重发</span>');
@@ -976,7 +976,7 @@
 
     bSteer.addEventListener("click", function () {
       if (!running) return;
-      log('<span class="lg-req">→ Submission</span>　Op::UserInput 入队');
+      log('<span class="lg-req">→ Submission</span>　Op::TurnInput 入队（携带 UserInput）');
       log('<span class="lg-note">占用检查：已有 running task · 走 <b style="color:var(--ink);">steer_input</b> 并入当前轮，不是排队</span>');
     });
 

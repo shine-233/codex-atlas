@@ -1042,6 +1042,18 @@ table.rt tr.hidden { display: none; }
   z-index: 90;
   pointer-events: none;
 }
+/* 2026 基线渐进增强：支持 CSS scroll-driven animations 的浏览器
+   用原生滚动时间线驱动进度条（零 JS 滚动监听），旧浏览器走 panel.js 的 rAF 路径 */
+@supports (animation-timeline: scroll()) {
+  #ca-progress {
+    animation: caProgressAuto linear both;
+    animation-timeline: scroll(root block);
+  }
+  @keyframes caProgressAuto {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+}
 
 /* ---------- 滚动浮现（由 JS 添加 .rv，无 JS 时内容不受影响） ---------- */
 @media (prefers-reduced-motion: no-preference) {

@@ -191,17 +191,18 @@
     <!-- 第二幕：断线之后 -->
     <section class="panel" id="act2-panel" style="margin-top:26px;">
       <div class="panel-title">
-        <h3>ACT II · 断线之后：resume / fork / interrupt</h3>
-        <span class="readout">三原语表里提了、上面没演的三条支线</span>
+        <h3>ACT II · 断线之后：resume / fork / interrupt / archive</h3>
+        <span class="readout">三原语表里提了、上面没演的四条支线</span>
       </div>
       <p class="small muted" style="margin:0 0 14px;padding:0 24px;">
-        Thread 行明说「可创建、恢复、分叉、归档」，第一幕时间线却一条没演。这里补上——同一条双向通道，换三个剧本：
+        Thread 行明说「可创建、恢复、分叉、归档」，第一幕时间线却一条没演。这里补上——同一条双向通道，换四个剧本：
       </p>
       <div style="padding:0 24px 20px;">
         <div class="seg" role="group" aria-label="选择第二幕场景">
           <button data-a2="resume" class="on">断线重连 resume</button>
           <button data-a2="fork">分叉 fork</button>
           <button data-a2="interrupt">打断 interrupt</button>
+          <button data-a2="archive">归档 archive</button>
         </div>
         <div class="controls" style="border-top:none;padding:12px 0 0;margin-top:10px;">
           <button class="btn primary" id="a2-play" type="button">▶ 播放</button>
@@ -250,7 +251,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。<code>Op::UserInput</code> 入队一步依据 01 第 5–6 站的源码结构。
+      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@343074d4 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
     </aside>
 
   </main>
@@ -280,8 +281,8 @@
     { dir:"c2s", who:"CLIENT", k:"request", m:"turn/start",
       j:'{ "id": 3, "method": "turn/start",\n  "params": {\n    "threadId": "t_9f3a…",\n    "input": [ { "type": "text",\n                 "text": "跑一遍测试，把失败的修掉" } ],\n    "cwd": "~/proj/api",\n    "approvalPolicy": "on-request",\n    "sandboxMode": "workspace-write" } }',
       d:"一轮工作正式下单：输入内容、审批策略、沙箱模式都在这条报文里声明。" },
-    { dir:"int", who:"CORE", k:"internal", m:"Op::UserInput 入队",
-      j:"", d:"协议边界之外的事：App Server 把请求转成核心操作塞进队列对。核心内部怎么跑，客户端看不见——只有 Event 出来。" },
+    { dir:"int", who:"CORE", k:"internal", m:"Op::TurnInput 入队",
+      j:"", d:"协议边界之外的事：App Server 把请求转成核心操作（UserInput 输入项装进 Op::TurnInput）塞进队列对。核心内部怎么跑，客户端看不见——只有 Event 出来。" },
     { dir:"s2c", who:"SERVER", k:"notification", m:"item/started",
       j:'{ "method": "item/started",\n  "params": { "type": "agent_message", "itemId": "i_01…" } }',
       d:"started 先到：UI 可以立刻渲染占位，不必等完整内容。" },
@@ -680,13 +681,21 @@
           j:'{ "id": 44, "method": "turn/interrupt",\n  "params": { "threadId": "t_9f3a…" } }',
           d:"用户按了 Esc。打断请求和普通请求走同一个方向：客户端 → 服务端。" },
         { dir:"int", who:"CORE", k:"internal", m:"Op::Interrupt 入队",
-          j:"", d:"和 Op::UserInput 走同一条队列对（01 第 6 站）。正在跑的 RegularTask 在下一个检查点停下。" },
+          j:"", d:"和用户输入的 Op::TurnInput 走同一条队列对（01 第 6 站）。正在跑的 RegularTask 在下一个检查点停下。" },
         { dir:"s2c", who:"SERVER", k:"notification", m:"item/completed (interrupted)",
           j:'{ "method": "item/completed",\n  "params": { "type": "command_execution",\n              "status": "interrupted" } }',
           d:"没跑完的命令以 interrupted 落定，不是凭空消失——UI 可以如实画出「到这里被打断」。" },
         { dir:"s2c", who:"SERVER", k:"notification", m:"turn/completed (interrupted)",
           j:'{ "method": "turn/completed",\n  "params": { "status": "interrupted",\n              "usage": { … } } }',
           d:"轮次带着 interrupted 状态收尾。已产生的条目全部保留在历史里——打断是收束的一种，不是删除。" }
+      ],
+      archive: [
+        { dir:"c2s", who:"CLIENT", k:"request", m:"thread/archive",
+          j:'{ "id": 45, "method": "thread/archive",\n  "params": { "threadId": "t_9f3a…" } }',
+          d:"会话收尾：把不再活跃的线程请出活跃名单。事件历史仍持久化在磁盘上。" },
+        { dir:"s2c", who:"SERVER", k:"response", m:"thread/archive 返回",
+          j:'{ "result": { "archived": true } }',
+          d:"归档是软操作，不删任何东西——之后 thread/resume 依旧能把它原样请回来。" }
       ]
     };
 

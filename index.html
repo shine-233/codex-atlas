@@ -342,9 +342,9 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
     { f: 0.63, label: "历史写回", sub: "needs_follow_up", color: "amber",
       href: "labs/loop.html#s=13",
       tip: "<b>历史写回</b> — 工具输出进历史，这个标记决定要不要再转一圈。→ 01 第 13 站" },
-    { f: 0.81, label: "App Server 队列", sub: "Op::UserInput", color: "steel",
+    { f: 0.81, label: "App Server 队列", sub: "Op::TurnInput", color: "steel",
       href: "labs/appserver.html",
-      tip: "<b>App Server 队列</b> — 所有客户端共用的入口：Op::UserInput 入队。报文时序见 04" },
+      tip: "<b>App Server 队列</b> — 所有客户端共用的入口：用户输入经 Op::TurnInput 入队。报文时序见 04" },
     { f: 0.94, label: "TUI 输入", sub: "codex-rs/tui", color: "steel",
       href: "labs/loop.html#s=1",
       tip: "<b>TUI 输入</b> — 你敲下的那行字从这里进回路。→ 01 第 1 站" }

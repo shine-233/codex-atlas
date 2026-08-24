@@ -185,7 +185,7 @@
           <tr data-k="turn 轮次 轮 对话"><td><code>turn（轮）</code></td><td>用户一次任务的完整生命周期。一轮里模型可能被调用好几次，数「轮」不等于数请求次数。</td><td><a href="labs/loop.html">01</a></td></tr>
           <tr data-k="run_turn 采样 sampling 采样器"><td><code>run_turn / 采样</code></td><td>核心里负责「向模型要一次回复」的函数。每次被调前都重新组装一遍 Prompt，把完整历史带上。</td><td><a href="labs/loop.html">01</a> 第9站</td></tr>
           <tr data-k="队列对 queue submission event 队列"><td><code>队列对</code></td><td>Codex 核心的骨架：两条异步通道，一边收指令（Submission 进），一边吐事件（Event 出）。整个系统绕着它转。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
-          <tr data-k="op::userinput op eventmsg 操作 事件 类型"><td><code>Op / EventMsg</code></td><td>核心内部指令和事件的类型前缀。<code>Op::UserInput</code> 是「用户说了一句话」，<code>EventMsg::*</code> 是往外广播的各种消息。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
+          <tr data-k="op::turninput op userinput eventmsg 操作 事件 类型"><td><code>Op / EventMsg</code></td><td>核心内部指令和事件的类型前缀。<code>Op::TurnInput</code>（携带 UserInput 输入项）是「用户说了一句话」，<code>EventMsg::*</code> 是往外广播的各种消息。</td><td><a href="labs/loop.html">01</a> 第6站</td></tr>
           <tr data-k="needs_follow_up follow up 跟进 标记"><td><code>needs_follow_up</code></td><td>「本轮还没完」的标记。只要这轮出现了工具调用就置 true，历史写回后再采样一圈；纯文本回复时才收束。</td><td><a href="labs/loop.html">01</a> 第11–13站</td></tr>
           <tr data-k="turncomplete 完成 收束 结束"><td><code>TurnComplete</code></td><td>一轮任务正式结束的事件，由 task wrapper 统一发出。看到它，这轮的账就结了。</td><td><a href="labs/loop.html">01</a> 第13站</td></tr>
           <tr data-k="steer_input steer 打断 并入 插话"><td><code>steer_input</code></td><td>你在一轮跑着的时候又发了句话？这个函数把你这句并入正在运行的轮次，而不是排队等它跑完。排队变成了并线。</td><td><a href="labs/loop.html">01</a> 第7站</td></tr>
@@ -241,6 +241,8 @@
           <tr data-k="thread turn item 原语 会话线程"><td><code>Thread / Turn / Item</code></td><td>协议三原语：Thread 是会话容器（可恢复、分叉、归档）；Turn 是由输入发起的一轮工作；Item 是里面最小的条目单位。</td><td><a href="labs/appserver.html">04</a></td></tr>
           <tr data-k="started delta completed 生命周期 占位 打字机"><td><code>started → delta → completed</code></td><td>Item 的生命周期三步：started 到达即可渲染占位，delta 流式补全（打字机效果靠它），completed 落定。</td><td><a href="labs/appserver.html">04</a> 第7–9条</td></tr>
           <tr data-k="commandexecution approval 审批请求 反向 服务端请求 挂起"><td><code>commandExecution/approval</code></td><td>服务端反向发给客户端的审批请求。它到达时整轮暂停，等客户端给一个应答——「双向」两个字就体现在这。</td><td><a href="labs/appserver.html">04</a> 第11条</td></tr>
+          <tr data-k="turn/interrupt 打断 esc 中断 取消 interrupt"><td><code>turn/interrupt</code></td><td>打断一轮正在跑的任务：命令以 interrupted 落定，已产生的条目保留在历史里——打断是收束的一种，不是删除。</td><td><a href="labs/appserver.html">04</a> 第二幕</td></tr>
+          <tr data-k="thread/archive 归档 收尾 archive"><td><code>thread/archive</code></td><td>把不再活跃的线程请出活跃名单。软操作：历史还在盘上，resume 随时能请回来，归档不等于删除。</td><td><a href="labs/appserver.html">04</a> 第二幕</td></tr>
           <tr data-k="rollout resume fork 落盘 恢复 断线 重连 分叉 轨迹"><td><code>rollout / resume / fork</code></td><td>轨迹落盘、断线恢复、时间线分叉。事件历史持久化保存之后，客户端随时能接着上次的现场继续。</td><td><a href="labs/appserver.html">04</a>; <a href="labs/atlas.html">B2</a></td></tr>
         </tbody>
       </table>
