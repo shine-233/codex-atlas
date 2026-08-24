@@ -1150,6 +1150,9 @@ table.rt tr.hidden { display: none; }
     outline-offset: 2px;
   }
 
+  /* paragraph text-wrap */
+  p { text-wrap: pretty; }
+
   /* ---------- 滚动浮现（由 JS 添加 .rv，无 JS 时内容不受影响） ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .rv { opacity: 0; transform: translateY(12px); }
