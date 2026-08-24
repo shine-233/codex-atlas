@@ -514,6 +514,39 @@ impl McpManager {
     }
 }</span></pre>
       </details>
+      <p class="small muted" style="margin:10px 0 0;">管理器下面是传输层：连一台 MCP 服务器有三种「配方」——进程内、本地子进程、可流式 HTTP。HTTP 那条最重：OAuth 凭据、钥匙串、重定向策略、握手截止时间全挂在配方上。握手超时的实现是个 RAII 守卫，守卫一死（Drop），截止时间即清空。</p>
+      <details class="src-details">
+        <summary>🔍 看真实源码 · 三种传输配方与握手截止守卫</summary>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :142-175 · @343074d4 实测（部分变体字段省略）</span>
+<span class="src-code">#[derive(Clone)]
+enum TransportRecipe {
+    InProcess {
+        factory: Arc&lt;dyn InProcessTransportFactory&gt;,
+    },
+    Stdio {
+        command: StdioServerCommand,
+        launcher: Arc&lt;dyn StdioServerLauncher&gt;,
+    },
+    StreamableHttp {
+        server_name: String,
+        url: String,
+        bearer_token: Option&lt;StreamableHttpBearerToken&gt;,
+        /* http_headers / env_http_headers / store_mode /
+           keyring_backend_kind / auth_provider / redirect_mode 省略 */
+        initialize_deadline: Arc&lt;StdMutex&lt;Option&lt;Instant&gt;&gt;&gt;,
+    },
+}
+
+struct InitializeDeadlineGuard {
+    deadline: Arc&lt;StdMutex&lt;Option&lt;Instant&gt;&gt;&gt;,
+}
+
+impl Drop for InitializeDeadlineGuard {
+    fn drop(&amp;mut self) {
+        *self.deadline.lock().unwrap_or_else(PoisonError::into_inner) = None;
+    }
+}</span></pre>
+      </details>
     </section>
 
     <section>
