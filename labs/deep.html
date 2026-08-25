@@ -240,6 +240,41 @@
   .cm-log .cl-note { color: var(--faint); }
   .cm-log .cl-js { color: #ffd9a0; }
   .cm-empty { color: var(--faint); }
+
+  /* G · 覆盖地图 */
+  .cov-num { font-family: var(--mono); font-size: 36px; line-height: 1; color: var(--amber); font-variant-numeric: tabular-nums; }
+  .cov-num.cov-dim { color: var(--steel); }
+  #cov-list { border-top: 1px solid var(--line-strong); }
+  .cov-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 6px 6px; margin-top: 8px;
+    transition: opacity .18s ease;
+  }
+  .cov-head.dim { opacity: .3; }
+  .cov-crate { font-family: var(--mono); font-size: 12.5px; color: var(--amber); letter-spacing: .04em; white-space: nowrap; }
+  .cov-bar { flex: 1; max-width: 220px; height: 4px; background: rgba(255,180,84,.12); overflow: hidden; }
+  .cov-bar b { display: block; height: 100%; background: linear-gradient(90deg, rgba(255,180,84,.35), rgba(255,180,84,.85)); width: 0; opacity: 0; transition: width .9s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+  .cov-n { font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .1em; white-space: nowrap; }
+  .cov-row {
+    display: grid; grid-template-columns: minmax(200px, 300px) auto 1fr 16px;
+    gap: 14px; align-items: baseline;
+    padding: 7px 10px; text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: background .15s ease, transform .15s ease, border-color .15s ease, opacity .18s ease;
+  }
+  .cov-row:hover, .cov-row:focus-visible { background: rgba(255,180,84,.06); border-left-color: var(--amber); transform: translateX(3px); outline: none; }
+  .cov-row.dim { opacity: .22; pointer-events: none; }
+  .cov-path { font-family: var(--mono); font-size: 11.5px; color: var(--ink); overflow-wrap: anywhere; }
+  .cov-loc { font-family: var(--mono); font-size: 10.5px; color: var(--steel); white-space: nowrap; }
+  .cov-note { font-size: 11.5px; color: var(--dim); }
+  .cov-go { color: var(--amber); opacity: 0; transform: translateX(-4px); transition: all .15s ease; text-align: right; }
+  .cov-row:hover .cov-go, .cov-row:focus-visible .cov-go { opacity: 1; transform: translateX(0); }
+  @media (max-width: 760px) {
+    .cov-row { grid-template-columns: 1fr auto; }
+    .cov-loc { justify-self: end; }
+    .cov-note { grid-column: 1 / -1; padding-left: 12px; }
+    .cov-go { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -291,7 +326,7 @@
       <header style="padding-top:16px;">
         <div class="miniscope" id="miniscope" aria-hidden="true"></div>
         <p class="eyebrow"><span class="tick">▮</span>07 深水区 · 支线</p>
-        <h1>主干讲完之后，<br>还有六间没开门的房间。</h1>
+        <h1>主干讲完之后，<br>还有七间没开门的房间。</h1>
         <p class="lede">
           01–05 是主干道，真用起来时问题多半落在支线上：
           登录令牌存在哪、config.toml 里谁覆盖谁、apply_patch 的补丁到底长什么样、
@@ -306,6 +341,7 @@
           <a href="#mod-d">D · TUI 后台</a>
           <a href="#mod-e">E · 扩展机制</a>
           <a href="#mod-f">F · Code Mode</a>
+          <a href="#mod-g">G · 覆盖地图</a>
         </div>
       </header>
 
@@ -960,13 +996,222 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       </div>
     </section>
 
+    <!-- ================ G · COVERAGE MAP ================ -->
+    <section class="panel" id="mod-g" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3><span class="room-tag">G · COVERAGE MAP</span>　源码拆到哪了：全站切片台账</h3>
+        <span class="readout">全部 @343074d4 实测 · 点任意一行直达展出它的仪器</span>
+      </div>
+      <div style="padding:0 24px 20px;">
+        <p class="muted small" style="margin:0 0 14px;">
+          把全站的逐行切片摊开给你查：哪个 crate 被打开过、拆的是哪些文件、拆到哪几行。
+          精读和扫读分开记账——逐行切片是一类，图谱注解是另一类，两个数放一起，覆盖到哪一目了然，不用猜。
+        </p>
+        <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
+          <div>
+            <div class="cov-num" data-gc="36">0</div>
+            <div class="small muted" style="margin-top:2px;">个源码文件有逐行切片</div>
+          </div>
+          <div>
+            <div class="cov-num" data-gc="13">0</div>
+            <div class="small muted" style="margin-top:2px;">个 crate 被逐行打开过</div>
+          </div>
+          <div>
+            <div class="cov-num cov-dim" data-gc="135">0</div>
+            <div class="small muted" style="margin-top:2px;">个 crate 有图谱注解（扫读层）</div>
+          </div>
+          <div style="flex:1;min-width:200px;max-width:340px;margin-left:auto;">
+            <input id="cov-q" class="search-box" type="search" placeholder="过滤：crate / 文件 / 主题（如 diff、流式）" aria-label="过滤切片清单">
+          </div>
+        </div>
+        <div id="cov-list"></div>
+        <div style="margin-top:18px;border-top:1px dashed var(--line-strong);padding-top:14px;">
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">如实记下还没拆的</div>
+          <p class="small muted" style="margin:0;">
+            上面的名单之外，还有几块本站只给了图谱注解或格式描述、没有逐行切片：<code>codex-tui</code> 的
+            history_cell.rs（commit tick 返回的就是它的 HistoryCell）与 bottom_pane/ 一族（ChatWidget 的输入区）；
+            <code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式）与 client.rs 的流式重连内部；
+            以及 codex-exec、各类沙箱实现 crate 的执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
+            属于「知道在哪、还没拆开」——下一批切片从这里出。上游持续漂移，以固定提交下的目录树为准。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <script>
+    /* ---------- G · 覆盖地图数据：与各页 src-loc 一一对应 ---------- */
+    window.CACOVERAGE = [
+      { c: "codex-tui", files: [
+        { p: "src/lib.rs", loc: ":269", note: "TUI 入口与终端初始化", to: "../labs/loop.html#s=3" },
+        { p: "src/app.rs", loc: ":655-684", note: "steer 竞态：Missing 与 ExpectedTurnMismatch", to: "../labs/loop.html" },
+        { p: "src/app_backtrack.rs", loc: ":57-82", note: "Esc 预演回溯的四件套", to: "#mod-d" },
+        { p: "src/chatwidget.rs", loc: ":597-602", note: "流式策略与双控制器落位", to: "#mod-d" },
+        { p: "src/diff_render.rs", loc: ":400-408, 422-425", note: "(+N -N) 头部的逐行聚合", to: "#mod-d" },
+        { p: "src/diff_render.rs", loc: ":591-598, 617-631", note: "大补丁弃高亮的性能闸门", to: "#mod-d" },
+        { p: "src/insert_history.rs", loc: ":54-103", note: "四层入屏链与视口插入", to: "#mod-d" },
+        { p: "src/markdown_render.rs", loc: ":294-304", note: "宽度契约：表格降级键值对", to: "#mod-d" },
+        { p: "src/markdown_stream.rs", loc: ":24-38, 76-78", note: "只管边界的收集器", to: "#mod-d" },
+        { p: "src/slash_command.rs", loc: ":12-29", note: "斜杠命令枚举截取", to: "#mod-d" },
+        { p: "src/streaming/commit_tick.rs", loc: ":29-36, 62-91", note: "节拍器：快照→策略→排空", to: "#mod-d" },
+        { p: "src/streaming/mod.rs", loc: ":9-10, 26-36", note: "FIFO 队列与队龄不变式", to: "#mod-d" },
+        { p: "src/streaming/table_holdback.rs", loc: ":21-32", note: "表格扣留三态判定", to: "#mod-d" },
+        { p: "src/wrapping.rs", loc: ":683-727", note: "URL 混排的换行分流", to: "#mod-d" }
+      ]},
+      { c: "codex-core", files: [
+        { p: "src/agents_md.rs", loc: ":172-178, 234-251", note: "AGENTS.md 层叠与预算截断", to: "../labs/prompt.html" },
+        { p: "src/client.rs", loc: ":161-163", note: "请求装配", to: "../labs/prompt.html" },
+        { p: "src/mcp.rs", loc: ":72-101", note: "MCP 两级工具缓存", to: "../labs/sandbox.html" },
+        { p: "src/session/context_window.rs", loc: ":71-79", note: "上下文窗口上限", to: "../labs/prompt.html" },
+        { p: "src/session/mod.rs", loc: ":533（容量 :461 = 512）", note: "会话队列容量常量", to: "../labs/loop.html#s=6" },
+        { p: "src/session/turn.rs", loc: ":500, 1312, 2226, 2397", note: "采样循环与收束分支", to: "../labs/loop.html#s=13" },
+        { p: "src/session/turn_input.rs", loc: ":282, 478-487, 546-564", note: "Op::TurnInput 入队核心", to: "../labs/loop.html#s=5" },
+        { p: "src/tasks/regular.rs", loc: ":50", note: "RegularTask 起点", to: "../labs/loop.html#s=8" },
+        { p: "src/tools/router.rs", loc: ":148 + stream_events_utils :296", note: "工具路由与事件转发", to: "../labs/loop.html#s=12" }
+      ]},
+      { c: "codex-app-server", files: [
+        { p: "src/request_processors/turn_processor.rs", loc: ":447, 478", note: "turn/start 的两条处理路径", to: "../labs/loop.html#s=5" }
+      ]},
+      { c: "app-server-protocol", files: [
+        { p: "src/protocol/common.rs", loc: ":1721-1733", note: "wire 注册表条目形状", to: "../labs/appserver.html" }
+      ]},
+      { c: "codex-api", files: [
+        { p: "src/common.rs", loc: ":76（Completed :92）", note: "SSE 事件类型", to: "../labs/loop.html#s=11" },
+        { p: "src/endpoint/responses.rs", loc: ":148", note: "POST /responses 端点", to: "../labs/loop.html#s=10" }
+      ]},
+      { c: "model-provider-info", files: [
+        { p: "src/lib.rs", loc: ":40", note: "provider 装配", to: "../labs/loop.html#s=10" }
+      ]},
+      { c: "codex-protocol", files: [
+        { p: "src/permissions.rs", loc: ":746-779", note: "审批策略判定", to: "../labs/sandbox.html" }
+      ]},
+      { c: "rmcp-client", files: [
+        { p: "src/rmcp_client.rs", loc: ":142-175, 297-305", note: "三种传输配方 + 握手 RAII", to: "../labs/sandbox.html" },
+        { p: "src/elicitation_client_service.rs", loc: ":74-85", note: "Elicitation 往返", to: "../labs/sandbox.html" }
+      ]},
+      { c: "execpolicy", files: [
+        { p: "src/policy.rs", loc: ":104-126", note: "策略匹配", to: "../labs/sandbox.html" }
+      ]},
+      { c: "login", files: [
+        { p: "src/auth/storage.rs", loc: ":38-61", note: "AuthDotJson 落盘形状", to: "#mod-a" }
+      ]},
+      { c: "config", files: [
+        { p: "src/config_toml.rs", loc: "多段拼接", note: "常用键位原始定义", to: "#mod-b" }
+      ]},
+      { c: "hooks", files: [
+        { p: "src/registry.rs", loc: ":152-165, 210-223", note: "dispatch 中止规则", to: "#mod-e" }
+      ]},
+      { c: "code-mode", files: [
+        { p: "src/lib.rs", loc: ":1-9（全文）", note: "九行看运行形态", to: "#mod-f" }
+      ]}
+    ];
+    </script>
+
+    <script>
+    (function () {
+      "use strict";
+      var DATA = window.CACOVERAGE || [];
+      var list = document.getElementById("cov-list");
+      var q = document.getElementById("cov-q");
+      if (!list || !DATA.length) return;
+
+      /* 渲染 crate 组：组头条 + 文件行；条宽 = 该组文件数占比 */
+      var maxN = 0, gi;
+      for (gi = 0; gi < DATA.length; gi++) maxN = Math.max(maxN, DATA[gi].files.length);
+      DATA.forEach(function (g) {
+        var head = document.createElement("div");
+        head.className = "cov-head";
+        head.innerHTML = '<span class="cov-crate">' + g.c + "</span>" +
+          '<i class="cov-bar"><b style="width:' + Math.round(g.files.length * 100 / maxN) + '%"></b></i>' +
+          '<span class="cov-n">' + g.files.length + ' 个文件</span>';
+        list.appendChild(head);
+        g.files.forEach(function (f) {
+          var row = document.createElement("a");
+          row.className = "cov-row";
+          row.href = f.to;
+          row.setAttribute("aria-label", g.c + " " + f.p + " " + f.note);
+          row.innerHTML = '<code class="cov-path">' + f.p + "</code>" +
+            '<span class="cov-loc">' + f.loc + "</span>" +
+            '<span class="cov-note">' + f.note + "</span>" +
+            '<span class="cov-go" aria-hidden="true">→</span>';
+          list.appendChild(row);
+        });
+      });
+
+      /* 数字滚动（复用 fx.js 的思路，deep 页不载 fx）：进入视口后从 0 滚到位 */
+      var nums = document.querySelectorAll("#mod-g [data-gc]");
+      function runNum(el) {
+        var target = parseInt(el.getAttribute("data-gc"), 10) || 0;
+        if (window.PrefersReducedMotion === true) { el.textContent = target; return; }
+        var t0 = null, DUR = 900;
+        requestAnimationFrame(function step(t) {
+          if (!t0) t0 = t;
+          var k = Math.min(1, (t - t0) / DUR);
+          el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+          if (k < 1) requestAnimationFrame(step);
+        });
+      }
+      if ("IntersectionObserver" in window && window.PrefersReducedMotion !== true) {
+        var io = new IntersectionObserver(function (es) {
+          es.forEach(function (en) {
+            if (en.isIntersecting) { runNum(en.target); io.unobserve(en.target); }
+          });
+        }, { threshold: 0.4 });
+        nums.forEach ? nums.forEach(function (n) { io.observe(n); })
+          : Array.prototype.forEach.call(nums, function (n) { io.observe(n); });
+        /* 条形动画同场加映：vis 类触发 width 过渡 */
+        var barIO = new IntersectionObserver(function (es) {
+          es.forEach(function (en) {
+            if (en.isIntersecting) {
+              en.target.classList.add("go");
+              Array.prototype.forEach.call(list.querySelectorAll(".cov-bar b"), function (b, idx) {
+                setTimeout(function () { b.style.opacity = "1"; }, 60 * idx);
+              });
+              barIO.disconnect();
+            }
+          });
+        }, { threshold: 0.15 });
+        barIO.observe(list);
+      } else {
+        Array.prototype.forEach.call(nums, function (n) { n.textContent = n.getAttribute("data-gc"); });
+      }
+
+      /* 过滤：命中行亮，其余暗化；组头无可见行时也暗化 */
+      q.addEventListener("input", function () {
+        var v = q.value.trim().toLowerCase();
+        var groups = list.querySelectorAll(".cov-head");
+        var rows = list.querySelectorAll(".cov-row");
+        Array.prototype.forEach.call(rows, function (row, i) {
+          var hit = !v || row.textContent.toLowerCase().indexOf(v) !== -1;
+          row.classList.toggle("dim", !hit);
+        });
+        Array.prototype.forEach.call(groups, function (headEl) {
+          var any = false, next = headEl.nextElementSibling;
+          while (next && next.classList.contains("cov-row")) {
+            if (!next.classList.contains("dim")) { any = true; break; }
+            next = next.nextElementSibling;
+          }
+          headEl.classList.toggle("dim", v && !any);
+        });
+        try {
+          if (v) history.replaceState(null, "", location.pathname + "?cov=" + encodeURIComponent(v) + location.hash);
+          else history.replaceState(null, "", location.pathname + location.hash);
+        } catch (e) { /* 忽略 */ }
+      });
+      var cm = /[?&]cov=([^&]+)/.exec(location.search);
+      if (cm) {
+        try { q.value = decodeURIComponent(cm[1]); } catch (e) {}
+        q.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    })();
+    </script>
+
     <section class="panel" style="margin-top:26px;">
       <div id="quiz"></div>
     </section>
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名；hooks 事件轴的 8 个事件名为固定提交下 events/ 目录实测，事件语义为本站归纳。F 房 Code Mode 的双模式对比是<b>本站推演的形状示意</b>——上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。基线 openai/codex@343074d4。
+      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名；hooks 事件轴的 8 个事件名为固定提交下 events/ 目录实测，事件语义为本站归纳。F 房 Code Mode 的双模式对比是<b>本站推演的形状示意</b>——上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。G 房台账逐行对应全站各页的 src-loc 标注，文件数与 crate 数由此清点；「还没拆的」名单来自已切片源码中的类型引用与目录树，不构成对上游结构的完整枚举。基线 openai/codex@343074d4。
     </aside>
 
   </main>
@@ -1876,7 +2121,8 @@ window.CATOUR_STEPS = [
   { sel: "#mod-c", title: "C · 补丁解剖台", text: "补丁文本可以直接改。应用成功看红绿行，弄坏了读拒绝理由——那正是解析器的校验顺序。" },
   { sel: "#mod-d", title: "D · TUI 后台", text: "播放一段对话，点任意一格看驱动它的事件；下面还有斜杠命令面板。" },
   { sel: "#mod-e", title: "E · 扩展机制", text: "挂点卡与主干管线互相指。下方 hooks 事件轴有 8 个实测事件名，逐个点着看挂点。" },
-  { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" }
+  { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" },
+  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：36 个文件、13 个 crate 逐行拆过，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
 ];
 </script>
 

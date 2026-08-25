@@ -92,7 +92,7 @@ html[data-theme="light"] .btn.primary {
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; color-scheme: dark; }
+html { color-scheme: dark; }   /* 全局 smooth 锚滚动已移除：万尺长页上会中途力竭卡死，锚定位必须即时可靠 */
 [id] { scroll-margin-top: 24px; }
 body {
   margin: 0;
