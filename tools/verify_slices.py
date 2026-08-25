@@ -147,6 +147,8 @@ def check_slice(page, loc_text, code_html, sha, results):
                         "status": "NO-PATH"})
         return
     first_a, last_a = anchors(code_html)
+    all_starts = [r[1] for r in ranges if r[1] is not None]
+    all_ends = [r[2] for r in ranges if r[2] is not None]
     prev_path = ""
     for path, start, end in ranges:
         full = path
