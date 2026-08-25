@@ -249,7 +249,7 @@
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -379,7 +379,7 @@
       </p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · workspace_write() 可写白名单的装配</summary>
-        <pre><span class="src-loc">codex-rs/protocol/src/permissions.rs :746-779 · @343074d4 实测（截取）</span>
+        <pre><span class="src-loc">codex-rs/protocol/src/permissions.rs :746-779 · @cbfd999 实测（截取）</span>
 <span class="src-code">pub fn workspace_write(
     writable_roots: &amp;[AbsolutePathBuf],
     exclude_tmpdir_env_var: bool,
@@ -481,7 +481,7 @@
       <p class="small muted" style="margin:10px 0 0;">MCP 侧的管家叫 McpManager：工具目录是两级缓存（运行时连接的工具 + 全量目录），注册来源是 plugins 与 extensions 两套体系——固定提交恰好就是给这套体系加「运行时连接状态上报」。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · McpManager 结构与两级缓存</summary>
-        <pre><span class="src-loc">codex-rs/core/src/mcp.rs :72-101 · @343074d4 实测（构造体省略赋值体）</span>
+        <pre><span class="src-loc">codex-rs/core/src/mcp.rs :72-101 · @cbfd999 实测（构造体省略赋值体）</span>
 <span class="src-code">#[derive(Clone)]
 pub struct McpManager {
     plugins_manager: Arc&lt;PluginsManager&gt;,
@@ -518,7 +518,7 @@ impl McpManager {
       <p class="small muted" style="margin:10px 0 0;">管理器下面是传输层：连一台 MCP 服务器有三种「配方」——进程内、本地子进程、可流式 HTTP。HTTP 那条最重：OAuth 凭据、钥匙串、重定向策略、握手截止时间全挂在配方上。握手超时的实现是个 RAII 守卫，守卫一死（Drop），截止时间即清空。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · 三种传输配方与握手截止守卫</summary>
-        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :142-175 · @343074d4 实测（部分变体字段省略）</span>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :142-175 · @cbfd999 实测（部分变体字段省略）</span>
 <span class="src-code">#[derive(Clone)]
 enum TransportRecipe {
     InProcess {
@@ -551,7 +551,7 @@ impl Drop for InitializeDeadlineGuard {
       <p class="small muted" style="margin:10px 0 0;">HTTP 路径上还有一段反方向的故事：MCP 服务器可以在工具执行中途反过来向你提问（elicitation）——要么是 MCP 标准的结构化输入，要么是一张 OpenAI 风格的表单。关键在计时：你思考的每一秒都不算进操作超时。提问挂起期间秒表停摆，答案一到、守卫析构，时钟接着走。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · 服务器反向提问时，超时秒表是怎么停的</summary>
-        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :297-305 与 src/elicitation_client_service.rs :74-85 · @343074d4 实测（原文拼接，缩进压平）</span>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :297-305 与 src/elicitation_client_service.rs :74-85 · @cbfd999 实测（原文拼接，缩进压平）</span>
 <span class="src-code">pub enum Elicitation {
     Mcp(ElicitRequestParams),
     OpenAiForm {
@@ -598,7 +598,7 @@ async fn create_elicitation(
       </p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · 免审批白名单是 Starlark 规则驱动的</summary>
-        <pre><span class="src-loc">codex-rs/execpolicy/src/policy.rs :104-126 · @343074d4 实测</span>
+        <pre><span class="src-loc">codex-rs/execpolicy/src/policy.rs :104-126 · @cbfd999 实测</span>
 <span class="src-code">pub fn get_allowed_prefixes(&amp;self) -&gt; Vec&lt;Vec&lt;String&gt;&gt; {
     let mut prefixes = Vec::new();
 
@@ -710,7 +710,7 @@ async fn create_elicitation(
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @343074d4，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @cbfd999，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
       审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以 <a href="https://developers.openai.com/codex/config-reference" target="_blank" rel="noopener">config-reference</a> 为准（仓库 docs/config.md 在固定提交下只是指路页）。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>）与「CLI 旗标覆盖配置文件」的优先级同出该参考；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
@@ -730,7 +730,7 @@ async fn create_elicitation(
     linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
             note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
     win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
-            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @343074d4 没把它列进 workspace members——构建上暂未启用。实现位置随版本演进，所以本站锁基线，换一个提交就得重查。" }
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @cbfd999 没把它列进 workspace members——构建上暂未启用。实现位置随版本演进，所以本站锁基线，换一个提交就得重查。" }
   };
 
   /* v: ro / ww / full 三模式的判定。cond = 条件放行 */

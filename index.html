@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
 <title>CODEX ATLAS · openai/codex 源码交互图鉴</title>
-<meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、135 个 crate 图谱，全部可以上手操作。非官方中文学习站。">
+<meta name="description" content="把开源的 Codex CLI 拆到事件级：Agent 循环、Prompt 组装、沙箱权限、App Server 协议、136 个 crate 图谱，全部可以上手操作。非官方中文学习站。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
 <meta property="og:title" content="CODEX ATLAS · openai/codex 源码交互图鉴">
-<meta property="og:description" content="把 Codex CLI 拆到事件级：单步走完 Agent 循环、逐层搭出模型请求、现场判定沙箱权限、放一遍协议报文、翻 135 个 crate 的图谱。">
+<meta property="og:description" content="把 Codex CLI 拆到事件级：单步走完 Agent 循环、逐层搭出模型请求、现场判定沙箱权限、放一遍协议报文、翻 136 个 crate 的图谱。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -39,7 +39,7 @@
     <a class="rail-ch" href="labs/deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
   <div class="rail-foot">
-    基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关
+    基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关
   </div>
 </nav>
 
@@ -62,10 +62,10 @@
   <main class="container" id="main">
 
     <div class="status-strip">
-      <span><i class="dot"></i>上游基线 @343074d4（2026-08-22）</span>
+      <span><i class="dot"></i>上游基线 @cbfd999（2026-08-22）</span>
       <span>Apache-2.0 开源</span>
-      <span>★ <b data-count="111904">111,904</b></span>
-      <span>codex-rs 工作区实测 <b data-count="135">135</b> crate</span>
+      <span>★ <b data-count="117127">117,127</b></span>
+      <span>codex-rs 工作区实测 <b data-count="136">136</b> crate</span>
     </div>
 
     <!-- 主视觉 -->
@@ -76,7 +76,7 @@
       <p class="lede">
         Codex CLI 的核心代码是开源的，但一万多个提交不会自己解释自己。这个站把五条主干线路
         做成了能上手的仪器：单步走完一轮 Agent 循环，逐层搭出一次模型请求，
-        切换沙箱模式看权限判定，放一遍客户端协议报文，翻 135 个 crate 的分层图谱。
+        切换沙箱模式看权限判定，放一遍客户端协议报文，翻 136 个 crate 的分层图谱。
       </p>
       <p class="small muted" style="margin-top:8px;">
         左边那排编号就是目录：00 总览，01–05 五条线路，06 术语速查，07 深水区支线。
@@ -275,7 +275,7 @@
       <div class="panel">
         <div class="panel-title">
           <h3><span style="font-family:var(--mono);color:var(--amber);font-size:13px;margin-right:10px;">05</span>Crate 图谱</h3>
-          <span class="readout">135 crate · 9 带 · 检索高亮<span class="qp-chip" data-qp="atlas.html"></span></span>
+          <span class="readout">136 crate · 9 带 · 检索高亮<span class="qp-chip" data-qp="atlas.html"></span></span>
         </div>
         <div class="vig" aria-hidden="true">
           <div class="vig-ribbon">
@@ -287,7 +287,7 @@
             <b></b>
           </div>
         </div>
-        <p style="margin-bottom:12px;">想读某个功能的实现，该从哪个 crate 下手？135 个工作区成员分成九条功能带：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持按名字检索高亮。</p>
+        <p style="margin-bottom:12px;">想读某个功能的实现，该从哪个 crate 下手？136 个工作区成员分成九条功能带：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持按名字检索高亮。</p>
         <p class="small muted">成员名单取自固定提交下的 codex-rs/Cargo.toml，可直接复核；分带是本站归纳，不是上游分类。</p>
         <p style="margin:14px 0 0;"><a class="btn" href="labs/atlas.html">进入 05 →</a></p>
       </div>
@@ -362,8 +362,8 @@
     <!-- 证据边界 -->
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      上游基线固定为 openai/codex main 分支提交 <a href="https://github.com/openai/codex/commit/343074d4207d572809bd8cea15f4be1d09d98e0b" target="_blank" rel="noopener"><code>343074d4207d572809bd8cea15f4be1d09d98e0b</code></a>（2026-08-22，"Report runtime MCP connection status"）。星标数与 crate 数为该日经 GitHub API 实测；上游持续变化，数字以固定提交为准。
-      内容来源分三类：① <a href="https://github.com/openai/codex/blob/343074d4207d572809bd8cea15f4be1d09d98e0b/codex-rs/Cargo.toml" target="_blank" rel="noopener">仓库文件与 Cargo.toml 成员名单</a>，可自行复核；② OpenAI 官方博客《Unrolling the Codex agent loop》与《Unlocking the Codex harness》；③ 社区源码研究（wineandchord 逐函数分析等），仅作交叉参考。
+      上游基线固定为 openai/codex main 分支提交 <a href="https://github.com/openai/codex/commit/cbfd999db78cb088d2bd89b52051efe6f44555a4" target="_blank" rel="noopener"><code>cbfd999db78cb088d2bd89b52051efe6f44555a4</code></a>（2026-08-25，"Add hooks for interrupted turns (#40511)"）。星标数与 crate 数为该日经 GitHub API 实测；上游持续变化，数字以固定提交为准。
+      内容来源分三类：① <a href="https://github.com/openai/codex/blob/cbfd999db78cb088d2bd89b52051efe6f44555a4/codex-rs/Cargo.toml" target="_blank" rel="noopener">仓库文件与 Cargo.toml 成员名单</a>，可自行复核；② OpenAI 官方博客《Unrolling the Codex agent loop》与《Unlocking the Codex harness》；③ 社区源码研究（wineandchord 逐函数分析等），仅作交叉参考。
       凡属推断或示意，页面内均就地标注。本站是非官方学习项目，与 OpenAI 无隶属关系；发现事实错误请提 issue 指出具体页面与依据。
     </aside>
 

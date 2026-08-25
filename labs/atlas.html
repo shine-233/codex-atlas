@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101418">
-<title>05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS</title>
-<meta name="description" content="openai/codex 固定提交下 codex-rs 工作区的 135 个成员，按九条功能带分层陈列：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持检索高亮。">
+<title>05 Crate 图谱 · 136 个成员的九条功能带 — CODEX ATLAS</title>
+<meta name="description" content="openai/codex 固定提交下 codex-rs 工作区的 136 个成员，按九条功能带分层陈列：入口、核心引擎、工具执行、沙箱安全、模型连接、协议接入、扩展生态、云协作、基础设施。支持检索高亮。">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101418'/%3E%3Cpath d='M7 9l8 7-8 7' stroke='%23ffb454' stroke-width='2.6' fill='none'/%3E%3Cpath d='M17 23h9' stroke='%238fc7e8' stroke-width='2.6'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CODEX ATLAS">
-<meta property="og:title" content="05 Crate 图谱 · 135 个成员的九条功能带 — CODEX ATLAS">
-<meta property="og:description" content="135 个工作区成员排成九条功能带，带间动线图标出读源码的先后顺序；支持按名字检索高亮，名单可在固定提交下复核。">
+<meta property="og:title" content="05 Crate 图谱 · 136 个成员的九条功能带 — CODEX ATLAS">
+<meta property="og:description" content="136 个工作区成员排成九条功能带，带间动线图标出读源码的先后顺序；支持按名字检索高亮，名单可在固定提交下复核。">
 <meta property="og:url" content="https://shine-233.github.io/codex-atlas/labs/atlas.html">
 <meta property="og:image" content="https://shine-233.github.io/codex-atlas/assets/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -233,7 +233,7 @@
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -255,7 +255,7 @@
   <main class="container" id="main">
 
     <div class="status-strip">
-      <span><i class="dot"></i>成员名单实测于固定提交 @343074d4</span>
+      <span><i class="dot"></i>成员名单实测于固定提交 @cbfd999</span>
       <span>分带是本站归纳，非上游分类</span>
       <span>可对照 codex-rs/Cargo.toml 复核</span>
     </div>
@@ -263,9 +263,9 @@
     <header style="padding-top:16px;">
       <div class="miniscope" id="miniscope" aria-hidden="true"></div>
       <p class="eyebrow"><span class="tick">▮</span>05 CRATE 图谱</p>
-      <h1>135 个 crate，<br>九条功能带，一张地图。</h1>
+      <h1>136 个 crate，<br>九条功能带，一张地图。</h1>
       <p class="lede">
-        读大仓库最怕迷路。这份图谱把固定提交下 codex-rs 工作区的全部 135 个成员按职责排成九条带：
+        读大仓库最怕迷路。这份图谱把固定提交下 codex-rs 工作区的全部 136 个成员按职责排成九条带：
         想读某个功能的实现，先在图上找到它的位置和邻居，再点进去。
         支持按名字检索；每一条成员名都能回 Cargo.toml 复核。
       </p>
@@ -274,20 +274,20 @@
     <section class="panel hot" style="margin-top:30px;">
       <div class="panel-title">
         <h3>ATLAS INDEX · 检索与定位</h3>
-        <span class="readout">共 <b>135</b> 成员 · <b>9</b> 带</span>
+        <span class="readout">共 <b>136</b> 成员 · <b>9</b> 带</span>
       </div>
 
       <div class="search-row">
         <input type="text" id="q" class="search-box"
                 placeholder="搜 crate 名或功能词：沙箱 / 记忆 / core / mcp …（Esc 清除）"
                aria-label="检索 crate 名称">
-        <span class="match-readout" id="match-out">匹配 <b>135</b> / 135</span>
+        <span class="match-readout" id="match-out">匹配 <b>136</b> / 136</span>
       </div>
 
-      <div class="ribbon-note">PROPORTION · 段宽 = 该带成员数占比（合计 135）· 点段跳转</div>
+      <div class="ribbon-note">PROPORTION · 段宽 = 该带成员数占比（合计 136）· 点段跳转</div>
       <div class="ribbon" id="ribbon" role="img" aria-label="九条功能带的成员数量比例条"></div>
 
-      <div class="ribbon-note">READING PATH · 带间依赖动线 · 实线 = 调用方向 · 虚线 = 挂接 / 支撑 · 箭头上是实测跨带边数（814 条聚合）· 点节点跳到对应带</div>
+      <div class="ribbon-note">READING PATH · 带间依赖动线 · 实线 = 调用方向 · 虚线 = 挂接 / 支撑 · 箭头上是实测跨带边数（819 条聚合）· 点节点跳到对应带</div>
       <div class="loopmap" id="flowmap" role="img"
            aria-label="带间依赖动线示意：入口经协议接入进入核心引擎，核心向右调用工具执行与沙箱安全；模型连接与核心双向直连；扩展生态挂接核心，云协作挂在入口旁，基础设施支撑全部"></div>
 
@@ -304,11 +304,11 @@
       <div id="treemap" class="tm-wrap" hidden></div>
 
       <div id="galaxy" class="tm-wrap" hidden></div>
-      <p class="galaxy-cap" id="galaxy-cap" hidden>135 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。</b></p>
+      <p class="galaxy-cap" id="galaxy-cap" hidden>136 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。点选任意成员后，它的实测依赖会连成线框——琥珀是它依赖的，钢青是依赖它的（CA_DEPS 全量边表）。</b></p>
       <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
 
       <div id="force" class="tm-wrap" hidden></div>
-      <p class="galaxy-cap" id="force-cap" hidden><span id="force-edges"></span>每个圆点是一个 crate，半径按依赖数（入 + 出）画。布局由物理模拟实时算出：连线是弹簧，点与点互斥，拖任意一点，整张网跟着重新找平衡；滚轮 / 双指捏合缩放，双击复位；<b style="color:var(--dim);">悬停看名字和直接依赖，点击进下方注解卡。</b></p>
+      <p class="galaxy-cap" id="force-cap" hidden><span id="force-edges"></span>每个圆点是一个 crate，半径按被依赖数画。布局由物理模拟实时算出：连线是弹簧，点与点互斥，拖任意一点，整张网跟着重新找平衡；滚轮 / 双指捏合缩放，双击复位；<b style="color:var(--dim);">悬停看名字和直接依赖，点击进下方注解卡。</b></p>
       <div class="force-bar" id="force-bar" hidden>
         <span class="fb-chips" id="force-chips" role="group" aria-label="按带高亮"></span>
         <button class="btn" id="force-shake" type="button">↻ 摇一摇重排</button>
@@ -345,17 +345,17 @@
     <section>
       <h2>仓库全景：本站覆盖到哪一层</h2>
       <p class="muted small">
-        「135 个 crate」只是 openai/codex 仓库的一部分。这张树把固定提交下的顶层结构摊开：
+        「136 个 crate」只是 openai/codex 仓库的一部分。这张树把固定提交下的顶层结构摊开：
         <b style="color:var(--ink);">绿色 = 本站有仪器讲到</b>，灰色 = 站外，点绿节点直达对应线路。
         结构为示意，完整清单以固定提交下的仓库实况为准。
       </p>
       <div class="repo-tree" id="repo-tree">
         <details open>
-          <summary><code>openai/codex @ 343074d4</code><span class="cov cov-part">部分覆盖</span></summary>
+          <summary><code>openai/codex @ cbfd999</code><span class="cov cov-part">部分覆盖</span></summary>
           <ul>
             <li>
               <details open>
-                <summary><code>codex-rs/</code><span class="cov cov-yes">135 crate · 全覆盖</span></summary>
+                <summary><code>codex-rs/</code><span class="cov cov-yes">136 crate · 全覆盖</span></summary>
                 <ul>
                   <li><a href="loop.html"><code>core/</code><span class="cov cov-yes">队列对 · run_turn · 工具分发</span></a></li>
                   <li><a href="loop.html"><code>tui/</code><span class="cov cov-yes">终端界面 · 07D 房</span></a></li>
@@ -396,20 +396,20 @@
         </details>
       </div>
       <p class="small muted" style="margin:10px 0 0;">
-        覆盖粒度三级：crate 级（135 全注解）→ 文件级（五条主干线路上的关键路径）→ 函数级（循环体关键节点）。
+        覆盖粒度三级：crate 级（136 全注解）→ 文件级（五条主干线路上的关键路径）→ 函数级（循环体关键节点）。
         仓库内 SDK 是 Python 与 TypeScript（<code>sdk/</code> 目录），由 <code>generate-ts</code> 等工具从协议生成，04 有讲到机制本身。
-        2026-08-24 对上游复核：members 实测 135、本页引用路径全部存在（raw.githubusercontent @343074d4）。
+        2026-08-25 对上游复核：members 实测 136、本页引用路径全部存在（raw.githubusercontent @cbfd999）。
       </p>
     </section>
 
-    <!-- 实测依赖排行：823 条内部依赖边（爬自 135 份 Cargo.toml） -->
+    <!-- 实测依赖排行：829 条内部依赖边（爬自 136 份 Cargo.toml） -->
     <section class="panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>DEPENDENCY FACTS · 实测内部依赖排行</h3>
-        <span class="readout">135 crate · 814 条成员内边 · 2026-08-24 爬自固定提交</span>
+        <span class="readout">136 crate · 819 条成员内边 · 2026-08-25 爬自固定提交</span>
       </div>
       <p class="small muted" style="margin:0 0 14px;">
-        不是归纳，是数出来的：逐份抓取 135 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖（成员对成员 814 条；另有 9 条指向 chatgpt / message-history / windows-sandbox 三个非成员包）。
+        不是归纳，是数出来的：逐份抓取 136 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖（成员对成员 819 条；另有 10 条指向 chatgpt / message-history / windows-sandbox 三个非成员包）。
         点任意一行，检索框会帮你定位到那个 crate。
       </p>
       <div class="dep-grid">
@@ -425,18 +425,18 @@
       <p class="small muted" style="margin:12px 0 0;">
         读法：<code>protocol</code> 被 70 个 crate 依赖——「零业务语义的地基件」这句注解现在是数出来的；
         <code>core</code> 依赖 69 个内部 crate——第 2 带是吞噬整个工作区的大胃王；
-        另有 7 个零入度叶子 crate，没有任何人依赖它们。
+        另有 3 个零入度叶子 crate，没有任何人依赖它们。
       </p>
     </section>
 
-    <!-- 9×9 带邻接矩阵：814 条边的完整矩阵化 -->
+    <!-- 9×9 带邻接矩阵：819 条边的完整矩阵化 -->
     <section class="panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>BAND MATRIX · 9×9 实测邻接矩阵</h3>
-        <span class="readout">行 = 依赖方 · 列 = 被依赖方 · 全表合计 = 814</span>
+        <span class="readout">行 = 依赖方 · 列 = 被依赖方 · 全表合计 = 819</span>
       </div>
       <p class="small muted" style="margin:0 0 14px;">
-        依赖排行只给 TOP 12，这张矩阵是<b>全部 814 条边</b>的完整落位：对角线是带内依赖，
+        依赖排行只给 TOP 12，这张矩阵是<b>全部 819 条边</b>的完整落位：对角线是带内依赖，
         其余每格是行带依赖列带的边数。悬停放大，点击格子直接用该「行带 列带」组合检索。
       </p>
       <div class="mx9" id="mx9"></div>
@@ -448,7 +448,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      135 个成员名单逐项取自 openai/codex 固定提交 343074d4 的 <code>codex-rs/Cargo.toml</code> workspace members 字段（2026-08-22 经 GitHub API 实测），可在同一路径直接复核。九条带是<b>本站归纳</b>，不是上游分类；个别跨带成员（如 <code>login</code>）按主要职责归带。成员级注解依据仓库结构与官方博客撰写，未逐个核对源码实现细节——把注解当路标，别当代码评审。覆盖粒度：135 个工作区成员全部列出并逐条注解；文件级路径只在五条主干线路上给出；函数级仅覆盖循环体关键节点。上游快速演进中，数字以固定提交为准。
+      136 个成员名单逐项取自 openai/codex 固定提交 cbfd999 的 <code>codex-rs/Cargo.toml</code> workspace members 字段（2026-08-25 经 GitHub API 实测），可在同一路径直接复核。九条带是<b>本站归纳</b>，不是上游分类；个别跨带成员（如 <code>login</code>）按主要职责归带。成员级注解依据仓库结构与官方博客撰写，未逐个核对源码实现细节——把注解当路标，别当代码评审。覆盖粒度：136 个工作区成员全部列出并逐条注解；文件级路径只在五条主干线路上给出；函数级仅覆盖循环体关键节点。上游快速演进中，数字以固定提交为准。
     </aside>
 
   </main>
@@ -461,9 +461,9 @@
 (function () {
   "use strict";
 
-  /* 九条功能带：成员为固定提交 @343074d4 实测名单 */
-var CA_DEPS = {"analytics":["app-server-protocol","git-utils","login","model-provider","plugin","protocol","state","utils/absolute-path"],"agent-graph-store":["protocol","state","utils/absolute-path"],"agent-identity":["http-client","protocol"],"backend-client":["codex-api","codex-backend-openapi-models","http-client","login","model-provider","protocol"],"build-info":["install-context"],"app-server":["ext/agent","analytics","app-server-protocol","app-server-transport","arg0","aws-auth","backend-client","cloud-config","code-mode","config","connectors","core","core-plugins","diagnostics","exec-server","ext/extension-api","external-agent-migration","features","feedback","file-search","file-watcher","ext/git-attribution","git-utils","ext/goal","ext/guardian-v2","ext/history-notes","codex-home","hooks","http-client","ext/image-generation","login","codex-mcp","ext/mcp","ext/memories","memories/write","model-provider","model-provider-info","models-manager","otel","plugin","protocol","ext/queue","rmcp-client","rollout","sandboxing","shell-command","skills","ext/skills","state","thread-store","tools","utils/absolute-path","utils/cargo-bin","utils/cli","utils/json-to-toml","utils/path-uri","utils/pty","ext/web-search"],"app-server-transport":["codex-api","app-server-protocol","config","core","login","model-provider","protocol","state","uds","utils/absolute-path","utils/rustls-provider"],"app-server-daemon":["app-server-protocol","app-server-transport","http-client","uds","utils/home-dir"],"app-server-client":["app-server","app-server-protocol","arg0","config","core","exec-server","feedback","protocol","uds","utils/absolute-path","utils/rustls-provider"],"app-server-protocol":["app-server-protocol-noop-macros","codex-experimental-api-macros","ext/items","history","protocol","rollout","secrets","shell-command","utils/absolute-path","utils/cargo-bin","utils/path-uri","utils/redacted-string"],"app-server-test-client":["app-server-protocol","core","otel","protocol","utils/cli"],"apply-patch":["exec-server","utils/absolute-path","utils/cargo-bin","utils/path-uri"],"arg0":["apply-patch","exec-server","install-context","linux-sandbox","sandboxing","shell-escalation","utils/absolute-path","utils/home-dir"],"feedback":["http-client","login","protocol"],"features":["otel","protocol"],"install-context":["utils/absolute-path","utils/home-dir"],"code-mode":["code-mode-protocol","http-client","install-context","protocol","websocket-client"],"code-mode-host":["code-mode","code-mode-protocol","code-mode-runtime","protocol","utils/cargo-bin"],"code-mode-protocol":["protocol"],"code-mode-runtime":["code-mode-protocol","protocol"],"codex-home":["ext/extension-api","utils/absolute-path"],"cloud-config":["agent-identity","backend-client","config","core","http-client","login","otel","protocol"],"cloud-tasks":["cloud-tasks-client","cloud-tasks-mock-client","core","git-utils","http-client","login","model-provider","tui","utils/cli"],"cloud-tasks-client":["codex-api","backend-client","git-utils","http-client"],"cloud-tasks-mock-client":["cloud-tasks-client"],"cli":["codex-api","app-server","app-server-daemon","app-server-protocol","app-server-test-client","arg0","cloud-config","cloud-tasks","config","core","core-plugins","exec","exec-server","execpolicy","ext/extension-api","features","ext/git-attribution","git-utils","history","codex-home","http-client","install-context","login","codex-mcp","mcp-server","memories/write","model-provider","models-manager","plugin","protocol","responses-api-proxy","rmcp-client","rollout","rollout-trace","sandboxing","ext/skills","state","stdio-to-uds","terminal-detection","thread-store","tui","utils/absolute-path","utils/cargo-bin","utils/cli","utils/path-utils"],"connectors":["config","login","otel","plugin","protocol"],"config":["execpolicy","features","file-system","git-utils","model-provider-info","network-proxy","protocol","utils/absolute-path","utils/path-utils","utils/path-uri","utils/redacted-string"],"context-fragments":["protocol","utils/string"],"shell-command":["protocol","utils/absolute-path"],"shell-escalation":["protocol","utils/absolute-path"],"skills":["protocol","shell-command","utils/absolute-path","utils/path-uri"],"core":["agent-graph-store","analytics","codex-api","app-server-protocol","apply-patch","async-utils","codex-client","code-mode","config","connectors","context-fragments","core-plugins","diagnostics","exec-server","exec-server/tests/support","execpolicy","ext/extension-api","ext/items","features","feedback","file-system","git-utils","history","codex-home","hooks","http-client","ext/image-generation","install-context","login","codex-mcp","memories/read","model-provider","model-provider-info","models-manager","network-proxy","otel","plugin","prompts","protocol","response-debug-context","rmcp-client","rollout","rollout-trace","sandboxing","shell-command","shell-escalation","skills","ext/skills","state","terminal-detection","test-binary-support","thread-store","tools","utils/absolute-path","utils/audio","utils/cache","utils/cargo-bin","utils/home-dir","utils/image","utils/output-truncation","utils/path-utils","utils/path-uri","utils/plugins","utils/pty","utils/redacted-string","utils/stream-parser","utils/string","ext/web-search"],"core-api":["analytics","app-server-protocol","arg0","config","core","exec-server","ext/extension-api","features","history","codex-home","ext/image-generation","login","model-provider-info","models-manager","protocol","state","utils/absolute-path"],"core-plugins":["analytics","app-server-protocol","config","connectors","exec-server","exec-server/tests/support","git-utils","hooks","http-client","login","codex-mcp","model-provider","otel","plugin","protocol","shell-command","skills","tools","utils/absolute-path","utils/path-utils","utils/path-uri","utils/plugins"],"hooks":["config","plugin","protocol","utils/absolute-path","utils/output-truncation","utils/path-uri","utils/pty"],"history":["protocol"],"http-client":["utils/cargo-bin","utils/rustls-provider"],"secrets":["git-utils","keyring-store"],"exec":["app-server-client","app-server-protocol","apply-patch","arg0","cloud-config","config","core","feedback","git-utils","history","login","model-provider-info","otel","protocol","utils/absolute-path","utils/cargo-bin","utils/cli","utils/oss","utils/sandbox-summary"],"file-system":["protocol","utils/absolute-path","utils/path-uri"],"exec-server-protocol":["file-system","network-proxy","protocol","shell-command","utils/path-uri"],"exec-server":["codex-api","config","exec-server-protocol","exec-server/tests/support","file-system","http-client","network-proxy","otel","protocol","sandboxing","shell-command","test-binary-support","utils/absolute-path","utils/home-dir","utils/path-uri","utils/pty","utils/rustls-provider","websocket-client"],"exec-server/tests/support":["exec-server","http-client"],"execpolicy":["utils/absolute-path"],"ext/agent":["core","protocol"],"ext/connectors":["connectors","core-plugins","file-system","plugin","utils/path-uri"],"ext/extension-api":["config","context-fragments","exec-server-protocol","codex-mcp","protocol","tools","utils/absolute-path","utils/path-uri"],"ext/goal":["analytics","core","ext/extension-api","otel","protocol","rollout","state","tools","utils/absolute-path","utils/template"],"ext/git-attribution":["backend-client","ext/extension-api","http-client","login"],"ext/guardian-v2":["codex-api","core","ext/extension-api","features","http-client","login","model-provider","model-provider-info","protocol"],"ext/history-notes":["codex-api","codex-client","config","core","ext/extension-api","login","model-provider","model-provider-info","protocol","tools","utils/output-truncation"],"ext/image-generation":["codex-api","core","exec-server","ext/extension-api","ext/items","login","model-provider","model-provider-info","protocol","tools","utils/absolute-path","utils/image","utils/path-uri"],"ext/items":["utils/absolute-path"],"ext/memories":["core","ext/extension-api","features","otel","tools","utils/absolute-path","utils/output-truncation","utils/template"],"ext/mcp":["config","connectors","ext/connectors","core","core-plugins","exec-server","ext/extension-api","features","login","codex-mcp","plugin","protocol","utils/absolute-path","utils/path-uri"],"ext/queue":["core","ext/extension-api","protocol","state","thread-store","utils/absolute-path"],"ext/skills":["analytics","config","exec-server","ext/extension-api","codex-mcp","models-manager","otel","protocol","skills","tools","utils/absolute-path","utils/cargo-bin","utils/path-uri","utils/plugins","utils/string"],"ext/web-search":["codex-api","core","ext/extension-api","ext/items","login","model-provider","model-provider-info","otel","protocol","tools"],"external-agent-migration":["analytics","app-server-protocol","config","core","core-plugins","hooks","login","memories/write","otel","plugin","protocol","rollout","thread-store","utils/output-truncation"],"linux-sandbox":["core","install-context","network-proxy","process-hardening","protocol","sandboxing","utils/absolute-path"],"lmstudio":["core","http-client","model-provider-info"],"login":["agent-identity","config","http-client","keyring-store","model-provider-info","otel","protocol","secrets","terminal-detection","utils/template","workload-identity"],"codex-mcp":["codex-api","async-utils","config","connectors","diagnostics","exec-server","exec-server/tests/support","login","model-provider","otel","plugin","protocol","rmcp-client","utils/path-uri","utils/plugins"],"mcp-server":["arg0","config","core","exec-server","ext/extension-api","features","ext/git-attribution","codex-home","ext/image-generation","login","otel","protocol","shell-command","ext/skills","utils/absolute-path","utils/cli","utils/json-to-toml"],"memories/read":["protocol","shell-command","utils/absolute-path"],"memories/write":["backend-client","config","core","features","git-utils","login","model-provider","model-provider-info","models-manager","otel","protocol","rollout","rollout-trace","secrets","state","terminal-detection","utils/absolute-path","utils/output-truncation","utils/template"],"model-provider-info":["codex-api","protocol","utils/absolute-path","utils/redacted-string"],"models-manager":["collaboration-mode-templates","http-client","login","otel","protocol","utils/output-truncation","utils/template"],"network-proxy":["utils/absolute-path","utils/home-dir","utils/rustls-provider"],"ollama":["core","http-client","model-provider-info"],"protocol":["async-utils","execpolicy","ext/items","http-client","network-proxy","utils/absolute-path","utils/image","utils/path-uri","utils/redacted-string","utils/string"],"prompts":["context-fragments","execpolicy","git-utils","protocol","utils/absolute-path","utils/template"],"rollout":["ext/items","file-search","git-utils","history","otel","protocol","state","utils/absolute-path","utils/path-utils"],"rollout-trace":["code-mode","protocol"],"rmcp-client":["codex-api","config","exec-server","http-client","keyring-store","network-proxy","protocol","secrets","utils/cargo-bin","utils/home-dir","utils/path-uri","utils/pty"],"responses-api-proxy":["process-hardening"],"response-debug-context":["codex-api"],"sandboxing":["network-proxy","protocol","utils/absolute-path","utils/home-dir","utils/path-uri","utils/pty"],"stdio-to-uds":["uds","utils/cargo-bin"],"otel":["codex-api","protocol","utils/absolute-path","utils/string"],"tui":["ansi-escape","app-server-client","app-server-protocol","arg0","cloud-config","config","connectors","core-plugins","exec-server","features","feedback","file-search","git-utils","history","http-client","install-context","login","codex-mcp","model-provider","model-provider-info","models-manager","otel","plugin","protocol","rollout","sandboxing","shell-command","state","terminal-detection","utils/absolute-path","utils/approval-presets","utils/cargo-bin","utils/cli","utils/elapsed","utils/fuzzy-match","utils/home-dir","utils/oss","utils/path-utils","utils/path-uri","utils/plugins","utils/sandbox-summary","utils/sleep-inhibitor","utils/string"],"tools":["code-mode","connectors","ext/items","features","file-system","protocol","utils/absolute-path","utils/cargo-bin","utils/output-truncation","utils/string"],"websocket-client":["http-client","utils/rustls-provider"],"workload-identity":["http-client"],"utils/audio":["protocol","utils/cache","utils/string"],"utils/path-uri":["utils/absolute-path"],"git-utils":["file-system","protocol","utils/absolute-path","utils/path-uri","utils/pty"],"utils/image":["utils/cache"],"utils/home-dir":["utils/absolute-path"],"utils/cli":["protocol","shell-command"],"utils/sandbox-summary":["protocol","utils/absolute-path"],"utils/approval-presets":["protocol"],"utils/oss":["core","lmstudio","model-provider-info","ollama"],"utils/output-truncation":["protocol","utils/string"],"utils/path-utils":["utils/absolute-path"],"utils/plugins":["exec-server","exec-server-protocol","utils/absolute-path","utils/path-uri"],"codex-client":["http-client"],"codex-api":["codex-client","http-client","protocol","utils/rustls-provider","websocket-client"],"state":["git-utils","history","protocol","utils/absolute-path"],"test-binary-support":["arg0"],"thread-manager-sample":["core-api"],"thread-store":["app-server-protocol","ext/items","git-utils","install-context","otel","protocol","rollout","state","utils/absolute-path","utils/path-utils","utils/path-uri"],"plugin":["config","protocol","utils/absolute-path","utils/path-uri","utils/plugins"],"model-provider":["agent-identity","codex-api","aws-auth","feedback","http-client","login","model-provider-info","models-manager","otel","protocol","response-debug-context","utils/redacted-string"]};
-var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider":15,"plugin":12,"protocol":70,"state":13,"utils/absolute-path":53,"http-client":28,"codex-api":16,"codex-backend-openapi-models":1,"install-context":8,"ext/agent":1,"analytics":7,"app-server-transport":2,"arg0":8,"aws-auth":2,"backend-client":5,"cloud-config":4,"code-mode":5,"config":24,"connectors":8,"core":25,"core-plugins":7,"diagnostics":3,"exec-server":17,"ext/extension-api":16,"external-agent-migration":1,"features":12,"feedback":6,"file-search":3,"file-watcher":1,"ext/git-attribution":3,"ext/goal":1,"ext/guardian-v2":1,"ext/history-notes":1,"codex-home":5,"hooks":4,"ext/image-generation":4,"codex-mcp":8,"ext/mcp":1,"ext/memories":1,"memories/write":3,"model-provider-info":16,"models-manager":8,"otel":23,"ext/queue":1,"rmcp-client":4,"rollout":9,"sandboxing":7,"shell-command":11,"skills":4,"ext/skills":4,"thread-store":5,"tools":10,"utils/cargo-bin":13,"utils/cli":7,"utils/json-to-toml":2,"utils/path-uri":25,"utils/pty":7,"ext/web-search":2,"uds":4,"utils/rustls-provider":7,"utils/home-dir":9,"app-server":2,"app-server-protocol-noop-macros":1,"codex-experimental-api-macros":1,"ext/items":8,"history":8,"secrets":4,"utils/redacted-string":6,"apply-patch":3,"linux-sandbox":1,"shell-escalation":2,"code-mode-protocol":3,"websocket-client":3,"code-mode-runtime":1,"agent-identity":3,"cloud-tasks-client":2,"cloud-tasks-mock-client":1,"tui":2,"app-server-daemon":1,"app-server-test-client":1,"cloud-tasks":1,"exec":1,"execpolicy":5,"mcp-server":1,"responses-api-proxy":1,"rollout-trace":3,"stdio-to-uds":1,"terminal-detection":5,"utils/path-utils":7,"file-system":7,"network-proxy":8,"utils/string":9,"agent-graph-store":1,"async-utils":3,"codex-client":3,"context-fragments":3,"exec-server/tests/support":4,"memories/read":1,"prompts":1,"response-debug-context":2,"test-binary-support":2,"utils/audio":1,"utils/cache":3,"utils/image":3,"utils/output-truncation":8,"utils/plugins":6,"utils/stream-parser":1,"keyring-store":3,"app-server-client":2,"utils/oss":2,"utils/sandbox-summary":2,"exec-server-protocol":3,"utils/template":6,"ext/connectors":1,"process-hardening":2,"workload-identity":1,"collaboration-mode-templates":1,"ansi-escape":1,"utils/approval-presets":1,"utils/elapsed":1,"utils/fuzzy-match":1,"utils/sleep-inhibitor":1,"lmstudio":1,"ollama":1,"core-api":1};
+  /* 九条功能带：成员为固定提交 @cbfd999 实测名单 */
+var CA_DEPS = {"agent-graph-store": ["protocol", "state", "utils/absolute-path"], "agent-identity": ["http-client", "protocol"], "agent-roles": ["config", "file-system", "utils/absolute-path", "utils/path-uri"], "analytics": ["app-server-protocol", "git-utils", "login", "model-provider", "plugin", "protocol", "state", "utils/absolute-path"], "app-server": ["analytics", "app-server-protocol", "app-server-transport", "arg0", "aws-auth", "backend-client", "cloud-config", "code-mode", "codex-home", "codex-mcp", "config", "connectors", "core", "core-plugins", "diagnostics", "exec-server", "ext/agent", "ext/extension-api", "ext/git-attribution", "ext/goal", "ext/guardian-v2", "ext/history-notes", "ext/image-generation", "ext/mcp", "ext/memories", "ext/queue", "ext/skills", "ext/web-search", "external-agent-migration", "features", "feedback", "file-search", "file-watcher", "git-utils", "hooks", "http-client", "login", "memories/write", "model-provider", "model-provider-info", "models-manager", "otel", "plugin", "protocol", "rmcp-client", "rollout", "sandboxing", "shell-command", "skills", "state", "thread-store", "tools", "utils/absolute-path", "utils/cargo-bin", "utils/cli", "utils/json-to-toml", "utils/path-uri", "utils/pty"], "app-server-client": ["app-server", "app-server-protocol", "arg0", "config", "core", "exec-server", "feedback", "protocol", "uds", "utils/absolute-path", "utils/rustls-provider"], "app-server-daemon": ["app-server-protocol", "app-server-transport", "http-client", "uds", "utils/home-dir"], "app-server-protocol": ["app-server-protocol-noop-macros", "codex-experimental-api-macros", "ext/items", "history", "protocol", "rollout", "secrets", "shell-command", "utils/absolute-path", "utils/cargo-bin", "utils/path-uri", "utils/redacted-string"], "app-server-test-client": ["app-server-protocol", "core", "otel", "protocol", "utils/cli"], "app-server-transport": ["app-server-protocol", "codex-api", "config", "core", "login", "model-provider", "protocol", "state", "uds", "utils/absolute-path", "utils/rustls-provider"], "apply-patch": ["exec-server", "utils/absolute-path", "utils/cargo-bin", "utils/path-uri"], "arg0": ["apply-patch", "exec-server", "install-context", "linux-sandbox", "sandboxing", "shell-escalation", "utils/absolute-path", "utils/home-dir"], "backend-client": ["codex-api", "codex-backend-openapi-models", "http-client", "login", "model-provider", "protocol"], "build-info": ["install-context"], "cli": ["app-server", "app-server-daemon", "app-server-protocol", "app-server-test-client", "arg0", "cloud-config", "cloud-tasks", "codex-api", "codex-home", "codex-mcp", "config", "core", "core-plugins", "exec", "exec-server", "execpolicy", "ext/extension-api", "ext/git-attribution", "ext/skills", "features", "git-utils", "history", "http-client", "install-context", "login", "mcp-server", "memories/write", "model-provider", "models-manager", "plugin", "protocol", "responses-api-proxy", "rmcp-client", "rollout", "rollout-trace", "sandboxing", "state", "stdio-to-uds", "terminal-detection", "thread-store", "tui", "utils/absolute-path", "utils/cargo-bin", "utils/cli", "utils/path-utils"], "cloud-config": ["agent-identity", "backend-client", "config", "core", "http-client", "login", "otel", "protocol"], "cloud-tasks": ["cloud-tasks-client", "cloud-tasks-mock-client", "core", "git-utils", "http-client", "login", "model-provider", "tui", "utils/cli"], "cloud-tasks-client": ["backend-client", "codex-api", "git-utils", "http-client"], "cloud-tasks-mock-client": ["cloud-tasks-client"], "code-mode": ["code-mode-protocol", "http-client", "install-context", "protocol", "websocket-client"], "code-mode-host": ["code-mode", "code-mode-protocol", "code-mode-runtime", "protocol", "utils/cargo-bin"], "code-mode-protocol": ["protocol"], "code-mode-runtime": ["code-mode-protocol", "protocol"], "codex-api": ["codex-client", "http-client", "protocol", "utils/rustls-provider", "websocket-client"], "codex-client": ["http-client"], "codex-home": ["ext/extension-api", "utils/absolute-path"], "codex-mcp": ["async-utils", "codex-api", "config", "connectors", "diagnostics", "exec-server", "exec-server/tests/support", "login", "model-provider", "otel", "plugin", "protocol", "rmcp-client", "utils/path-uri", "utils/plugins"], "config": ["execpolicy", "features", "file-system", "git-utils", "model-provider-info", "network-proxy", "protocol", "utils/absolute-path", "utils/path-uri", "utils/path-utils", "utils/redacted-string"], "connectors": ["config", "login", "otel", "plugin", "protocol"], "context-fragments": ["protocol", "utils/string"], "core": ["agent-graph-store", "agent-roles", "analytics", "app-server-protocol", "apply-patch", "async-utils", "code-mode", "codex-api", "codex-client", "codex-home", "codex-mcp", "config", "connectors", "context-fragments", "core-plugins", "diagnostics", "exec-server", "exec-server/tests/support", "execpolicy", "ext/extension-api", "ext/image-generation", "ext/items", "ext/skills", "ext/web-search", "features", "feedback", "file-system", "git-utils", "history", "hooks", "http-client", "install-context", "login", "memories/read", "model-provider", "model-provider-info", "models-manager", "network-proxy", "otel", "plugin", "prompts", "protocol", "response-debug-context", "rmcp-client", "rollout", "rollout-trace", "sandboxing", "shell-command", "shell-escalation", "skills", "state", "terminal-detection", "test-binary-support", "thread-store", "tools", "utils/absolute-path", "utils/audio", "utils/cache", "utils/cargo-bin", "utils/home-dir", "utils/image", "utils/output-truncation", "utils/path-uri", "utils/path-utils", "utils/plugins", "utils/pty", "utils/redacted-string", "utils/stream-parser", "utils/string"], "core-api": ["analytics", "app-server-protocol", "arg0", "codex-home", "config", "core", "exec-server", "ext/extension-api", "ext/image-generation", "features", "history", "login", "model-provider-info", "models-manager", "protocol", "state", "utils/absolute-path"], "core-plugins": ["analytics", "app-server-protocol", "codex-mcp", "config", "connectors", "exec-server", "exec-server/tests/support", "git-utils", "hooks", "http-client", "login", "model-provider", "otel", "plugin", "protocol", "shell-command", "skills", "tools", "utils/absolute-path", "utils/path-uri", "utils/path-utils", "utils/plugins"], "exec": ["app-server-client", "app-server-protocol", "apply-patch", "arg0", "cloud-config", "config", "core", "feedback", "git-utils", "history", "login", "model-provider-info", "otel", "protocol", "utils/absolute-path", "utils/cargo-bin", "utils/cli", "utils/oss", "utils/sandbox-summary"], "exec-server": ["codex-api", "config", "exec-server-protocol", "exec-server/tests/support", "file-system", "http-client", "network-proxy", "otel", "protocol", "sandboxing", "shell-command", "test-binary-support", "utils/absolute-path", "utils/home-dir", "utils/path-uri", "utils/pty", "utils/rustls-provider", "websocket-client"], "exec-server-protocol": ["file-system", "network-proxy", "protocol", "shell-command", "utils/path-uri"], "exec-server/tests/support": ["exec-server", "http-client"], "execpolicy": ["utils/absolute-path"], "ext/agent": ["core", "protocol"], "ext/connectors": ["connectors", "core-plugins", "file-system", "plugin", "utils/path-uri"], "ext/extension-api": ["codex-mcp", "config", "context-fragments", "exec-server-protocol", "protocol", "tools", "utils/absolute-path", "utils/path-uri"], "ext/git-attribution": ["backend-client", "ext/extension-api", "http-client", "login"], "ext/goal": ["analytics", "core", "ext/extension-api", "otel", "protocol", "rollout", "state", "tools", "utils/absolute-path", "utils/template"], "ext/guardian-v2": ["codex-api", "core", "ext/extension-api", "features", "http-client", "login", "model-provider", "model-provider-info", "protocol"], "ext/history-notes": ["codex-api", "codex-client", "config", "core", "ext/extension-api", "login", "model-provider", "model-provider-info", "protocol", "tools", "utils/output-truncation"], "ext/image-generation": ["codex-api", "core", "exec-server", "ext/extension-api", "ext/items", "login", "model-provider", "model-provider-info", "protocol", "tools", "utils/absolute-path", "utils/image", "utils/path-uri"], "ext/items": ["utils/absolute-path"], "ext/mcp": ["codex-mcp", "config", "connectors", "core", "core-plugins", "exec-server", "ext/connectors", "ext/extension-api", "features", "login", "plugin", "protocol", "utils/absolute-path", "utils/path-uri"], "ext/memories": ["core", "ext/extension-api", "features", "otel", "tools", "utils/absolute-path", "utils/output-truncation", "utils/template"], "ext/queue": ["core", "ext/extension-api", "protocol", "state", "thread-store", "utils/absolute-path"], "ext/skills": ["analytics", "codex-mcp", "config", "exec-server", "ext/extension-api", "models-manager", "otel", "protocol", "skills", "tools", "utils/absolute-path", "utils/cargo-bin", "utils/path-uri", "utils/plugins", "utils/string"], "ext/web-search": ["codex-api", "core", "ext/extension-api", "ext/items", "login", "model-provider", "model-provider-info", "otel", "protocol", "tools"], "external-agent-migration": ["analytics", "app-server-protocol", "config", "core", "core-plugins", "hooks", "login", "memories/write", "otel", "plugin", "protocol", "rollout", "thread-store", "utils/output-truncation"], "features": ["otel", "protocol"], "feedback": ["http-client", "login", "protocol"], "file-system": ["protocol", "utils/absolute-path", "utils/path-uri"], "git-utils": ["file-system", "protocol", "utils/absolute-path", "utils/path-uri", "utils/pty"], "history": ["protocol"], "hooks": ["config", "plugin", "protocol", "utils/absolute-path", "utils/output-truncation", "utils/path-uri", "utils/pty"], "http-client": ["utils/cargo-bin", "utils/rustls-provider"], "install-context": ["utils/absolute-path", "utils/home-dir"], "linux-sandbox": ["core", "install-context", "network-proxy", "process-hardening", "protocol", "sandboxing", "utils/absolute-path"], "lmstudio": ["core", "http-client", "model-provider-info"], "login": ["agent-identity", "config", "http-client", "keyring-store", "model-provider-info", "otel", "protocol", "secrets", "terminal-detection", "utils/template", "workload-identity"], "mcp-server": ["arg0", "codex-home", "config", "core", "exec-server", "ext/extension-api", "ext/git-attribution", "ext/image-generation", "ext/skills", "features", "login", "otel", "protocol", "shell-command", "utils/absolute-path", "utils/cli", "utils/json-to-toml"], "memories/read": ["protocol", "shell-command", "utils/absolute-path"], "memories/write": ["backend-client", "config", "core", "features", "git-utils", "login", "model-provider", "model-provider-info", "models-manager", "otel", "protocol", "rollout", "rollout-trace", "secrets", "state", "terminal-detection", "utils/absolute-path", "utils/output-truncation", "utils/template"], "model-provider": ["agent-identity", "aws-auth", "codex-api", "feedback", "http-client", "login", "model-provider-info", "models-manager", "otel", "protocol", "response-debug-context", "utils/redacted-string"], "model-provider-info": ["codex-api", "protocol", "utils/absolute-path", "utils/redacted-string"], "models-manager": ["collaboration-mode-templates", "http-client", "login", "otel", "protocol", "utils/output-truncation", "utils/template"], "network-proxy": ["utils/absolute-path", "utils/home-dir", "utils/rustls-provider"], "ollama": ["core", "http-client", "model-provider-info"], "otel": ["codex-api", "protocol", "utils/absolute-path", "utils/string"], "plugin": ["config", "protocol", "utils/absolute-path", "utils/path-uri", "utils/plugins"], "prompts": ["context-fragments", "execpolicy", "git-utils", "protocol", "utils/absolute-path", "utils/template"], "protocol": ["async-utils", "execpolicy", "ext/items", "http-client", "network-proxy", "utils/absolute-path", "utils/image", "utils/path-uri", "utils/redacted-string", "utils/string"], "response-debug-context": ["codex-api"], "responses-api-proxy": ["process-hardening"], "rmcp-client": ["codex-api", "config", "exec-server", "http-client", "keyring-store", "network-proxy", "protocol", "secrets", "utils/cargo-bin", "utils/home-dir", "utils/path-uri", "utils/pty"], "rollout": ["ext/items", "file-search", "git-utils", "history", "otel", "protocol", "state", "utils/absolute-path", "utils/path-utils"], "rollout-trace": ["code-mode", "protocol"], "sandboxing": ["network-proxy", "protocol", "utils/absolute-path", "utils/home-dir", "utils/path-uri", "utils/pty"], "secrets": ["git-utils", "keyring-store"], "shell-command": ["protocol", "utils/absolute-path"], "shell-escalation": ["protocol", "utils/absolute-path"], "skills": ["protocol", "shell-command", "utils/absolute-path", "utils/path-uri"], "state": ["git-utils", "history", "protocol", "utils/absolute-path"], "stdio-to-uds": ["uds", "utils/cargo-bin"], "test-binary-support": ["arg0"], "thread-manager-sample": ["core-api"], "thread-store": ["app-server-protocol", "ext/items", "git-utils", "install-context", "otel", "protocol", "rollout", "state", "utils/absolute-path", "utils/path-uri", "utils/path-utils"], "tools": ["code-mode", "connectors", "ext/items", "features", "file-system", "protocol", "utils/absolute-path", "utils/cargo-bin", "utils/output-truncation", "utils/string"], "tui": ["ansi-escape", "app-server-client", "app-server-protocol", "arg0", "cloud-config", "codex-mcp", "config", "connectors", "core-plugins", "exec-server", "features", "feedback", "file-search", "git-utils", "history", "http-client", "install-context", "login", "model-provider", "model-provider-info", "models-manager", "otel", "plugin", "protocol", "rollout", "sandboxing", "shell-command", "state", "terminal-detection", "utils/absolute-path", "utils/approval-presets", "utils/cargo-bin", "utils/cli", "utils/elapsed", "utils/fuzzy-match", "utils/home-dir", "utils/oss", "utils/path-uri", "utils/path-utils", "utils/plugins", "utils/sandbox-summary", "utils/sleep-inhibitor", "utils/string"], "utils/approval-presets": ["protocol"], "utils/audio": ["protocol", "utils/cache", "utils/string"], "utils/cli": ["protocol", "shell-command"], "utils/home-dir": ["utils/absolute-path"], "utils/image": ["utils/cache"], "utils/oss": ["core", "lmstudio", "model-provider-info", "ollama"], "utils/output-truncation": ["protocol", "utils/string"], "utils/path-uri": ["utils/absolute-path"], "utils/path-utils": ["utils/absolute-path"], "utils/plugins": ["exec-server", "exec-server-protocol", "utils/absolute-path", "utils/path-uri"], "utils/sandbox-summary": ["protocol", "utils/absolute-path"], "websocket-client": ["http-client", "utils/rustls-provider"], "workload-identity": ["http-client"]};
+var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "analytics": 7, "ansi-escape": 1, "app-server": 2, "app-server-client": 2, "app-server-daemon": 1, "app-server-protocol": 14, "app-server-protocol-noop-macros": 1, "app-server-test-client": 1, "app-server-transport": 2, "apply-patch": 3, "arg0": 8, "async-utils": 3, "aws-auth": 2, "backend-client": 5, "build-info": 0, "bwrap": 0, "cli": 0, "cloud-config": 4, "cloud-tasks": 1, "cloud-tasks-client": 2, "cloud-tasks-mock-client": 1, "code-mode": 5, "code-mode-host": 0, "code-mode-protocol": 3, "code-mode-runtime": 1, "codex-api": 16, "codex-backend-openapi-models": 1, "codex-client": 3, "codex-experimental-api-macros": 1, "codex-home": 5, "codex-mcp": 8, "collaboration-mode-templates": 1, "config": 25, "connectors": 8, "context-fragments": 3, "core": 25, "core-api": 1, "core-plugins": 7, "diagnostics": 3, "exec": 1, "exec-server": 17, "exec-server-protocol": 3, "exec-server/tests/support": 4, "execpolicy": 5, "ext/agent": 1, "ext/connectors": 1, "ext/extension-api": 16, "ext/git-attribution": 3, "ext/goal": 1, "ext/guardian-v2": 1, "ext/history-notes": 1, "ext/image-generation": 4, "ext/items": 8, "ext/mcp": 1, "ext/memories": 1, "ext/queue": 1, "ext/skills": 4, "ext/web-search": 2, "external-agent-migration": 1, "features": 12, "feedback": 6, "file-search": 3, "file-system": 8, "file-watcher": 1, "git-utils": 16, "history": 8, "hooks": 4, "http-client": 28, "install-context": 8, "keyring-store": 3, "linux-sandbox": 1, "lmstudio": 1, "login": 26, "mcp-server": 1, "memories/read": 1, "memories/write": 3, "model-provider": 15, "model-provider-info": 16, "models-manager": 8, "network-proxy": 8, "ollama": 1, "otel": 23, "plugin": 12, "process-hardening": 2, "prompts": 1, "protocol": 70, "response-debug-context": 2, "responses-api-proxy": 1, "rmcp-client": 4, "rollout": 9, "rollout-trace": 3, "sandboxing": 7, "secrets": 4, "shell-command": 11, "shell-escalation": 2, "skills": 4, "state": 13, "stdio-to-uds": 1, "terminal-detection": 5, "test-binary-support": 2, "thread-manager-sample": 0, "thread-store": 5, "tools": 10, "tui": 2, "uds": 4, "utils/absolute-path": 54, "utils/approval-presets": 1, "utils/audio": 1, "utils/cache": 3, "utils/cargo-bin": 13, "utils/cli": 7, "utils/elapsed": 1, "utils/fuzzy-match": 1, "utils/home-dir": 9, "utils/image": 3, "utils/json-to-toml": 2, "utils/oss": 2, "utils/output-truncation": 8, "utils/path-uri": 26, "utils/path-utils": 7, "utils/plugins": 6, "utils/pty": 7, "utils/readiness": 0, "utils/redacted-string": 6, "utils/rustls-provider": 7, "utils/sandbox-summary": 2, "utils/sleep-inhibitor": 1, "utils/stream-parser": 1, "utils/string": 9, "utils/template": 6, "v8-poc": 0, "websocket-client": 3, "workload-identity": 1};
 
   var BANDS = [
     { no:"B1", name:"入口", en:"SURFACE", count:8,
@@ -479,11 +479,12 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         "app-server-daemon":"App Server 常驻守护形态。",
         "install-context":"识别当前安装形态（npm / brew / 直装）的上下文位。"
       } },
-    { no:"B2", name:"核心引擎", en:"CORE ENGINE", count:14,
+    { no:"B2", name:"核心引擎", en:"CORE ENGINE", count:15,
       desc:"Agent 循环、会话状态、轨迹持久化。01 十三站的舞台在这带。",
-      crates:["core","core-api","protocol","codex-client","state","thread-store","rollout","rollout-trace","history","prompts","features","collaboration-mode-templates","context-fragments","codex-experimental-api-macros"],
+      crates:["core","agent-roles","core-api","protocol","codex-client","state","thread-store","rollout","rollout-trace","history","prompts","features","collaboration-mode-templates","context-fragments","codex-experimental-api-macros"],
       notes:{
         "core":"Agent 循环所在。Codex 队列对、RegularTask、run_turn 都在这里——见 01 循环回路。",
+        "agent-roles":"Agent 角色配置的发现与加载：从配置里解析角色文件（TOML），core 直接依赖它——多 agent 协作的身份底座。crate 很新，细则以仓库内注释为准。",
         "protocol":"EventMsg、Op 等核心事件与协议类型的定义处。",
         "rollout":"会话轨迹落盘：事件历史写进磁盘文件，断线恢复的数据基础。",
         "rollout-trace":"轨迹追踪视图。",
@@ -725,7 +726,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     var host = document.getElementById("flowmap");
     if (!host) return;
 
-    /* 实测跨带边聚合：814 条内部依赖按带对计数（2026-08-24 爬自 135 份 Cargo.toml） */
+    /* 实测跨带边聚合：819 条内部依赖按带对计数（2026-08-25 爬自 136 份 Cargo.toml） */
     var pairCount = {};
     Object.keys(CA_DEPS).forEach(function (c) {
       var bc = CRATE_INDEX[c];
@@ -827,7 +828,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     edge(678, Y2 - 3, 678, Y1 + 49, true, false, pc("B9", "B4"));            /* 基础设施支撑 */
 
     var lab = E("text", { class: "lm-lab", x: "380", y: "202", "font-size": "10.5", "text-anchor": "middle" });
-    lab.textContent = "「实测 N」= 814 条跨带依赖按带聚合（2026-08-24）。主链之外最大的汇：B9 基础设施——主链五带直连它 216 次";
+    lab.textContent = "「实测 N」= 819 条跨带依赖按带聚合（2026-08-25）。主链之外最大的汇：B9 基础设施——主链五带直连它 165 次";
     svg.appendChild(lab);
     host.appendChild(svg);
   })();
@@ -1068,6 +1069,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
 
     var PTS = [], CENTERS = [];
+    var PTS_BY = {};          /* crate 名 → 点索引：依赖线框 O(1) 取端点 */
     (function build() {
       var n = BANDS.length;
       for (var i = 0; i < n; i++) {
@@ -1081,6 +1083,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         BANDS[i].crates.forEach(function (name) {
           var u = rnd() * 2 - 1, ang = rnd() * 6.2832, rr = rb * Math.cbrt(rnd());
           var s = Math.sqrt(1 - u * u);
+          PTS_BY[name] = PTS.length;
           PTS.push({
             x: cx + rr * s * Math.cos(ang),
             y: cy + rr * u,
@@ -1090,6 +1093,19 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         });
       }
     })();
+
+    /* 选中 crate 的实测依赖（CA_DEPS）：换选中才重算入边表 */
+    var selDeps = { name: null, out: [], ins: [] };
+    function syncSelDeps() {
+      if (selDeps.name === selCrate) return;
+      selDeps.name = selCrate;
+      selDeps.out = []; selDeps.ins = [];
+      if (!selCrate || typeof CA_DEPS !== "object") return;
+      selDeps.out = CA_DEPS[selCrate] || [];
+      Object.keys(CA_DEPS).forEach(function (p) {
+        if (p !== selCrate && CA_DEPS[p].indexOf(selCrate) !== -1) selDeps.ins.push(p);
+      });
+    }
 
     var W = 0, H = 0, dpr = 1;
     function size() {
@@ -1173,6 +1189,30 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         var la = (0.055 * (1 - (pr.z + 1) / 2) + 0.015) * (focusBi !== null && p.bi !== focusBi ? 0.18 : 1);
         ctx.strokeStyle = "rgba(" + STEEL + "," + la.toFixed(3) + ")";
         ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(pr.sx, pr.sy); ctx.stroke();
+      }
+
+      /* 选中 crate 的实测依赖线框：出边琥珀（它依赖谁）、入边钢青（谁依赖它）。
+         全量绘制但低透明度——枢纽 crate 的辐射网正是建模感的来源。 */
+      syncSelDeps();
+      if (selDeps.name && PTS_BY[selDeps.name] != null) {
+        var sp = PTS[PTS_BY[selDeps.name]];
+        function edgeAlpha(q, base) {
+          var depth = 1 - ((sp._z + q._z) / 2 + 1) / 2;
+          return base * (0.35 + 0.65 * depth) * (focusBi !== null && q.bi !== focusBi && sp.bi !== focusBi ? 0.25 : 1);
+        }
+        ctx.lineWidth = 0.9;
+        for (i = 0; i < selDeps.out.length; i++) {
+          var qo = PTS[PTS_BY[selDeps.out[i]]];
+          if (!qo || qo._sx == null) continue;
+          ctx.strokeStyle = "rgba(" + AMBER + "," + edgeAlpha(qo, 0.5).toFixed(3) + ")";
+          ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qo._sx, qo._sy); ctx.stroke();
+        }
+        for (i = 0; i < selDeps.ins.length; i++) {
+          var qi = PTS[PTS_BY[selDeps.ins[i]]];
+          if (!qi || qi._sx == null) continue;
+          ctx.strokeStyle = "rgba(" + STEEL + "," + edgeAlpha(qi, 0.42).toFixed(3) + ")";
+          ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qi._sx, qi._sy); ctx.stroke();
+        }
       }
 
       /* 带心标记与标签（朝向观察者时；聚焦带高亮） */
@@ -1539,7 +1579,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     }
     function tick() {
       var i, j, a, b, fx, fy;
-      /* 斥力：O(n²)，135 点约 9 千对，一帧绰绰有余 */
+      /* 斥力：O(n²)，136 点约 9 千对，一帧绰绰有余 */
       for (i = 0; i < NODES.length; i++) {
         a = NODES[i];
         for (j = i + 1; j < NODES.length; j++) {
@@ -2074,7 +2114,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
   var st0 = PanelState.read();
   var savedQ = st0.q || "";
   if (savedQ) { qInput.value = savedQ; applyFilter(); }
-  else { matchOut.innerHTML = '匹配 <b>135</b> / 135'; }
+  else { matchOut.innerHTML = '匹配 <b>136</b> / 136'; }
   /* 恢复上次选中的成员：刷新不丢，链接可分享（#sel=xxx） */
   var savedSel = st0.sel || "";
   if (savedSel && CRATE_INDEX[savedSel]) selectCrate(CRATE_INDEX[savedSel], savedSel, null);
@@ -2100,7 +2140,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
         if (p !== name && CA_DEPS[p].indexOf(name) !== -1) ins.push(p);
       });
       var head = '<p style="margin:12px 0 0;border-top:1px dashed var(--line-strong);padding-top:10px;">' +
-        '<b>实测依赖</b>（814 条成员内边 · 爬自 135 份 Cargo.toml）：<br>';
+        '<b>实测依赖</b>（819 条成员内边 · 爬自 136 份 Cargo.toml）：<br>';
       if (!outs.length && !ins.length) return head + "无内部依赖——叶子 crate，独来独往。</p>";
       var parts = [];
       if (outs.length) parts.push('出 <b>' + outs.length + "</b> 条：<br>" + depChips(outs));
@@ -2116,10 +2156,10 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       }
     });
 
-/* ---------- 实测依赖排行：数据爬自固定提交下 135 份 Cargo.toml（2026-08-24） ---------- */
+/* ---------- 实测依赖排行：数据爬自固定提交下 136 份 Cargo.toml（2026-08-25） ---------- */
   (function () {
-    var IN = [["protocol",70],["utils/absolute-path",53],["http-client",28],["login",26],["core",25],["utils/path-uri",25],["config",24],["otel",23],["exec-server",17],["git-utils",16],["codex-api",16],["ext/extension-api",16]];
-    var OUT = [["core",69],["app-server",60],["cli",46],["tui",45],["core-plugins",22],["exec",19],["memories/write",19],["exec-server",18],["core-api",17],["mcp-server",17],["ext/skills",15],["codex-mcp",15]];
+    var IN = [["protocol",70],["utils/absolute-path",54],["http-client",28],["utils/path-uri",26],["login",26],["core",25],["config",25],["otel",23],["exec-server",17],["model-provider-info",16],["git-utils",16],["ext/extension-api",16]];
+    var OUT = [["core",69],["app-server",58],["cli",45],["tui",43],["core-plugins",22],["memories/write",19],["exec",19],["exec-server",18],["mcp-server",17],["core-api",17],["ext/skills",15],["codex-mcp",15]];
     var grown = false;
 
     function build() {
@@ -2182,7 +2222,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     mountBars();
   })();
 
-  /* ---------- 9×9 邻接矩阵：全量 814 条边落位，可点检索 ---------- */
+  /* ---------- 9×9 邻接矩阵：全量 819 条边落位，可点检索 ---------- */
   (function () {
     var box = document.getElementById("mx9");
     if (!box) return;
@@ -2252,7 +2292,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
     var sumEl = document.createElement("p");
     sumEl.className = "small muted";
     sumEl.style.margin = "10px 0 0";
-    sumEl.textContent = "全表合计（含带内）= " + total + " 条，与 DEPENDENCY FACTS 的 814 一致——数字对得上才算数。";
+    sumEl.textContent = "全表合计（含带内）= " + total + " 条，与 DEPENDENCY FACTS 的 819 一致——数字对得上才算数。";
     box.after(sumEl);
   })();
 
@@ -2406,10 +2446,10 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       opts: ["B2 核心引擎（core）", "B9 基础设施", "B8 云协作"],
       a: 0,
       why: "Codex 队列对、RegularTask、run_turn 都在 core 里——01 十三站的舞台就在这条带。动线图上它也是主链的第三站。" },
-    { q: "「135 个成员」这个数字是怎么来的？",
+    { q: "「136 个成员」这个数字是怎么来的？",
       opts: ["OpenAI 官方文档宣称", "固定提交下 Cargo.toml workspace members 实测", "GitHub 搜索结果计数"],
       a: 1,
-      why: "名单逐项来自 openai/codex@343074d4 的 codex-rs/Cargo.toml members 字段，本页每个芯片都能对着同一路径复核。" },
+      why: "名单逐项来自 openai/codex@cbfd999 的 codex-rs/Cargo.toml members 字段，本页每个芯片都能对着同一路径复核。" },
     { q: "九条功能带是上游的官方分类吗？",
       opts: ["是", "部分是", "否——分带是本站归纳"],
       a: 2,
@@ -2448,7 +2488,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
 <script>
 window.CATOUR_STEPS = [
   { sel: "#q", title: "检索与定位", text: "中英文都能搜：试试 mcp、记忆、沙箱。命中的成员高亮，其余暗化——三个视图联动。" },
-  { sel: "#ribbon", title: "构成比例带", text: "段宽 = 该带成员数占比（合计 135）。点段跳到对应带。" },
+  { sel: "#ribbon", title: "构成比例带", text: "段宽 = 该带成员数占比（合计 136）。点段跳到对应带。" },
   { sel: "#flowmap", title: "带间依赖动线", text: "本站归纳的调用方向：入口 → 协议接入 → 核心引擎 → 工具执行 → 沙箱安全。点节点跳带。" },
   { sel: ".view-row", title: "四种视图", text: "列表 / 面积树图 / 3D 星系 / 力学视图。星系支持拖拽旋转、缩放、带聚焦、自动导览；力学视图是真实的物理模拟，拖任意一点整张网重新找平衡。" },
   { sel: "#repo-tree", title: "仓库全景", text: "本站管到哪一层、哪些明确不管——覆盖粒度三级：crate 级 / 文件级 / 函数级。" }

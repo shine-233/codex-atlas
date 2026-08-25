@@ -200,7 +200,7 @@
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -394,7 +394,7 @@
       </div>
       <details class="src-details" style="margin:0 24px 20px;">
         <summary>⌨ 看真实源码 · steer_input：把新输入并进正在跑的轮</summary>
-        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :478-487（签名）+ :546-564（入队核心）· @343074d4 实测</span>
+        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :478-487（签名）+ :546-564（入队核心）· @cbfd999 实测</span>
 <span class="src-code">async fn steer_input(
     &amp;self,
     input: &amp;mut Vec&lt;UserInput&gt;,
@@ -427,7 +427,7 @@ Ok(active_turn_id.clone())</span></pre>
       <p class="small muted" style="margin:14px 0 0;">上面演的是 steer 成功并入。源码里还要处理 steer <b>输掉竞态</b>的两种情况：轮次已经结束（没有 active turn 可插话），或者缓存里的 turn id 过期——后者会带着服务器当前的真实 id 重试一次。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · steer 竞态的两种败局与恢复</summary>
-        <pre><span class="src-loc">codex-rs/tui/src/app.rs :655-684 · @343074d4 实测</span>
+        <pre><span class="src-loc">codex-rs/tui/src/app.rs :655-684 · @cbfd999 实测</span>
 <span class="src-code">#[derive(Debug, Clone, PartialEq, Eq)]
 enum ActiveTurnSteerRace {
     Missing,
@@ -511,7 +511,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@343074d4 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@cbfd999 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
     </aside>
 
   </main>
@@ -566,7 +566,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       next:"收束后这一轮就结束了。转了几圈、每圈重发了多少，下面成本对照里都有。" }
   ];
 
-  /* 每站的真实源码切片：片段与行号实测自固定提交 @343074d4（raw 文件逐个核对）。 */
+  /* 每站的真实源码切片：片段与行号实测自固定提交 @cbfd999（raw 文件逐个核对）。 */
   var SRC = {
     1: { loc: "codex-cli/bin/codex.js :195（JS 启动器）",
          code: 'const child = spawn(binaryPath, process.argv.slice(2), {\n  stdio: "inherit",\n  env,\n});' },
@@ -834,7 +834,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       srcBox.hidden = false;
       srcBox.innerHTML =
         '<button type="button" class="btn src-toggle" aria-expanded="false">⌨ 看真实源码 · ' + escHtml(src.loc) + "</button>" +
-        '<pre class="src-pre" hidden><span class="src-loc">' + escHtml(src.loc) + " · @343074d4 实测</span>\n" +
+        '<pre class="src-pre" hidden><span class="src-loc">' + escHtml(src.loc) + " · @cbfd999 实测</span>\n" +
         '<span class="src-code">' + escHtml(src.code) + "</span></pre>";
       var tg = srcBox.querySelector(".src-toggle");
       var pre = srcBox.querySelector(".src-pre");

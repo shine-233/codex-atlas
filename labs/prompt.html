@@ -169,7 +169,7 @@
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@343074d4 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -301,7 +301,7 @@
         <p class="small muted" id="cd-note" style="margin:8px 0 0;" aria-live="polite"></p>
         <details class="src-details">
           <summary>⌨ 看真实源码 · 触顶判断与压缩端点</summary>
-          <pre><span class="src-loc">codex-rs/core/src/session/context_window.rs :71-79 · @343074d4 实测</span>
+          <pre><span class="src-loc">codex-rs/core/src/session/context_window.rs :71-79 · @cbfd999 实测</span>
 <span class="src-code">let buffered_auto_compact_limit = auto_compact_scope_limit
     .map(|limit| limit.saturating_add(auto_compact_fallback_buffer_tokens));
 
@@ -318,7 +318,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       </div>
       <details class="src-details" style="margin-top:14px;">
         <summary>⌨ 看真实源码 · AGENTS.md 目录发现与预算截断</summary>
-        <pre><span class="src-loc">codex-rs/core/src/agents_md.rs :234-251 · @343074d4 实测</span>
+        <pre><span class="src-loc">codex-rs/core/src/agents_md.rs :234-251 · @cbfd999 实测</span>
 <span class="src-code">let search_dirs = if let Some(root) = project_root {
     let mut dirs = Vec::new();
     let mut cursor = dir.clone();

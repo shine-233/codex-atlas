@@ -1583,6 +1583,32 @@ body::after {
 }
 .fx-tilt-wrap > .panel.is-hover .fx-glare { opacity: 1; }
 
+/* 光标角度边框辉光：conic 锥形只在朝向光标的那段边框亮起（角度由 fx.js 的
+   --glow-ang 驱动，与聚光灯共用 --spot-x/--spot-y 作锥顶）。双层 mask 只留 1px 边框环。 */
+.fx-glow {
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: conic-gradient(from var(--glow-ang, 0deg) at var(--spot-x, 50%) var(--spot-y, 50%),
+    rgba(255, 180, 84, .95),
+    rgba(255, 180, 84, .28) 18%,
+    rgba(255, 180, 84, .04) 30%,
+    transparent 42%,
+    transparent 58%,
+    rgba(255, 180, 84, .04) 70%,
+    rgba(255, 180, 84, .28) 82%,
+    rgba(255, 180, 84, .95));
+  padding: 1px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: opacity 0.35s var(--ease);
+}
+.fx-tilt-wrap > .panel.is-hover .fx-glow { opacity: 1; }
+
 /* 解码 churn 与数字滚动：等宽 + tabular 已由全局 mono/readout 保证 */
 [data-decode] { white-space: nowrap; }
 

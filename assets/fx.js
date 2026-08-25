@@ -266,6 +266,9 @@
       card.style.setProperty("--tilt-ry", ((px - 0.5) * TILT_MAX).toFixed(2) + "deg");
       card.style.setProperty("--spot-x", (px * 100).toFixed(1) + "%");
       card.style.setProperty("--spot-y", (py * 100).toFixed(1) + "%");
+      /* 边框辉光的锥形朝向：光标相对面板中心的方位角（0deg = 正上方） */
+      var ang = Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2)) * 180 / Math.PI + 90;
+      card.style.setProperty("--glow-ang", ang.toFixed(1) + "deg");
       pending = null;
     }
 
@@ -474,6 +477,10 @@
         glare.className = "fx-glare";
         glare.setAttribute("aria-hidden", "true");
         p.appendChild(glare);
+        var glow = document.createElement("div");
+        glow.className = "fx-glow";
+        glow.setAttribute("aria-hidden", "true");
+        p.appendChild(glow);
         tiltWrap(w, p);
       });
       Array.prototype.forEach.call(document.querySelectorAll(".btn.primary"), magnet);
