@@ -18,7 +18,9 @@
     "CANebula": true,
     "LoopScope": true,
     "CAQBANK": true,
-    "CASound": true
+    "CASound": true,
+    "CAToast": true,
+    "CAXP": true
   },
   "rules": {
     "no-undef": "error",

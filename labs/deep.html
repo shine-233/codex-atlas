@@ -1329,6 +1329,9 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
 </div>
 
 <script src="../assets/panel.js"></script>
+<script src="../assets/panel-page.js"></script>
+<script src="../assets/panel-pet.js"></script>
+<script src="../assets/panel-theme.js"></script>
 <script src="../assets/sound.js"></script>
 <script src="../assets/loop-hero.js"></script>
 <script>
@@ -2246,11 +2249,21 @@ window.CATOUR_STEPS = [
   if (!host || !window.CanvasRenderingContext2D) return;
   var read = document.getElementById("cc-read");
   var pauseBtn = document.getElementById("cc-pause");
-  var canvas = document.createElement("canvas");
-  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default;";
-  host.appendChild(canvas);
-  var ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  /* 画布四件套交给 CACanvas 基座（建画布/DPR/离屏/页签显隐/resize） */
+  var cc = window.CACanvas ? CACanvas.create(host, {
+    draw: function () { draw(); },
+    onInView: function (v) {
+      if (v) { if (!REDUCED) startLoop(); }
+      else stopLoop();
+    },
+    onVisibility: function (v) {
+      if (v && inView && !REDUCED) startLoop();
+      else stopLoop();
+    }
+  }) : null;
+  if (!cc) return;
+  var canvas = cc.canvas;
+  var ctx = cc.ctx;
 
   var REDUCED = window.PrefersReducedMotion === true;
   var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
@@ -2258,17 +2271,12 @@ window.CATOUR_STEPS = [
   var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
   var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
 
-  var W = 1, H = 1, dpr = 1;
+  var W = 1, H = 1;
   function size() {
-    var r = host.getBoundingClientRect();
-    if (r.width < 4) return false;
-    W = Math.round(r.width); H = Math.round(r.height);
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!cc.size()) return false;
+    W = cc.W(); H = cc.H();
     return true;
   }
-
   /* 节点：fx/fy 为画布比例坐标 */
   var NODES = {
     login:   { fx: 0.10, fy: 0.30, w: 96, label: "codex login", tip: "<b>codex login</b> · 浏览器 OAuth 拿回三件套：id_token / access_token / refresh_token。localhost:1455 只是本地回调端口。" },
@@ -2450,7 +2458,7 @@ window.CATOUR_STEPS = [
     pauseBtn.setAttribute("aria-pressed", paused ? "true" : "false");
   });
 
-  /* 主循环：离屏 / 隐藏页签自动停 */
+  /* 主循环：离屏 / 隐藏页签的启停由 CACanvas 基座通知（onInView/onVisibility） */
   var running = false, raf = 0, inView = true, last = 0;
   function loop(ts) {
     if (!running) return;
@@ -2458,6 +2466,7 @@ window.CATOUR_STEPS = [
     var dt = Math.min(0.05, (ts - last) / 1000);
     last = ts;
     if (!paused && !document.hidden) step(dt);
+    W = cc.W(); H = cc.H();
     draw();
     raf = requestAnimationFrame(loop);
   }
@@ -2467,24 +2476,6 @@ window.CATOUR_STEPS = [
     raf = requestAnimationFrame(loop);
   }
   function stopLoop() { running = false; cancelAnimationFrame(raf); }
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (ents) {
-      ents.forEach(function (en) {
-        inView = en.isIntersecting;
-        if (inView) { size(); draw(); startLoop(); }
-        else stopLoop();
-      });
-    }, { rootMargin: "80px" }).observe(host);
-  } else { startLoop(); }
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden) stopLoop();
-    else if (inView) startLoop();
-  });
-  var rzT = null;
-  window.addEventListener("resize", function () {
-    clearTimeout(rzT);
-    rzT = setTimeout(function () { if (size()) draw(); }, 140);
-  });
 
   mode = currentMode();
   if (size()) draw();
