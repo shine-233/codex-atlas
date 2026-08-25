@@ -1147,6 +1147,16 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       });
     }
 
+    /* 背景星野：固定种子散布，随姿态轻微视差（远景层） */
+    var STARS = [];
+    (function () {
+      var s2 = 20260825;
+      function r2() { s2 = (s2 * 1664525 + 1013904223) >>> 0; return s2 / 4294967296; }
+      for (var i = 0; i < 220; i++) {
+        STARS.push({ x: r2(), y: r2(), z: 0.25 + r2() * 0.75, tw: r2() * 6.2832 });
+      }
+    })();
+
     var W = 0, H = 0, dpr = 1;
     function size() {
       var r = host.getBoundingClientRect();
@@ -1215,6 +1225,19 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
 
       ctx.clearRect(0, 0, W, H);
       var i, p, pr;
+
+      /* 远景星野：固定种子、随旋转/缩放轻微视差，给画面纵深 */
+      ctx.save();
+      for (i = 0; i < STARS.length; i++) {
+        var st = STARS[i];
+        var sx = (st.x * W * 1.3 - W * 0.15) + panX * st.z * 0.25 + ay * 14 * st.z;
+        var sy = (st.y * H * 1.3 - H * 0.15) + panY * st.z * 0.25 - ax * 14 * st.z;
+        if (sx < -4 || sx > W + 4 || sy < -4 || sy > H + 4) continue;
+        var tw = REDUCED ? 0.5 : (0.45 + 0.55 * Math.abs(Math.sin(now / 900 + st.tw)));
+        ctx.fillStyle = "rgba(231,237,243," + (0.16 * st.z * tw).toFixed(3) + ")";
+        ctx.fillRect(sx, sy, st.z > 0.8 ? 1.6 : 1, st.z > 0.8 ? 1.6 : 1);
+      }
+      ctx.restore();
 
       /* 带心 → 成员的暗连线（constellation 语法） */
       var pc = [];
@@ -1327,10 +1350,11 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         ctx.font = "10px IBM Plex Mono, monospace";
       }
 
-      /* 成员：按深度排序后绘制 */
+      /* 成员：按深度排序后绘制；选中成员加 additive 光晕 + 呼吸环 */
       var order = PTS.slice().sort(function (a, b) { return b._z - a._z; });
       hover = -1;
       var hdist = 144;
+      var pulse = REDUCED ? 0.5 : 0.5 + 0.5 * Math.sin(now / 620);
       for (i = 0; i < order.length; i++) {
         p = order[i];
         var depth = 1 - (p._z + 1) / 2;
@@ -1339,12 +1363,24 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         var dimF = focusBi !== null && p.bi !== focusBi;
         var a = (0.22 + 0.6 * depth) * (hayHit ? 1 : 0.1) * (dimF ? 0.12 : 1);
         var r = 2.1 * p._per * (isSel ? 1.5 : 1);
+        if (isSel) {
+          /* additive 光晕：三层径向渐变叠出体积感 */
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          var gr = ctx.createRadialGradient(p._sx, p._sy, 0, p._sx, p._sy, r * 9);
+          gr.addColorStop(0, "rgba(" + AMBER + "," + (0.34 + 0.10 * pulse).toFixed(3) + ")");
+          gr.addColorStop(0.45, "rgba(" + AMBER + ",.10)");
+          gr.addColorStop(1, "rgba(" + AMBER + ",0)");
+          ctx.fillStyle = gr;
+          ctx.beginPath(); ctx.arc(p._sx, p._sy, r * 9, 0, 6.2832); ctx.fill();
+          ctx.restore();
+        }
         ctx.fillStyle = "rgba(" + AMBER + "," + a.toFixed(3) + ")";
         ctx.beginPath(); ctx.arc(p._sx, p._sy, r, 0, 6.2832); ctx.fill();
         if (isSel) {
-          ctx.strokeStyle = "rgba(" + AMBER + ",.85)";
-          ctx.lineWidth = 1.2;
-          ctx.beginPath(); ctx.arc(p._sx, p._sy, r + 3.5, 0, 6.2832); ctx.stroke();
+          ctx.strokeStyle = "rgba(" + AMBER + "," + (0.55 + 0.35 * pulse).toFixed(3) + ")";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.arc(p._sx, p._sy, r + 3.5 + pulse * 1.8, 0, 6.2832); ctx.stroke();
         }
         if (!dragging && hayHit && mx >= 0) {
           var dxh = p._sx - mx, dyh = p._sy - my;

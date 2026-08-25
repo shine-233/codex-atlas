@@ -451,7 +451,11 @@
   /* ---------- 装配 ---------- */
   ready(function () {
     var fieldHost = document.getElementById("hero-field");
-    if (fieldHost) mountField(fieldHost);
+    if (fieldHost) {
+      /* GPU 星云优先（WebGL 可用时）；失败降级回 constellation 粒子场 */
+      var nebulaOk = window.CANebula && CANebula.mount(fieldHost);
+      if (!nebulaOk) mountField(fieldHost);
+    }
 
     cursorGlow();
     kineticHeadline(document.querySelector(".hero h1"));
