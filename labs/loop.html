@@ -159,6 +159,21 @@
   .sse-log > div { cursor: pointer; padding: 1px 5px; border-left: 2px solid transparent; transition: background var(--t-fast) ease, border-color var(--t-fast) ease; }
   .sse-log > div:hover { background: var(--amber-dim); border-left-color: var(--amber); }
   .sse-log > div.past { border-left-color: rgba(143, 199, 232, .4); }
+  /* 双剧本：站牌 + 第二圈 + 核心侧行（不经过模型流的事件） */
+  .sse-log .st-tag {
+    display: inline-block; font-family: var(--mono); font-size: 9px;
+    letter-spacing: .06em; color: var(--faint);
+    border: 1px solid var(--line-strong); padding: 0 5px; margin-right: 4px;
+  }
+  .sse-log > div.lap2 { background: rgba(143, 199, 232, .05); }
+  .sse-log > div.lap2 .st-tag { color: var(--steel); border-color: rgba(143, 199, 232, .4); }
+  .sse-log > div.core .ev-name { color: var(--faint); font-style: italic; }
+  .sse-sys {
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    background: var(--bg0); border: 1px dashed var(--line-strong);
+    padding: 4px 9px; margin: 4px 0; white-space: pre-wrap;
+  }
+  .sse-sys.resample { color: var(--steel); border-style: solid; background: transparent; }
   .sse-right { display: flex; flex-direction: column; gap: 10px; }
   .sse-bubble {
     background: var(--bg2); border: 1px dashed var(--line-strong);
@@ -341,6 +356,10 @@
           <div class="sse-usage" id="sse-usage"></div>
         </div>
       </div>
+      <div class="seg" role="group" aria-label="回放剧本：改变问题本身" style="margin-bottom:8px;">
+        <button data-ss="text" class="on">剧本 A · 纯文本收尾</button>
+        <button data-ss="tool">剧本 B · 半路杀出工具调用</button>
+      </div>
       <div class="controls">
         <button class="btn primary" id="sse-play" type="button">▶ 播放事件流</button>
         <button class="btn" id="sse-reset" type="button">↺ 重放</button>
@@ -350,8 +369,10 @@
         <span class="match-readout" id="sse-count" aria-live="polite"></span>
       </div>
       <p class="small muted" style="margin:12px 0 0;">
-        这里演的是<b>纯文本收尾</b>的支线：Completed 不带工具调用，needs_follow_up 为 false，直接落到第 13 站。
-        如果 OutputItemDone 带回来的是 function_call，就会拐进第 12 站的沙箱执行——两条岔路在环上都可能出现。
+        剧本 A 演的是<b>纯文本收尾</b>：Completed 不带工具调用，needs_follow_up 为 false，直接落到第 13 站。
+        切到<b>剧本 B</b>，第 3 条 OutputItemDone 带回 function_call——事件流拐进第 12 站，
+        工具执行那段（EventMsg）根本不走模型流，历史写回后回到第 9 站二圈再采样，usage 累计两次。
+        第二圈的事件用钢青底标出——和第一圈逐条对比，resampling 就不再是抽象名词。
         事件名与先后顺序依据 <code>ModelClientSession::stream</code> 的重新发布逻辑，报文内容为示意。
       </p>
     </section>
@@ -1422,15 +1443,38 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     var seek = document.getElementById("sse-seek");
     if (!log || !bubble || !seek) return;
 
-    var STEPS = [
-      { ev: "OutputItemAdded", note: "条目开始 · UI 先出占位", act: "placeholder" },
-      { ev: "OutputTextDelta", note: "「先跑一遍」", act: "text", chunk: "先跑一遍" },
-      { ev: "OutputTextDelta", note: "「测试，看看」", act: "text", chunk: "测试，看看" },
-      { ev: "OutputTextDelta", note: "「哪里红了。」", act: "text", chunk: "哪里红了。" },
-      { ev: "OutputItemDone",  note: "条目落定 · 没有 function_call", act: "done" },
-      { ev: "Completed",       note: "usage 回传 · 无后续", act: "complete",
-        usage: "usage · input 48,211 · 其中 cached 44,120 —— needs_follow_up = false，下一站第 13" }
-    ];
+    /* 双剧本：读者改变问题本身——同一个提问，模型半路杀出一个工具调用，
+       后续整条故事分岔（第 12 站工具执行不走模型流 → 历史写回 → 第二圈采样）。
+       st = 事件发生在哪一站；core = 核心侧事件（不经过 SSE 模型流）；lap2 = 第二圈。 */
+    var SCRIPTS = {
+      text: [
+        { ev: "OutputItemAdded", st: "第11站", note: "条目开始 · UI 先出占位", act: "placeholder" },
+        { ev: "OutputTextDelta", st: "第11站", note: "「先跑一遍」", act: "text", chunk: "先跑一遍" },
+        { ev: "OutputTextDelta", st: "第11站", note: "「测试，看看」", act: "text", chunk: "测试，看看" },
+        { ev: "OutputTextDelta", st: "第11站", note: "「哪里红了。」", act: "text", chunk: "哪里红了。" },
+        { ev: "OutputItemDone",  st: "第11站", note: "条目落定 · 没有 function_call", act: "done" },
+        { ev: "Completed",       st: "第13站", note: "usage 回传 · 无后续", act: "complete",
+          usage: "usage · input 48,211 · 其中 cached 44,120 —— needs_follow_up = false，下一站第 13" }
+      ],
+      tool: [
+        { ev: "OutputItemAdded", st: "第11站", note: "条目开始 · 占位", act: "placeholder" },
+        { ev: "OutputTextDelta", st: "第11站", note: "「先跑一遍」", act: "text", chunk: "先跑一遍" },
+        { ev: "OutputItemDone",  st: "第11站", note: "带回了 function_call —— needs_follow_up = true", act: "call",
+          call: "cargo test --quiet" },
+        { ev: "ExecCommandBegin", st: "第12站", core: true, note: "命令进沙箱开跑 · 这段不经过模型流", act: "sys",
+          sys: "$ cargo test --quiet" },
+        { ev: "ExecCommandEnd",   st: "第12站", core: true, note: "退出码 0 · 输出写回历史", act: "sys",
+          sys: "1 test passed" },
+        { ev: "Resample",         st: "第9站·二圈", core: true, lap2: true, note: "Prompt 重新组装（历史 +1 条）—— 再采样一次", act: "resample" },
+        { ev: "OutputItemAdded",  st: "第11站·二圈", lap2: true, note: "第二次采样的占位", act: "placeholder" },
+        { ev: "OutputTextDelta",  st: "第11站·二圈", lap2: true, note: "「绿了，改动在 src/utils.rs」", act: "text", chunk: "绿了，改动在 src/utils.rs" },
+        { ev: "OutputItemDone",   st: "第11站·二圈", lap2: true, note: "纯文本落定 —— needs_follow_up = false", act: "done" },
+        { ev: "Completed",        st: "第13站", lap2: true, note: "usage 累计两次采样", act: "complete",
+          usage: "usage · input 96,422 · 其中 cached 88,240 · 两圈采样 —— needs_follow_up = false → 第 13 站" }
+      ]
+    };
+    var scriptKey = "text";
+    function steps() { return SCRIPTS[scriptKey]; }
 
     var played = 0, playing = false, stepTimer = null, charTimers = [];
     var typing = null;   /* { node, s } 打字中的 chunk，暂停时好整段补完 */
@@ -1461,18 +1505,40 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     }
 
     function applyStep(i, instant) {
-      var s = STEPS[i];
+      var s = steps()[i];
       var line = document.createElement("div");
       line.setAttribute("data-i", i);
-      line.innerHTML = '<span class="ev-name">ResponseEvent::' + s.ev + "</span> <span class=\"ev-note\">" + s.note + "</span>";
+      if (s.lap2) line.classList.add("lap2");
+      if (s.core) line.classList.add("core");
+      var evLabel = s.act === "resample" ? "↻ 历史写回 · 重采样"
+        : (s.core ? "EventMsg::" : "ResponseEvent::") + s.ev;
+      line.innerHTML = '<span class="st-tag">' + s.st + '</span> <span class="ev-name">' + evLabel +
+        "</span> <span class=\"ev-note\">" + s.note + "</span>";
       if (!instant) line.classList.add("ca-rise");
       log.appendChild(line);
       log.scrollTop = log.scrollHeight;
-      countEl.textContent = "已回放 " + (i + 1) + " / " + STEPS.length + " 个事件";
+      countEl.textContent = "已回放 " + (i + 1) + " / " + steps().length + " 个事件" +
+        (scriptKey === "tool" ? " · 剧本 B" : "");
       seek.value = i + 1;
 
       var caret = bubble.querySelector(".sse-caret");
-      if (s.act === "placeholder") {
+      if (s.act === "call") {
+        caret.hidden = false;
+        var callLine = document.createElement("div");
+        callLine.className = "sse-sys";
+        callLine.textContent = "↳ function_call · " + s.call;
+        bubble.insertBefore(callLine, caret);
+      } else if (s.act === "sys") {
+        var sysLine = document.createElement("div");
+        sysLine.className = "sse-sys";
+        sysLine.textContent = s.sys;
+        bubble.insertBefore(sysLine, caret);
+      } else if (s.act === "resample") {
+        var div = document.createElement("div");
+        div.className = "sse-sys resample";
+        div.textContent = "── 历史写回 · 第二圈采样开始 ──";
+        bubble.insertBefore(div, caret);
+      } else if (s.act === "placeholder") {
         caret.hidden = false;
       } else if (s.act === "text") {
         caret.hidden = false;
@@ -1508,17 +1574,17 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     }
 
     function stepNext() {
-      if (!playing || played >= STEPS.length) { if (played >= STEPS.length) finish(); return; }
+      if (!playing || played >= steps().length) { if (played >= steps().length) finish(); return; }
       applyStep(played, false);
       played++;
       markPast();
-      if (played >= STEPS.length) { finish(); return; }
+      if (played >= steps().length) { finish(); return; }
       stepTimer = setTimeout(stepNext, 950);
     }
 
     /* 跳到第 n 步（已应用 0..n-1）：瞬间重建，不播打字动画 */
     function seekTo(n) {
-      n = Math.max(0, Math.min(STEPS.length, n));
+      n = Math.max(0, Math.min(steps().length, n));
       if (stepTimer) { clearTimeout(stepTimer); stepTimer = null; }
       clearCharTimers();
       playing = false;
@@ -1528,8 +1594,8 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       played = n;
       markPast();
       playBtn.disabled = false;
-      playBtn.textContent = n >= STEPS.length ? "▶ 再播一遍" : (n > 0 ? "▶ 从第 " + (n + 1) + " 条续播" : "▶ 播放事件流");
-      if (n >= STEPS.length) finish();
+      playBtn.textContent = n >= steps().length ? "▶ 再播一遍" : (n > 0 ? "▶ 从第 " + (n + 1) + " 条续播" : "▶ 播放事件流");
+      if (n >= steps().length) finish();
     }
 
     function startPlay() {
@@ -1541,7 +1607,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         return;
       }
       clearCharTimers();
-      if (played >= STEPS.length) { hardClear(); }
+      if (played >= steps().length) { hardClear(); }
       playing = true;
       playBtn.textContent = "❚❚ 暂停";
       stepNext();
@@ -1549,6 +1615,20 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
 
     playBtn.addEventListener("click", startPlay);
     resetBtn.addEventListener("click", hardClear);
+
+    /* 剧本切换 = 改变问题本身：换脚本、重置进度条量程 */
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ss]"), function (b) {
+      b.addEventListener("click", function () {
+        var k = b.getAttribute("data-ss");
+        if (k === scriptKey) return;
+        scriptKey = k;
+        Array.prototype.forEach.call(document.querySelectorAll("[data-ss]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        seek.max = steps().length;
+        hardClear();
+      });
+    });
     seek.addEventListener("input", function () { seekTo(parseInt(seek.value, 10)); });
     log.addEventListener("click", function (e) {
       var line = e.target && e.target.closest ? e.target.closest("[data-i]") : null;
