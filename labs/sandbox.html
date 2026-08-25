@@ -458,6 +458,33 @@
       </div>
     </section>
 
+    <!-- SANDBOX SAND · 权限流沙仪（Falling Sand 手法） -->
+    <section class="panel" id="sand-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>SANDBOX SAND · 流沙仪：一把命令包，穿过三层权限膜</h3>
+        <span class="readout">细胞自动机 · 拖动画布撒沙</span>
+      </div>
+      <p class="small muted" style="padding:0 24px;margin-bottom:12px;">
+        琥珀沙粒是<b style="color:var(--ink);">命令包</b>。往下落时依次穿过三道权限膜：
+        <b style="color:var(--steel);">读层</b>（普遍放行）、<b style="color:var(--ink);">写层</b>（看模式开口）、
+        <b style="color:var(--deny);">拒绝层</b>（实线即墙）。穿过去的落到池底变绿；被膜挡住的当场堆红。
+        切换模式看膜的开口怎么变——<b style="color:var(--ink);">这就是三种沙箱档位对一条命令的全部含义</b>。
+      </p>
+      <div class="controls" style="padding:0 24px 12px;border:none;">
+        <div class="seg" role="group" aria-label="选择沙箱档位">
+          <button data-sm="ro" type="button">read-only</button>
+          <button data-sm="ww" class="on" type="button">workspace-write</button>
+          <button data-sm="full" type="button">full-access</button>
+        </div>
+        <button class="btn" id="sand-pour" type="button">☂ 撒一把</button>
+        <button class="btn" id="sand-clear" type="button">↺ 清空</button>
+        <span class="match-readout" id="sand-stat" aria-live="polite"></span>
+      </div>
+      <div style="padding:0 24px 20px;">
+        <canvas id="sand-canvas" style="width:100%;display:block;touch-action:none;cursor:crosshair;border:1px solid var(--line-strong);"></canvas>
+      </div>
+    </section>
+
     <!-- MCP 双路径对比仪 -->
     <section class="panel" id="mcp-lane-panel" style="margin-top:26px;">
       <div class="panel-title">
@@ -1820,10 +1847,214 @@ window.CATOUR_STEPS = [
   { sel: ".cmd-block", title: "FREE CONSOLE", text: "敲一条你自己的命令，按关键词归类到六种场景做判定——sed 带不带 -i 都分得清。" },
   { sel: "#pipe", title: "判定管线", text: "命令包逐段穿过五道闸：策略 → 沙箱墙 → 内核机制 → 结果。颜色即判定。" },
   { sel: "#yard-panel", title: "空间沙盘", text: "围墙画出来了：workspace-write 是琥珀虚线，read-only 是红墙，full 直接拆墙。命令包走位、撞墙、停在墙边等你签字。" },
+  { sel: "#sand-panel", title: "权限流沙仪", text: "细胞自动机版的三档位：一把命令沙穿过读/写/拒绝三层膜，穿过的沉底变绿、被拦的堆红。切模式看开口，也可以拖画布自己撒。" },
   { sel: "#mcp-lane-panel", title: "MCP 双路径", text: "上路内置工具穿墙，下路 MCP 工具直接绕墙——围墙对它视而不见。这就是「MCP 不在沙箱内」的空间解释。" },
   { sel: ".approve-mock", title: "审批弹窗", text: "真的能点：批准一次、本轮内允许、拒绝，三种结局各不相同。" },
   { sel: "#cfg-panel", title: "CONFIG BRIDGE", text: "把当前组合写成 config.toml 与 CLI 命令，可直接复制粘贴。network_access 开关会真实改变 net 动作的判定。" }
 ];
+</script>
+
+<script>
+/* ---------- SANDBOX SAND · 权限流沙仪（Falling Sand 细胞自动机，学 sandspiel/falling-turnip）---------- */
+(function () {
+  "use strict";
+  var canvas = document.getElementById("sand-canvas");
+  if (!canvas) return;
+  var ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  var COLS = 120, ROWS = 72, CELL = 5;          /* 内部网格固定，CSS 自适应缩放 */
+  canvas.width = COLS * CELL; canvas.height = ROWS * CELL;
+
+  var EMPTY = 0, SAND = 1, MEMBRANE = 2, PILE_OK = 3, PILE_DENY = 4;
+  var grid = new Uint8Array(COLS * ROWS);
+
+  var MODES = {
+    /* 三档位 → 每层膜的开口比例（缺口区间数 / 总段数） */
+    ro:   [1.0, 0.18, 0.06],
+    ww:   [1.0, 0.62, 0.10],
+    full: [1.0, 1.0, 1.0]
+  };
+  /* 三层膜的行位置与配色 */
+  var LAYERS = [
+    { y: Math.floor(ROWS * 0.30), cls: "read" },
+    { y: Math.floor(ROWS * 0.52), cls: "write" },
+    { y: Math.floor(ROWS * 0.74), cls: "deny" }
+  ];
+  var mode = "ww";
+  var gapsFor = {};   /* layerIdx -> Set(允许通过的 x) */
+
+  function rebuildMembranes() {
+    var ratios = MODES[mode] || MODES.ww;
+    grid.fill(EMPTY);
+    LAYERS.forEach(function (layer, li) {
+      var y = layer.y;
+      var segW = 8;                                   /* 缺口以 8 格为段随机分布 */
+      var openRatio = ratios[li];
+      for (var x = 0; x < COLS; x += segW) {
+        var open = Math.random() < openRatio;
+        for (var k = 0; k < segW && x + k < COLS; k++) {
+          if (!open) grid[y * COLS + x + k] = MEMBRANE;
+        }
+      }
+    });
+    /* 底池边界不算墙：到底即沉底变绿（在 step 里处理） */
+  }
+
+  function pour(n) {
+    var placed = 0;
+    while (placed < n) {
+      var x = 2 + Math.floor(Math.random() * (COLS - 4));
+      var y = Math.floor(Math.random() * 6);
+      if (grid[y * COLS + x] === EMPTY) { grid[y * COLS + x] = SAND; placed++; }
+    }
+  }
+
+  var okCount = 0, denyCount = 0;
+  function paintStat(extra) {
+    var el = document.getElementById("sand-stat");
+    if (el) el.innerHTML =
+      "放行沉底 <b>" + okCount + "</b> · 被膜拦截 <b style='color:var(--deny)'>" + denyCount + "</b>" +
+      (extra || "");
+  }
+
+  function step() {
+    /* 自下而上扫描：经典 falling-sand 更新序，避免一帧内连跳 */
+    for (var y = ROWS - 2; y >= 0; y--) {
+      var dirFlip = (frameParity ^ (y & 1)) & 1;
+      for (var xi = 0; xi < COLS; xi++) {
+        var x = dirFlip ? xi : COLS - 1 - xi;
+        var idx = y * COLS + x;
+        if (grid[idx] !== SAND) continue;
+        var below = idx + COLS;
+        if (y + 1 >= ROWS) { grid[idx] = PILE_OK; okCount++; continue; }   // 触底即沉底
+        var belowCell = grid[below];
+        if (belowCell === EMPTY) {                       /* 直落 */
+          grid[below] = SAND; grid[idx] = EMPTY;
+        } else if (belowCell === MEMBRANE) {
+          /* 撞膜：左右有开口就斜滑绕过；无路可走 → 堆成 DENY 红粒（被这层拦下） */
+          var left = x > 0 ? grid[idx - 1] : MEMBRANE;
+          var right = x < COLS - 1 ? grid[idx + 1] : MEMBRANE;
+          var dl = x > 0 && grid[idx - 1 + COLS] === EMPTY && left === EMPTY;
+          var dr = x < COLS - 1 && grid[idx + 1 + COLS] === EMPTY && right === EMPTY;
+          if (dl && (!dr || dirFlip)) { grid[idx - 1 + COLS] = SAND; grid[idx] = EMPTY; }
+          else if (dr) { grid[idx + 1 + COLS] = SAND; grid[idx] = EMPTY; }
+          else { grid[below] = PILE_DENY; grid[idx] = EMPTY; denyCount++; }
+        } else {
+          /* 落在堆/其他沙上：尝试斜滑，滑不动就压实归堆 */
+          var dl2 = x > 0 && grid[idx - 1 + COLS] === EMPTY && grid[idx - 1] === EMPTY;
+          var dr2 = x < COLS - 1 && grid[idx + 1 + COLS] === EMPTY && grid[idx + 1] === EMPTY;
+          if (dl2 && (!dr2 || dirFlip)) { grid[idx - 1 + COLS] = SAND; grid[idx] = EMPTY; }
+          else if (dr2) { grid[idx + 1 + COLS] = SAND; grid[idx] = EMPTY; }
+          else {
+            /* 压实：落在 DENY 堆上算拦截，其余算放行沉底 */
+            grid[idx] = (belowCell === PILE_DENY) ? PILE_DENY : PILE_OK;
+            if (grid[idx] === PILE_OK) okCount++; else denyCount++;
+          }
+        }
+      }
+    }
+    frameParity ^= 1;
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#10161d";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (var y = 0; y < ROWS; y++) {
+      for (var x = 0; x < COLS; x++) {
+        var c = grid[y * COLS + x];
+        if (c === EMPTY) continue;
+        var color;
+        if (c === SAND) color = "rgba(255,180,84,.92)";
+        else if (c === MEMBRANE) color = null;       /* 膜单独画（带标签）*/
+        else if (c === PILE_OK) color = "rgba(126,211,127,.9)";
+        else color = "rgba(240,121,106,.9)";
+        if (color) { ctx.fillStyle = color; ctx.fillRect(x * CELL, y * CELL, CELL - 1, CELL - 1); }
+      }
+    }
+    /* 膜层绘制：横条 + 标签 */
+    var tags = ["READ", "WRITE", "DENY"];
+    var colors = ["rgba(143,199,232,.55)", "rgba(231,237,243,.45)", "rgba(240,121,106,.65)"];
+    LAYERS.forEach(function (layer, li) {
+      var y = layer.y * CELL;
+      ctx.fillStyle = colors[li];
+      for (var x = 0; x < COLS; x++) {
+        if (grid[layer.y * COLS + x] === MEMBRANE) ctx.fillRect(x * CELL, y, CELL - 1, CELL - 1);
+      }
+      ctx.font = "9px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = colors[li];
+      ctx.fillText(tags[li], 4, y - 3);
+    });
+  }
+
+  var frameParity = 0;
+  var acc = 0, lastT = 0, running = false, raf = 0;
+  function tick(now) {
+    raf = 0;
+    if (!lastT) lastT = now;
+    acc += now - lastT; lastT = now;
+    var steps = 0;
+    while (acc > 33 && steps < 3) { step(); acc -= 33; steps++; }   /* 30Hz 物理 */
+    render();
+    paintStat("");
+    if (running) raf = requestAnimationFrame(tick);
+  }
+  function ensureRun() {
+    if (running) return;
+    running = true; lastT = 0;
+    raf = requestAnimationFrame(tick);
+  }
+  function stopIfIdle() { running = false; if (raf) cancelAnimationFrame(raf); }
+
+  /* 交互：拖画布撒沙；按钮撒一把/清空；切模式重建膜 */
+  var painting = false;
+  function paintAt(e) {
+    var r = canvas.getBoundingClientRect();
+    var x = Math.floor((e.clientX - r.left) / r.width * COLS);
+    var y = Math.floor((e.clientY - r.top) / r.height * ROWS);
+    for (var dy = 0; dy < 3; dy++) for (var dx = 0; dx < 3; dx++) {
+      var xx = x + dx - 1, yy = y + dy - 1;
+      if (xx >= 0 && xx < COLS && yy >= 0 && yy < ROWS && grid[yy * COLS + xx] === EMPTY) {
+        grid[yy * COLS + xx] = SAND; placedHint++;
+      }
+    }
+    ensureRun();
+  }
+  var placedHint = 0;
+  canvas.addEventListener("pointerdown", function (e) { painting = true; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} paintAt(e); });
+  canvas.addEventListener("pointermove", function (e) { if (painting) paintAt(e); });
+  window.addEventListener("pointerup", function () { painting = false; });
+
+  document.getElementById("sand-pour").addEventListener("click", function () { pour(140); ensureRun(); });
+  document.getElementById("sand-clear").addEventListener("click", function () {
+    grid.fill(EMPTY); okCount = denyCount = 0; paintStat(""); stopIfIdle(); render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-sm]"), function (b) {
+    b.addEventListener("click", function () {
+      mode = b.getAttribute("data-sm");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-sm]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      rebuildMembranes();
+      ensureRun();
+    });
+  });
+
+  rebuildMembranes();
+  pour(90);
+  render();
+
+  /* 空闲自停：连续 3 秒无新沙且全部静止则停帧 */
+  setInterval(function () {
+    if (!running) return;
+    var moving = false;
+    for (var i = COLS; i < grid.length - COLS; i++) {
+      if (grid[i] === SAND && grid[i + COLS] === EMPTY) { moving = true; break; }
+    }
+    if (!moving && !painting) stopIfIdle();
+  }, 3000);
+})();
 </script>
 
 <script src="../assets/terms.js"></script>
