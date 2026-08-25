@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""逐条核对站点「真实源码切片」的行号是否仍与钉住基线一致。
+
+原理：每个切片有 src-loc 标注（路径 :起-止 · @sha）和 src-code 展示块。
+展示块是截取/拼接版，不能整体哈希；本工具取其首尾锚点行（反转义、压平
+空白后前 50 字符），去 raw 文件标注行号 ±窗口内精确查找：
+  OK            首锚点在标注起点附近命中
+  DRIFT         锚点在别处命中（给出实际行号）
+  ANCHOR-MISS   锚点全文找不到（上游删改了这段内容）
+  NO-LINES      src-loc 无可校验行号（纯说明文字）
+用法：python tools/verify_slices.py [--json out.json] [--only FILESUB]
+退出码：0 = 全部 OK；1 = 有 DRIFT / ANCHOR-MISS；3 = 事故。
+"""
+import html as htmllib
+import json
+import re
+import sys
+import urllib.request
+from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW = "https://raw.githubusercontent.com/openai/codex"
+UA = {"User-Agent": "codex-atlas-slice-check"}
+WIN_B, WIN_A = 4, 14
+
+_cache = {}
+
+
+def fetch(url):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8")
+
+
+def get_lines(path, sha):
+    key = path
+    if key not in _cache:
+        _cache[key] = fetch(f"{RAW}/{sha}/codex-rs/{path}").splitlines()
+    return _cache[key]
+
+
+def norm(s):
+    return re.sub(r"\s+", "", s)
+
+
+def anchors(code_html):
+    """src-code 片段 → (首锚点, 尾锚点)，均已反转义+压平。"""
+    text = htmllib.unescape(code_html)
+    rows = [norm(r) for r in text.split("\n")]
+    rows = [r for r in rows if r]
+    if not rows:
+        return None, None
+    first = rows[0][:50]
+    last = rows[-1][-50:] if len(rows) > 1 else ""
+    return first, last
+
+
+def find_line(lines_norm, needle, hint_start, hint_end):
+    """在 [hint_start, hint_end] 行窗口内找包含 needle 的行（1-based）；
+    窗口没有就全文件找；返回行号或 None。"""
+    n = len(lines_norm)
+    lo, hi = max(1, hint_start), min(n, hint_end)
+    for i in range(lo, hi + 1):
+        if needle in lines_norm[i - 1]:
+            return i
+    for i in range(1, n + 1):
+        if lo <= i <= hi:
+            continue
+        if needle in lines_norm[i - 1]:
+            return i
+    return None
+
+
+def parse_loc(loc_text):
+    """src-loc 文本 → [(path, start, end)|None]；无行号的区间为 None。"""
+    loc_text = loc_text.replace("同文件", "@@SAME@@")
+    out = []
+    # 路径 token：xxx/yyy.rs / zzz.js 等
+    tokens = re.findall(
+        r"([A-Za-z0-9_\-./]+(?:\.rs|\.js|\.toml|\.md))|(@@SAME@@)", loc_text)
+    paths = [t[0] or "@@SAME@@" for t in tokens]
+    # 每个路径后面跟着的行号组，直到下一个路径出现为止
+    cuts = [loc_text.find(p) if p != "@@SAME@@" else 0 for p in paths]
+    if not paths:
+        return []
+    segs = []
+    for i, p in enumerate(paths):
+        begin = cuts[i]
+        end = cuts[i + 1] if i + 1 < len(paths) else len(loc_text)
+        segs.append((p, loc_text[begin:end]))
+    prev_path = None
+    for p, seg in segs:
+        if p == "@@SAME@@":
+            p = prev_path
+        else:
+            prev_path = p
+        if not p:
+            continue
+        nums = re.findall(r":(\d+)(?:\s*[-–]\s*(\d+))?", seg)
+        if not nums:
+            out.append((p, None, None))
+        for a, b in nums:
+            out.append((p, int(a), int(b) if b else None))
+    return out
+
+
+def check_slice(page, loc_text, code_html, sha, results):
+    ranges = parse_loc(loc_text)
+    if not ranges:
+        results.append({"page": page, "loc": loc_text.strip()[:70],
+                        "status": "NO-PATH"})
+        return
+    first_a, last_a = anchors(code_html)
+    for path, start, end in ranges:
+        try:
+            lines = get_lines(path, sha)
+        except Exception as e:
+            results.append({"page": page, "path": path, "start": start,
+                            "status": "FETCH-FAIL", "detail": str(e)[:60]})
+            continue
+        ln = [norm(l) for l in lines]
+        rec = {"page": page, "path": path, "start": start,
+               "end": end, "file_lines": len(lines)}
+        status = "OK"
+        detail = ""
+        if start is None:
+            rec["status"] = "NO-LINES"
+            results.append(rec)
+            continue
+        if first_a:
+            hit = find_line(ln, first_a, start - WIN_B, start + WIN_A)
+            if hit is None:
+                status = "ANCHOR-MISS"
+                detail = "first anchor not found: " + first_a[:30]
+            elif abs(hit - start) > 0 and hit != start:
+                status = "DRIFT"
+                detail = f"first anchor at {hit}, labeled {start}"
+            else:
+                detail = f"first anchor at {hit}"
+        else:
+            status = "EMPTY-CODE"
+        if status == "OK" and last_a and end:
+            hit2 = find_line(ln, last_a, end - WIN_A, end + WIN_B)
+            if hit2 is None:
+                status = "DRIFT"
+                detail = f"last anchor not near {end}"
+            else:
+                detail += f"; last anchor at {hit2}"
+        rec["status"] = status
+        rec["detail"] = detail
+        results.append(rec)
+
+
+def iter_slices():
+    pages = sorted(ROOT.rglob("*.html"))
+    for page in pages:
+        rel = str(page.relative_to(ROOT)).replace("\\", "/")
+        text = page.read_text(encoding="utf-8")
+        for m in re.finditer(
+                r'<span class="src-loc">(.*?)</span>\s*(?:\n|<span class="src-code">)'
+                r'(.*?)(?:</span>\s*</pre>|</span></pre>)',
+                text, re.S):
+            yield rel, htmllib.unescape(m.group(1)), m.group(2)
+        # loop.html 动态 SRC 字典：loc: "...", ... code: "..."
+        for m in re.finditer(r'loc:\s*"([^"]+)"[^{}]*?code:\s*"((?:[^"\\]|\\.)*)"',
+                             text, re.S):
+            code = m.group(2).encode().decode("unicode_escape", errors="ignore")
+            yield rel + "#SRC", m.group(1), code
+
+
+def main():
+    args = sys.argv[1:]
+    json_out = args[args.index("--json") + 1] if "--json" in args else None
+    only = args[args.index("--only") + 1] if "--only" in args else None
+
+    index = (ROOT / "index.html").read_text(encoding="utf-8")
+    m40 = re.search(r"([0-9a-f]{40})", index)
+    m8 = re.search(r"@([0-9a-f]{8})\b", index)
+    sha = None
+    if m40:
+        sha = m40.group(1)
+    else:
+        mm = re.search(r"@([0-9a-f]{8})", index)
+        if not mm:
+            print("找不到基线提交号")
+            sys.exit(3)
+        api = f"https://api.github.com/repos/openai/codex/commits/{mm.group(1)}"
+        req = urllib.request.Request(api, headers=UA)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            sha = json.loads(r.read().decode())["sha"]
+    print(f"基线：{sha[:12]}")
+
+    results = []
+    n = 0
+    for page, loc, code in iter_slices():
+        if only and only not in page:
+            continue
+        n += 1
+        try:
+            check_slice(page, loc, code, sha, results)
+        except Exception as e:
+            results.append({"page": page, "loc": loc[:60],
+                            "status": "ERROR", "detail": str(e)[:80]})
+    bad = [r for r in results
+           if r.get("status") in ("DRIFT", "ANCHOR-MISS", "ERROR",
+                                  "FETCH-FAIL", "EMPTY-CODE")]
+    ok_n = sum(1 for r in results if r.get("status") == "OK")
+    nl = sum(1 for r in results if r.get("status") in ("NO-LINES", "NO-PATH"))
+    print(f"共解析 {n} 条切片标注 · OK {ok_n} · 无行号跳过 {nl} · 异常 {len(bad)}")
+    for r in results:
+        st = r.get("status")
+        mark = "OK " if st == "OK" else ("-- " if st in ("NO-LINES", "NO-PATH") else "!! ")
+        print(f"{mark}[{st}] {r.get('page','')} {r.get('path', r.get('loc',''))}"
+              f" :{r.get('start')}-{r.get('end')} {r.get('detail','')[:70]}")
+    if json_out:
+        Path(json_out).write_text(json.dumps(results, ensure_ascii=False, indent=1),
+                                  encoding="utf-8")
+        print("报告已写入 " + json_out)
+    sys.exit(1 if bad else 0)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:
+        print("✗ 事故：" + repr(e))
+        sys.exit(3)

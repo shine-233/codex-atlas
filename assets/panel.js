@@ -1553,13 +1553,43 @@
       if (meta) meta.setAttribute("content", light ? "#f0ece1" : "#101418");
     }
     paintTheme();
-    tbtn.addEventListener("click", function () {
+    tbtn.addEventListener("click", function (e) {
       var light = document.documentElement.getAttribute("data-theme") === "light";
-      try { localStorage.setItem("ca-theme", light ? "dark" : "light"); } catch (e) { /* 忽略 */ }
-      if (light) document.documentElement.removeAttribute("data-theme");
-      else document.documentElement.setAttribute("data-theme", "light");
-      paintTheme();
-      setTimeout(function () { location.reload(); }, 60);
+      try { localStorage.setItem("ca-theme", light ? "dark" : "light"); } catch (err) { /* 忽略 */ }
+      var swap = function () {
+        if (light) document.documentElement.removeAttribute("data-theme");
+        else document.documentElement.setAttribute("data-theme", "light");
+        paintTheme();
+      };
+      /* 圆形揭示（View Transitions）：从按钮中心扩散换肤，播完再刷新一次
+         让 canvas/SVG 仪器按新色重绘。不支持/减动效 → 原地换 + 立即刷新。 */
+      var reduce = window.PrefersReducedMotion === true;
+      var rect = tbtn.getBoundingClientRect();
+      var x = (e.clientX || rect.left + rect.width / 2);
+      var y = (e.clientY || rect.top + rect.height / 2);
+      if (!reduce && document.startViewTransition) {
+        document.documentElement.classList.add("theme-vt");
+        var vt = document.startViewTransition(swap);
+        vt.ready.then(function () {
+          var r = Math.hypot(
+            Math.max(x, window.innerWidth - x),
+            Math.max(y, window.innerHeight - y));
+          document.documentElement.animate(
+            { clipPath: [
+                "circle(0px at " + x + "px " + y + "px)",
+                "circle(" + r + "px at " + x + "px " + y + "px)"
+              ] },
+            { duration: 560, easing: "ease-in-out",
+              pseudoElement: "::view-transition-new(root)" });
+        }).catch(function () { /* 揭示被打断就算了 */ });
+        vt.finished.finally(function () {
+          document.documentElement.classList.remove("theme-vt");
+          setTimeout(function () { location.reload(); }, 140);
+        });
+      } else {
+        swap();
+        setTimeout(function () { location.reload(); }, 60);
+      }
     });
     document.body.appendChild(tbtn);
   })();

@@ -1172,6 +1172,7 @@ table.rt tr.hidden { display: none; }
 
   /* paragraph text-wrap */
   p { text-wrap: pretty; }
+  h1, h2 { text-wrap: balance; }
 
   /* ---------- 滚动浮现（由 JS 添加 .rv，无 JS 时内容不受影响） ---------- */
 @media (prefers-reduced-motion: no-preference) {
@@ -1960,6 +1961,9 @@ body::after {
   @view-transition { navigation: auto; }
   ::view-transition-old(root) { animation-duration: .22s; }
   ::view-transition-new(root) { animation-duration: .26s; }
+  /* 主题切换的圆形揭示：作用域内关掉默认交叉溶解，clip-path 说了算 */
+  html.theme-vt::view-transition-old(root),
+  html.theme-vt::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 }
 
 /* ---------- 「接下来」推荐卡 ---------- */
