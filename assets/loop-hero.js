@@ -323,16 +323,16 @@
     if (!opts.plain && !window.PrefersReducedMotion) {
       host.classList.add("ls-grab");
       host.title = host.title || "按住拖动：把回路转起来看；松手回正";
-      var gx = 0, gy = 0, gDragging = false, gPid = null, suppressClick = false;
+      var dgx = 0, dgy = 0, gDragging = false, gPid = null, suppressClick = false;
       host.addEventListener("pointerdown", function (e) {
         if (e.button !== 0 && e.pointerType === "mouse") return;
-        gPid = e.pointerId; gx = e.clientX; gy = e.clientY;
+        gPid = e.pointerId; dgx = e.clientX; dgy = e.clientY;
         gDragging = false; suppressClick = false;
         try { host.setPointerCapture(gPid); } catch (err) { /* 老浏览器就算了 */ }
       });
       host.addEventListener("pointermove", function (e) {
         if (gPid === null || e.pointerId !== gPid) return;
-        var dx = e.clientX - gx, dy = e.clientY - gy;
+        var dx = e.clientX - dgx, dy = e.clientY - dgy;
         if (!gDragging && Math.abs(dx) + Math.abs(dy) > 6) {
           gDragging = true;
           host.classList.add("is-drag");

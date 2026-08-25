@@ -765,6 +765,18 @@
       "</div>" +
       '<p class="small muted">「复制」把上面这些打成一段 JSON 存档留念（不含恢复导入——数据只在这台浏览器的 localStorage 里）。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
 
+    /* 剪贴板 API 不可用时的兜底：隐藏 textarea + execCommand */
+    function fallbackCopy(text) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* 老浏览器尽力而为 */ }
+      document.body.removeChild(ta);
+    }
+
     card.querySelector("#prof-copy").addEventListener("click", function () {
       var payload = { site: "codex-atlas", exportedAt: new Date().toISOString(), pagesSeen: seenCount, xp: xp, level: XP_LEVELS[lv][1], quiz: quiz, flashcardsKnown: flash };
       var text = JSON.stringify(payload, null, 2);
