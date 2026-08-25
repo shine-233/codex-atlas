@@ -232,6 +232,30 @@
       }
     }
 
+    /* 键盘发射（Bruno Simon 游戏化）：WASD 把小鳕朝对应方向弹出去，
+       复用 fling 物理管线（重力/反弹/摩擦全套）。方向键留给各页单步仪。 */
+    document.addEventListener("keydown", function (e) {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      var t = e.target;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      var DIRS = {
+        w: [0, -1], a: [-1, 0], s: [0, 1], d: [1, 0],
+        W: [0, -1], A: [-1, 0], S: [0, 1], D: [1, 0]
+      };
+      var dir = DIRS[e.key];
+      if (!dir || mode === "fly") return;
+      var r = pet.getBoundingClientRect();
+      var POWER = 980;
+      startFly(
+        r.left + r.width / 2,
+        r.top + r.height / 2,
+        dir[0] * POWER,
+        dir[1] * POWER - 240
+      );
+      showToast("<b>WASD</b> · 小鳕已被发射。再按其他键换方向，或等它自己游回来。");
+      e.preventDefault();
+    });
+
     function settle(x, y) {
       cancelAnimationFrame(flyRaf);
       mode = "home";

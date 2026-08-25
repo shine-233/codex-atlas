@@ -1582,6 +1582,28 @@ body::after {
 /* 04 可听版开关 */
 .proto-audio-toggle.on { color: var(--amber); border-color: rgba(255, 180, 84, .6); }
 
+/* Kandinsky 手势实验室（04） */
+.gl-host { border: 1px dashed var(--line-strong); }
+.gl-wrap { position: relative; }
+.gl-canvas {
+  display: block; width: 100%; height: 190px;
+  touch-action: none; cursor: crosshair;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,180,84,.045), transparent 70%),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(255,255,255,.03) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(255,255,255,.03) 23px 24px);
+}
+.gl-hint {
+  position: absolute; right: 10px; top: 8px;
+  font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .05em;
+  pointer-events: none;
+}
+.gl-readout {
+  padding: 8px 12px; font-family: var(--mono); font-size: 11.5px;
+  color: var(--steel); border-top: 1px solid var(--line);
+  min-height: 20px;
+}
+
 /* ---------- 自定义磁性光环光标（cursor.js 注入，触屏/reduced-motion 不启用）---------- */
 @media (hover: hover) and (pointer: fine) {
   body.cur-on, body.cur-on a, body.cur-on button, body.cur-on .ca-scrub,
