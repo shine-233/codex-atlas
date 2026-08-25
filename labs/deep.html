@@ -786,7 +786,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这些流排出来的行，最终落成屏上的一段段「cell」：你的消息、模型的回答、一条命令输出，各自是一个 HistoryCell。宽度是它的入参——cell 拿着当前宽度现算显示行；连占几行都按同一宽度重新量。源码特意注明：含 URL 的行比终端还宽时，逻辑行数会低估，所以量的必须是换行后的真实行数。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · HistoryCell trait：宽度进、行数出</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :176-187, 215-232 · @cbfd999 实测</span>
+          <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :175-187, 214-232 · @cbfd999 实测</span>
 <span class="src-code">/// A single renderable unit of conversation history.
 ///
 /// Each cell produces logical `Line`s and reports how many viewport
