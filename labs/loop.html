@@ -661,7 +661,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     }
 
     var PADL = 46, PADR = 16, PADT = 14, PADB = 26;
-    var MAXLAP = 10, MAXU = 110;   /* 刻度固定 10 圈 / 110 单位，和成本对照对齐 */
+    var MAXLAP = 10, MAXU = 110;   /* 起步刻度 10 圈 / 110 单位；圈数超过后刻度自动扩展 */
     function xOf(i) { return PADL + (W - PADL - PADR) * (i / (MAXLAP - 1)); }
     function yOf(u) { return H - PADB - (H - PADT - PADB) * (u / MAXU); }
 
@@ -673,6 +673,9 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       var n = laps + 1;
       while (pts.length < n) { pts.push(10 * (pts.length + 1)); if (!REDUCed) pulseT0 = performance.now(); }
       while (pts.length > n) pts.pop();
+      /* 圈数越过起步刻度后整体扩轴，别让折线冲出画布 */
+      MAXLAP = Math.max(10, pts.length + 1);
+      MAXU = Math.max(110, MAXLAP * 10);
       if (hoverI >= pts.length) hoverI = -1;
       draw();
       if (read) read.innerHTML = pts.length
@@ -1398,12 +1401,12 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
 
     paint();
 
-    /* 从地址栏恢复计数状态（日志不回放） */
+    /* 从地址栏恢复计数状态（日志不回放）。畸形/截断链接恢复不出矛盾态 */
     (function () {
       var s0 = PanelState.read();
       var h0 = parseInt(s0.sh, 10) || 0;
       if (!h0 && s0.sr !== "1") return;
-      running = s0.sr === "1";
+      running = s0.sr === "1" && h0 > 0;   /* 「运行中但历史为 0」是矛盾态，按空闲恢复 */
       laps = parseInt(s0.sl, 10) || 0;
       hist = h0;
       merged = parseInt(s0.sm, 10) || 0;
@@ -1438,8 +1441,15 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     ];
 
     var played = 0, playing = false, stepTimer = null, charTimers = [];
+    var typing = null;   /* { node, s } 打字中的 chunk，暂停时好整段补完 */
 
-    function clearCharTimers() { charTimers.forEach(clearTimeout); charTimers = []; }
+    function clearCharTimers() { charTimers.forEach(clearTimeout); charTimers = []; typing = null; }
+    function finishTyping() {
+      /* 暂停时把打了一半的 chunk 即时补完，别留半句残文 */
+      charTimers.forEach(clearTimeout);
+      charTimers = [];
+      if (typing) { typing.node.textContent = typing.s.chunk; typing = null; }
+    }
     function resetBubble() {
       bubble.innerHTML = '<span class="sse-caret" hidden></span>';
       bubble.classList.remove("done");
@@ -1478,8 +1488,10 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         bubble.insertBefore(chunk, caret);
         if (instant || window.PrefersReducedMotion) { chunk.textContent = s.chunk; return; }
         var k = 0;
+        typing = { node: chunk, s: s };
         (function tick() {
-          if (k >= s.chunk.length) return;
+          if (!typing || typing.node !== chunk) return;   /* 已被暂停补完/放弃 */
+          if (k >= s.chunk.length) { typing = null; return; }
           chunk.textContent += s.chunk[k++];
           charTimers.push(setTimeout(tick, 34));
         })();
@@ -1529,9 +1541,10 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     }
 
     function startPlay() {
-      if (playing) {   /* 播放中点击 = 暂停 */
+      if (playing) {   /* 播放中点击 = 暂停：打字即时补完，别留半句残文 */
         playing = false;
         if (stepTimer) { clearTimeout(stepTimer); stepTimer = null; }
+        finishTyping();
         playBtn.textContent = "▶ 从第 " + (played + 1) + " 条续播";
         return;
       }

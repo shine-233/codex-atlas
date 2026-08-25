@@ -233,6 +233,7 @@ def iter_slices():
 def main():
     args = sys.argv[1:]
     json_out = args[args.index("--json") + 1] if "--json" in args else None
+    sum_out = args[args.index("--summary") + 1] if "--summary" in args else None
     only = args[args.index("--only") + 1] if "--only" in args else None
 
     index = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -282,6 +283,22 @@ def main():
         Path(json_out).write_text(json.dumps(results, ensure_ascii=False, indent=1),
                                   encoding="utf-8")
         print("报告已写入 " + json_out)
+    if sum_out:
+        s = ["# 切片行号核对报告", "",
+             f"- 基线提交：`{sha[:12]}`",
+             f"- 切片标注：{n} 条 · OK {ok_n} · 尾行警告 {len(warn)} · 异常 {len(bad)}", ""]
+        if bad:
+            s.append("## 漂移清单")
+            for r in bad:
+                s.append(f"- **{r.get('status')}** `{r.get('page','')}` "
+                         f"{r.get('path', r.get('loc',''))} :{r.get('start')} — {r.get('detail','')}")
+            s.append("")
+        if warn:
+            s.append("## 尾行警告（手写节选，首锚已命中，人工抽验即可）")
+            for r in warn:
+                s.append(f"- `{r.get('path','')}` :{r.get('start')}-{r.get('end')}")
+        Path(sum_out).write_text("\n".join(s), encoding="utf-8")
+        print("摘要已写入 " + sum_out)
     sys.exit(1 if bad else 0)
 
 

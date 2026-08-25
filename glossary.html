@@ -804,8 +804,10 @@ window.CATOUR_STEPS = [
 
   window.CAMatch = {
     wake: function () {
-      if (!round && size()) redeal();
-      else if (size()) draw();
+      if (!size()) return;
+      /* 隐藏期间窗口可能变过：先重排再画，别拿旧坐标连线 */
+      if (!round) redeal();
+      else { layout(); draw(); }
     }
   };
 

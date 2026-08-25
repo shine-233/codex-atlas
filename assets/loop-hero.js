@@ -5,18 +5,20 @@
    标签布局：自动放在走线外侧（上/下边→上下外侧堆叠；左右侧→左右外侧），
    避免互相碰撞与越界截断；可用站点级 dx / dy / anchor 微调。 */
 (function () {
-  
+  "use strict";
+
   var C = window.CATheme || { get: function (n, f) { return f; } };
-  var C_BG0 = C.get("--bg0", C_BG0);
-  var C_LINE = C.get("--line", C_LINE);
-  var C_LINE_STRONG = C.get("--line-strong", C_LINE_STRONG);
-  var C_GRID = C.get("--line", C_GRID);
-  var C_AMBER = C.get("--amber", C_AMBER);
-  var C_STEEL = C.get("--steel", C_STEEL);
-  var C_INK = C.get("--ink", C_INK);
-  var C_FAINT = C.get("--faint", C_FAINT);
-  var C_DIM = C.get("--dim", C_DIM);
-"use strict";
+  /* fallback 必须是字面量：写 C_BG0 会因 var 提升取到 undefined，
+     token 缺失时颜色属性会被写成字符串 "undefined" */
+  var C_BG0 = C.get("--bg0", "#101418");
+  var C_LINE = C.get("--line", "#263140");
+  var C_LINE_STRONG = C.get("--line-strong", "#34424f");
+  var C_GRID = C.get("--line", "#263140");
+  var C_AMBER = C.get("--amber", "#ffb454");
+  var C_STEEL = C.get("--steel", "#8fc7e8");
+  var C_INK = C.get("--ink", "#e7edf3");
+  var C_FAINT = C.get("--faint", "#8b98a5");
+  var C_DIM = C.get("--dim", "#a8b4bf");
 
   var NS = "http://www.w3.org/2000/svg";
 
@@ -166,8 +168,8 @@
           t1y = pt.y + stackDir * 18 + (st.t1dy != null ? st.t1dy : 0);
           t2y = pt.y + stackDir * 31 + (st.t2dy != null ? st.t2dy : 0);
           lx = pt.x + (st.dx != null ? st.dx : 0);
-          anchor = st.anchor || (stackDir === -1 ? anchorOut : anchorOut === "end" ? "start" : "end");
-          /* 左右对齐仍按所在半区 */
+          /* 左右对齐仍按所在半区（原翻转分支是死代码：L163 已取 st.anchor，
+             这里再无条件覆盖回 anchorOut——保留现状行为，删掉死表达式） */
           if (st.anchor == null) anchor = anchorOut;
         } else {
           /* 左右边：标签并排在水平外侧 */

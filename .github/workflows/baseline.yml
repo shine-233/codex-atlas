@@ -24,9 +24,14 @@ jobs:
       - name: 核对基线（全量，含 135 份依赖爬取）
         run: python tools/verify_baseline.py --json baseline-report.json --summary baseline-summary.md
 
+      - name: 核对切片行号（src-loc 锚点比对；有漂移只报告不阻塞数字核对）
+        run: python tools/verify_slices.py --json slices-report.json --summary slices-summary.md || true
+
       - name: 写入 job 摘要
         if: always()
-        run: cat baseline-summary.md >> "$GITHUB_STEP_SUMMARY" || true
+        run: |
+          cat baseline-summary.md >> "$GITHUB_STEP_SUMMARY" || true
+          cat slices-summary.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: 上传报告
         if: always()
@@ -36,6 +41,8 @@ jobs:
           path: |
             baseline-report.json
             baseline-summary.md
+            slices-report.json
+            slices-summary.md
 
       - name: 漂移时开 issue（已有则跳过）
         if: always()

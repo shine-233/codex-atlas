@@ -464,6 +464,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       input.setAttribute("aria-label", L.name);
       input.addEventListener("change", function () {
         L.on = input.checked;
+        if (L.subs) buildToggles();   /* 子开关行随主开关出现/消失，先重建再同步，避免 checkbox 错位 */
         render();
       });
       var sw = document.createElement("span");
@@ -931,12 +932,13 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
 
     function render() {
       var rounds = parseInt(slider.value, 10);
-      var tok = STEP, compacts = 0, lastAt = -1, sumW = 0;
+      var tok = STEP, compacts = 0, lastAt = -1, sumW = 0, peak = 0;
       for (var r = 2; r <= rounds; r++) {
         tok += STEP;
         if (tok >= LIMIT) {
           compacts++;
           lastAt = r;
+          peak = tok;   /* 触顶瞬间的峰值，文案要用 */
           sumW = Math.max(sumW, SETTLE);
           tok = SETTLE + STEP;
         }
@@ -951,7 +953,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       if (compacts && lastAt === rounds) {
         note.innerHTML = "<b>第 " + rounds + " 轮触顶：</b>token 摸到 model_auto_compact_token_limit 阈值（红虚线），" +
           "自动调用 /responses/compact——旧轮次压成一段 encrypted_content 摘要（蓝色斜纹块），" +
-          "上下文从 " + (SETTLE + STEP) + " 掉回 " + tok + " 单位，对话接着走。压缩对模型透明：它靠摘要延续理解。";
+          "上下文从 " + peak + " 掉回 " + tok + " 单位，对话接着走。压缩对模型透明：它靠摘要延续理解。";
       } else if (compacts) {
         note.innerHTML = "已压缩 <b>" + compacts + "</b> 次（最近一次在第 " + lastAt + " 轮）。蓝斜纹块就是那段 encrypted_content 摘要占的位置——旧轮次没有消失，变成了更小的自己。";
       } else if (tok >= LIMIT - STEP) {

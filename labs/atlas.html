@@ -154,6 +154,16 @@
   #galaxy { height: 440px; }
   #galaxy canvas { display: block; }
   @media (max-width: 720px) { #galaxy { height: 340px; } }
+  .edge-chips { position: absolute; top: 8px; right: 10px; z-index: 4; display: flex; gap: 6px; flex-wrap: wrap; }
+  .edge-chips button {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+    padding: 3px 10px; border-radius: 999px;
+    background: rgba(16, 20, 24, .82); border: 1px solid var(--line-strong);
+    color: var(--dim); cursor: pointer; transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .edge-chips button:hover { color: var(--ink); }
+  .edge-chips button.on { color: var(--amber); border-color: rgba(255, 180, 84, .7); background: rgba(255, 180, 84, .08); }
+  .edge-chips button:focus-visible { outline: none; border-color: var(--amber); }
   .galaxy-cap { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .05em; margin: 8px 0 0; line-height: 1.7; }
   /* 力学视图：力导向依赖图 */
   #force { height: 480px; }
@@ -303,7 +313,13 @@
 
       <div id="treemap" class="tm-wrap" hidden></div>
 
-      <div id="galaxy" class="tm-wrap" hidden></div>
+      <div id="galaxy" class="tm-wrap" hidden>
+        <div class="edge-chips" id="edge-chips" role="group" aria-label="依赖边过滤">
+          <button data-ef="all" class="on" type="button">全部边</button>
+          <button data-ef="out" type="button">出边 · 它依赖的</button>
+          <button data-ef="in" type="button">入边 · 依赖它的</button>
+        </div>
+      </div>
       <p class="galaxy-cap" id="galaxy-cap" hidden>136 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。点选任意成员后，它的实测依赖会连成线框——琥珀是它依赖的，钢青是依赖它的（CA_DEPS 全量边表）。</b></p>
       <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
 
@@ -1058,6 +1074,30 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    /* 依赖边过滤芯片：all / out / in */
+    var edgeFilter = "all";
+    var chipBox = document.getElementById("edge-chips");
+    if (chipBox) {
+      Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (b) {
+        b.addEventListener("click", function () {
+          edgeFilter = b.getAttribute("data-ef") || "all";
+          Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (x) {
+            x.classList.toggle("on", x === b);
+          });
+          lastInteract = performance.now();
+          PanelState.write({ ef: edgeFilter === "all" ? "" : edgeFilter });
+          sync();
+        });
+      });
+      var savedEf = PanelState.read().ef;
+      if (savedEf === "out" || savedEf === "in") {
+        edgeFilter = savedEf;
+        Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (x) {
+          x.classList.toggle("on", x.getAttribute("data-ef") === edgeFilter);
+        });
+      }
+    }
+
     var REDUCED = window.PrefersReducedMotion === true;
     var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
     var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
@@ -1212,28 +1252,29 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
           return Math.sqrt(ex * ex + ey * ey);
         }
         ctx.lineWidth = 0.9;
-        for (i = 0; i < selDeps.out.length; i++) {
+        var showOut = edgeFilter !== "in", showIn = edgeFilter !== "out";
+        for (i = 0; showOut && i < selDeps.out.length; i++) {
           var qo = PTS[PTS_BY[selDeps.out[i]]];
           if (!qo || qo._sx == null) continue;
           ctx.strokeStyle = "rgba(" + AMBER + "," + edgeAlpha(qo, 0.5).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qo._sx, qo._sy); ctx.stroke();
         }
-        for (i = 0; i < selDeps.ins.length; i++) {
+        for (i = 0; showIn && i < selDeps.ins.length; i++) {
           var qi = PTS[PTS_BY[selDeps.ins[i]]];
           if (!qi || qi._sx == null) continue;
           ctx.strokeStyle = "rgba(" + STEEL + "," + edgeAlpha(qi, 0.42).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qi._sx, qi._sy); ctx.stroke();
         }
-        /* 悬停选边：只在指针静止于画布上时生效 */
+        /* 悬停选边：只在指针静止于画布上时生效；只扫过滤后仍显示的边 */
         if (mx >= 0 && !dragging && !panning) {
           var best = 12, bestEdge = null;
-          for (i = 0; i < selDeps.out.length; i++) {
+          for (i = 0; showOut && i < selDeps.out.length; i++) {
             var ho = PTS[PTS_BY[selDeps.out[i]]];
             if (!ho || ho._sx == null) continue;
             var d = edgeDist(ho);
             if (d < best) { best = d; bestEdge = { dir: "out", name: selDeps.out[i], q: ho }; }
           }
-          for (i = 0; i < selDeps.ins.length; i++) {
+          for (i = 0; showIn && i < selDeps.ins.length; i++) {
             var hi2 = PTS[PTS_BY[selDeps.ins[i]]];
             if (!hi2 || hi2._sx == null) continue;
             var d2 = edgeDist(hi2);
@@ -1536,6 +1577,9 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       },
       state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi }; }
     };
+    /* 直达 #vw=galaxy 时初始恢复先于本 IIFE 执行、当时 CAGalaxy 还不存在——这里补唤醒，
+       否则画布停在默认 300×150 空白（分享链接打开即黑屏的既有 bug）。 */
+    if (!document.getElementById("galaxy").hidden) wake();
   })();
 
   /* ---------- 力学视图：力导向依赖图（手写物理，零依赖）。

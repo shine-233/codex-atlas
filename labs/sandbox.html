@@ -1319,6 +1319,9 @@ async fn create_elicitation(
     Array.prototype.forEach.call(document.querySelectorAll("[data-cp]"), function (b) {
       b.addEventListener("click", function () {
         curPol = b.getAttribute("data-cp");       /* 与上方判定器同源 */
+        Array.prototype.forEach.call(document.querySelectorAll("[data-pol]"), function (x) {
+          x.classList.toggle("on", x.getAttribute("data-pol") === curPol);   /* 顶部判定器的策略高亮跟过来 */
+        });
         buildMatrix();
         renderVerdict();
         syncSegHi();
