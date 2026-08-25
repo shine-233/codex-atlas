@@ -124,6 +124,7 @@
   <div class="dr-num" id="dr-num">L0.0</div>
   <div class="dr-cap">CALL DEPTH · 示意刻度</div>
   <div class="dr-light">UI 光照剩余 <b id="dr-light">100%</b></div>
+  <div class="dr-light">压力 <b id="dr-press">1.0 atm</b> · 水温 <b id="dr-temp">22°C</b></div>
   <div class="dr-track"><i class="dr-fill" id="dr-fill" style="height:0%"></i></div>
 </div>
 
@@ -298,6 +299,8 @@
 
   var numEl = document.getElementById("dr-num");
   var lightEl = document.getElementById("dr-light");
+  var pressEl = document.getElementById("dr-press");
+  var tempEl = document.getElementById("dr-temp");
   var fillEl = document.getElementById("dr-fill");
   var MAX_L = 10;
   var eased = 0, target = 0;
@@ -305,11 +308,15 @@
 
   function hud() {
     numEl.textContent = "L" + eased.toFixed(1);
+    var k = eased / MAX_L;
     var light = Math.max(0, 100 * Math.exp(-eased / 3.4));   // 光照随深度指数衰减
     lightEl.textContent = light.toFixed(0) + "%";
-    fillEl.style.height = Math.min(100, eased / MAX_L * 100).toFixed(1) + "%";
+    /* Abyssal 三件套：压力线性、水温向海沟底 2°C 收敛 */
+    pressEl.textContent = (1 + eased / 10 * 4.2).toFixed(1) + " atm";
+    tempEl.textContent = (22 - 20 * k).toFixed(0) + "°C";
+    fillEl.style.height = Math.min(100, k * 100).toFixed(1) + "%";
     document.body.style.setProperty("--db",
-      mixColor([16, 22, 29], [6, 9, 13], eased / MAX_L));
+      mixColor([16, 22, 29], [6, 9, 13], k));
     var layer = Math.round(eased);
     if (layer !== lastLayer && window.CASound) {
       lastLayer = layer;

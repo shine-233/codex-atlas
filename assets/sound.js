@@ -45,6 +45,13 @@
     o.start(t0); o.stop(t0 + dur + 0.06);
   }
 
+  /* 五声音阶（Kandinsky 原则）：任意序号取音都不会难听 */
+  var PENTA = [523.25, 587.33, 659.25, 783.99, 880.00];   /* C D E G A */
+  function penta(idx) {
+    return PENTA[((idx % PENTA.length) + PENTA.length) % PENTA.length] *
+      (idx >= PENTA.length ? 2 : 1);
+  }
+
   function noise(t0, dur, peak, hp) {
     var n = Math.max(1, Math.floor(ctx.sampleRate * dur));
     var buf = ctx.createBuffer(1, n, ctx.sampleRate);
@@ -79,32 +86,34 @@
       noise(t + 0.52, 0.25, 0.09, 2000);
     },
     whoosh:    function (t) { noise(t, 0.28, 0.09, 600); },
-    /* ---------- 协议节奏器（04 可听版）：方向与语义各占一种声形 ---------- */
-    tx:        function (t) { tone(920, "square", t, 0.045, 0.12); },                 /* c2s 上行请求 */
-    rx:        function (t) { tone(660, "sine", t, 0.09, 0.16, 430); },               /* s2c 下行通知 */
+    /* ---------- 协议节奏器（04 可听版）：音高落在五声音阶，序号驱动旋律化 ---------- */
+    tx:        function (t, seq) { tone(penta(seq || 0) * 1.0, "square", t, 0.05, 0.11); },
+    rx:        function (t, seq) { tone(penta((seq || 0) + 2), "sine", t, 0.10, 0.15); },
     pgate:     function (t) { tone(196, "triangle", t, 0.22, 0.16); tone(392, "sine", t + 0.05, 0.18, 0.10); }, /* 审批挂起 */
     verdict:   function (t) { tone(587, "triangle", t, 0.07, 0.2); tone(880, "triangle", t + 0.08, 0.14, 0.22); }
   };
 
-  function play(name) {
+  function play(name, seq) {
     if (!enabled || !CUES[name]) return;
     if (document.hidden) return;
     var now = Date.now();
     if (last[name] && now - last[name] < 60) return;   /* 同音色 60ms 内去重 */
     last[name] = now;
     if (!ensure()) return;
-    try { CUES[name](ctx.currentTime + 0.01); } catch (e) { /* 出声失败不影响交互 */ }
+    try { CUES[name](ctx.currentTime + 0.01, seq); } catch (e) { /* 出声失败不影响交互 */ }
   }
 
   window.CASound = {
     play: play,
     /* 旁路通道：独立开关的仪器（如 04 可听版）用 force 发声——
-       仍受页面隐藏与 AudioContext 门控，但不依赖全局 ♪ 偏好。 */
-    force: function (name) {
+       仍受页面隐藏与 AudioContext 门控，但不依赖全局 ♪ 偏好。
+       seq 可选：五声音阶序号，让连续报文旋律化（Bruno Simon 的随机性原则的反面：
+       结构化序列比随机更像协议）。 */
+    force: function (name, seq) {
       if (!CUES[name]) return;
       if (document.hidden) return;
       if (!ensure()) return;
-      try { CUES[name](ctx.currentTime + 0.01); } catch (e) { /* 出声失败不影响交互 */ }
+      try { CUES[name](ctx.currentTime + 0.01, seq); } catch (e) { /* 出声失败不影响交互 */ }
     }
   };
 

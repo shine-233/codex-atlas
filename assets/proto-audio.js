@@ -8,6 +8,7 @@
 
   var KEY = "ca-proto-audio";
   var on = false;
+  var seqN = 0;                        /* 报文序号 → 五声音阶音高，连续播放即旋律 */
   try { on = localStorage.getItem(KEY) === "1"; } catch (e) { /* 默认关 */ }
 
   function cueOf(row) {
@@ -35,7 +36,7 @@
           var n = added[j];
           if (n.nodeType === 1 && n.classList.contains("msg") &&
               (n.classList.contains("cur") || n.classList.contains("gate"))) {
-            window.CASound.force(cueOf(n));
+            window.CASound.force(cueOf(n), seqN++);
           }
         }
       }

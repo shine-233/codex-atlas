@@ -8,6 +8,7 @@
   "use strict";
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   if (!window.matchMedia || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  document.body.classList.add("cur-on");   /* 守卫通过才隐藏原生指针 */
 
   var ring = document.createElement("div");
   var dot = document.createElement("div");
