@@ -311,7 +311,7 @@ let full_context_window_limit_reached =
 let token_limit_reached = buffered_auto_compact_limit
     .is_some_and(|limit| auto_compact_scope_tokens &gt;= limit)
     || full_context_window_limit_reached;</span></pre>
-          <pre><span class="src-loc">codex-rs/core/src/client.rs :161-163</span>
+          <pre><span class="src-loc">codex-rs/core/src/client.rs :163-165</span>
 <span class="src-code">const RESPONSES_ENDPOINT: &amp;str = "/responses";
 const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
         </details>

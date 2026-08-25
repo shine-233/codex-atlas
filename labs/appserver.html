@@ -368,7 +368,7 @@
       <p class="small muted" id="dj-desc" style="margin:10px 0 0;">字段名与嵌套为<b>示意形状</b>：v2 协议以固定提交下的 protocol crate 与 <code>codex app-server generate-ts</code> 输出为准。</p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · ServerRequest 里的审批变体（注意 DEPRECATED 标注）</summary>
-        <pre><span class="src-loc">codex-rs/app-server-protocol/src/protocol/common.rs :1721-1733 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/app-server-protocol/src/protocol/common.rs :1736-1748 · @cbfd999 实测</span>
 <span class="src-code">/// DEPRECATED APIs below
 /// Request to approve a patch.
 /// This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).
@@ -412,7 +412,7 @@ ExecCommandApproval {
     <section class="panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>WIRE REGISTRY · 全部 wire 方法</h3>
-        <span class="readout" id="wr-count"></span>
+        <span class="readout"></span>
       </div>
       <p class="small muted" style="margin:0 0 14px;">
         固定提交下 <code>app-server-protocol/src/protocol/common.rs</code> wire 注册表里的
@@ -872,7 +872,10 @@ ExecCommandApproval {
     if (wrap) wrap.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
   })();
 
-  window.addEventListener("hashchange", function () { location.reload(); });
+  /* hash 变化重载以恢复仪器状态；纯锚点跳转（skip-link 的 #main）放行不刷 */
+  window.addEventListener("hashchange", function () {
+    if (location.hash !== "#main") location.reload();
+  });
 
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22

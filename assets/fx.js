@@ -280,6 +280,9 @@
       if (!frameReq) frameReq = requestAnimationFrame(apply);
     });
     wrapper.addEventListener("pointerleave", function () {
+      /* 排队中的 rAF 会用陈旧事件把卡片钉回倾斜态——先掐掉 */
+      if (frameReq) { cancelAnimationFrame(frameReq); frameReq = 0; }
+      pending = null;
       card.classList.remove("is-hover", "is-tilting");
       card.style.setProperty("--tilt-rx", "0deg");
       card.style.setProperty("--tilt-ry", "0deg");

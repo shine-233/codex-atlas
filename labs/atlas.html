@@ -1192,13 +1192,24 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       }
 
       /* 选中 crate 的实测依赖线框：出边琥珀（它依赖谁）、入边钢青（谁依赖它）。
-         全量绘制但低透明度——枢纽 crate 的辐射网正是建模感的来源。 */
+         全量绘制但低透明度——枢纽 crate 的辐射网正是建模感的来源。
+         指针最近的边会加亮，并标出依赖方向（谁 → 谁）。 */
       syncSelDeps();
+      var hoverEdge = null;
       if (selDeps.name && PTS_BY[selDeps.name] != null) {
         var sp = PTS[PTS_BY[selDeps.name]];
         function edgeAlpha(q, base) {
           var depth = 1 - ((sp._z + q._z) / 2 + 1) / 2;
           return base * (0.35 + 0.65 * depth) * (focusBi !== null && q.bi !== focusBi && sp.bi !== focusBi ? 0.25 : 1);
+        }
+        function edgeDist(q) {
+          var x1 = sp._sx, y1 = sp._sy, x2 = q._sx, y2 = q._sy;
+          var dx = x2 - x1, dy = y2 - y1;
+          var len2 = dx * dx + dy * dy;
+          var t = len2 ? ((mx - x1) * dx + (my - y1) * dy) / len2 : 0;
+          t = Math.max(0, Math.min(1, t));
+          var ex = x1 + t * dx - mx, ey = y1 + t * dy - my;
+          return Math.sqrt(ex * ex + ey * ey);
         }
         ctx.lineWidth = 0.9;
         for (i = 0; i < selDeps.out.length; i++) {
@@ -1212,6 +1223,49 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
           if (!qi || qi._sx == null) continue;
           ctx.strokeStyle = "rgba(" + STEEL + "," + edgeAlpha(qi, 0.42).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qi._sx, qi._sy); ctx.stroke();
+        }
+        /* 悬停选边：只在指针静止于画布上时生效 */
+        if (mx >= 0 && !dragging && !panning) {
+          var best = 12, bestEdge = null;
+          for (i = 0; i < selDeps.out.length; i++) {
+            var ho = PTS[PTS_BY[selDeps.out[i]]];
+            if (!ho || ho._sx == null) continue;
+            var d = edgeDist(ho);
+            if (d < best) { best = d; bestEdge = { dir: "out", name: selDeps.out[i], q: ho }; }
+          }
+          for (i = 0; i < selDeps.ins.length; i++) {
+            var hi2 = PTS[PTS_BY[selDeps.ins[i]]];
+            if (!hi2 || hi2._sx == null) continue;
+            var d2 = edgeDist(hi2);
+            if (d < best) { best = d2; bestEdge = { dir: "in", name: selDeps.ins[i], q: hi2 }; }
+          }
+          hoverEdge = bestEdge;
+        }
+        if (hoverEdge) {
+          var hq = hoverEdge.q;
+          ctx.lineWidth = 2;
+          var hc = hoverEdge.dir === "out" ? AMBER : STEEL;
+          ctx.strokeStyle = "rgba(" + hc + ",.95)";
+          ctx.setLineDash([7, 4]);
+          ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(hq._sx, hq._sy); ctx.stroke();
+          ctx.setLineDash([]);
+          /* 方向标签：出边「sel → q」，入边「q → sel」 */
+          var label = hoverEdge.dir === "out"
+            ? selDeps.name + " → " + hoverEdge.name
+            : hoverEdge.name + " → " + selDeps.name;
+          ctx.font = "11px IBM Plex Mono, monospace";
+          var tw2 = ctx.measureText(label).width;
+          var lx2 = Math.min(W - tw2 - 18, Math.max(6, (sp._sx + hq._sx) / 2 + 10));
+          var ly2 = Math.max(6, (sp._sy + hq._sy) / 2 - 26);
+          ctx.fillStyle = "rgba(16,20,24,.93)";
+          ctx.strokeStyle = "rgba(" + hc + ",.55)";
+          ctx.lineWidth = 1;
+          ctx.fillRect(lx2, ly2, tw2 + 14, 20);
+          ctx.strokeRect(lx2 + 0.5, ly2 + 0.5, tw2 + 13, 19);
+          ctx.fillStyle = "rgba(" + INK + ",.95)";
+          ctx.textAlign = "left";
+          ctx.fillText(label, lx2 + 7, ly2 + 14);
+          ctx.textAlign = "center";
         }
       }
 

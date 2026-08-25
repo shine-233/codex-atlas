@@ -386,7 +386,7 @@
           </div>
           <details class="src-details">
             <summary>⌨ 看真实源码 · AuthDotJson 结构体（比示意多四个字段）</summary>
-            <pre><span class="src-loc">codex-rs/login/src/auth/storage.rs :38-61 · @cbfd999 实测</span>
+            <pre><span class="src-loc">codex-rs/login/src/auth/storage.rs :39-61 · @cbfd999 实测</span>
 <span class="src-code">/// Expected structure for $CODEX_HOME/auth.json.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct AuthDotJson {
@@ -604,6 +604,39 @@ pub developer_instructions: Option&lt;String&gt;,                               
 // - `burst_window_until`: the Enter suppression window ("Enter inserts newline") that outlives
 //   the buffer itself.</span></pre>
             </details>
+            <p class="small muted" style="margin:10px 0 0;">
+              输入框本体是一个可复用组件：三个开关决定它在不同场合的能力——要不要弹窗、要不要解析斜杠、
+              要不要识别粘贴的图片路径。嵌进别的面板当纯文本框时，三件全关，退化成一个老实的手输入区。
+              粘贴到达时还有一道选择题：展开成多行，还是保持一整块？
+            </p>
+            <details class="src-details">
+              <summary>⌨ 看真实源码 · 输入框的三档能力开关与粘贴处置枚举</summary>
+              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/chat_composer.rs :442-446, 452-483 · @cbfd999 实测</span>
+<span class="src-code">enum PendingPasteHandling {
+    Expand,
+    Preserve,
+}
+
+pub(crate) struct ChatComposerConfig {
+    /// Whether command/file/skill popups are allowed to appear.
+    pub(crate) popups_enabled: bool,
+    /// Whether `/...` input is parsed and dispatched as slash commands.
+    pub(crate) slash_commands_enabled: bool,
+    /// Whether pasting a file path can attach local images.
+    pub(crate) image_paste_enabled: bool,
+}
+
+impl ChatComposerConfig {
+    /// A minimal preset for plain-text inputs embedded in other surfaces.
+    pub(crate) const fn plain_text() -&gt; Self {
+        Self {
+            popups_enabled: false,
+            slash_commands_enabled: false,
+            image_paste_enabled: false,
+        }
+    }
+}</span></pre>
+            </details>
           </div>
 
           <div class="slash-demo" style="margin:0 24px 20px;">
@@ -775,7 +808,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这台节拍器不悬空：分块策略与两条流控制器就住在 ChatWidget 的字段上——正文一条流，计划输出另一条流，共享同一个策略实例。谁积压了、队龄多老了，钟一敲全部如实上报。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 流式三件套在 ChatWidget 上的落位</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :597-602 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :596-601 · @cbfd999 实测</span>
 <span class="src-code">    adaptive_chunking: AdaptiveChunkingPolicy,
     // Stream lifecycle controller
     stream_controller: Option&lt;StreamController&gt;,
@@ -813,7 +846,7 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
        <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 宽度契约：表格放不下就降级成键值对</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/markdown_render.rs :294-304 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/markdown_render.rs :288-298 · @cbfd999 实测</span>
 <span class="src-code">/// Render markdown constrained to a known terminal width.
 ///
 /// The renderer preserves columnar table structure while values remain
@@ -978,7 +1011,7 @@ pub(crate) struct BacktrackState {
           </p>
           <details class="src-details">
             <summary>🔍 看真实源码 · 钩子注册表：dispatch 中止规则与事件专属入口</summary>
-            <pre><span class="src-loc">codex-rs/hooks/src/registry.rs :152-165, 210-223 · @cbfd999 实测</span>
+            <pre><span class="src-loc">codex-rs/hooks/src/registry.rs :154-167, 212-225 · @cbfd999 实测</span>
 <span class="src-code">pub async fn dispatch(&amp;self, hook_payload: HookPayload) -&gt; Vec&lt;HookResponse&gt; {
     let hooks = self.hooks_for_event(&amp;hook_payload.hook_event);
     let mut outcomes = Vec::with_capacity(hooks.len());
@@ -1081,7 +1114,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         </p>
         <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
           <div>
-            <div class="cov-num" data-gc="38">0</div>
+            <div class="cov-num" data-gc="39">0</div>
             <div class="small muted" style="margin-top:2px;">个源码文件有逐行切片</div>
           </div>
           <div>
@@ -1101,9 +1134,9 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">如实记下还没拆的</div>
           <p class="small muted" style="margin:0;">
             上面的名单之外，还有几块本站只给了图谱注解或格式描述、没有逐行切片：<code>codex-tui</code> 的
-            bottom_pane/chat_composer.rs（半兆字节的输入框巨物）、textarea.rs、approval_overlay.rs 与 footer.rs；
-            <code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式）与 client.rs 的流式重连内部；
-            以及 codex-exec、各类沙箱实现 crate 的执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
+            bottom_pane/chat_composer.rs 的其余部分（一万一千行的输入框巨物，本轮只拆了能力开关一段）、textarea.rs、
+            approval_overlay.rs 与 footer.rs；<code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式）与
+            client.rs 的流式重连内部；以及 codex-exec、各类沙箱实现 crate 的执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
             属于「知道在哪、还没拆开」——下一批切片从这里出。上游持续漂移，以固定提交下的目录树为准。
           </p>
         </div>
@@ -1115,15 +1148,16 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
     window.CACOVERAGE = [
       { c: "codex-tui", files: [
         { p: "src/lib.rs", loc: ":269", note: "TUI 入口与终端初始化", to: "../labs/loop.html#s=3" },
-        { p: "src/app.rs", loc: ":655-684", note: "steer 竞态：Missing 与 ExpectedTurnMismatch", to: "../labs/loop.html" },
+        { p: "src/app.rs", loc: ":660-689", note: "steer 竞态：Missing 与 ExpectedTurnMismatch", to: "../labs/loop.html" },
         { p: "src/app_backtrack.rs", loc: ":57-82", note: "Esc 预演回溯的四件套", to: "#mod-d" },
-        { p: "src/chatwidget.rs", loc: ":597-602", note: "流式策略与双控制器落位", to: "#mod-d" },
+        { p: "src/chatwidget.rs", loc: ":596-601", note: "流式策略与双控制器落位", to: "#mod-d" },
         { p: "src/diff_render.rs", loc: ":400-408, 422-425", note: "(+N -N) 头部的逐行聚合", to: "#mod-d" },
         { p: "src/diff_render.rs", loc: ":591-598, 617-631", note: "大补丁弃高亮的性能闸门", to: "#mod-d" },
         { p: "src/insert_history.rs", loc: ":54-103", note: "四层入屏链与视口插入", to: "#mod-d" },
         { p: "src/history_cell/mod.rs", loc: ":175-187, 214-232", note: "HistoryCell trait：宽度进、行数出", to: "#mod-d" },
         { p: "src/bottom_pane/paste_burst.rs", loc: ":1-55", note: "粘贴爆发状态机：Enter 何时只算换行", to: "#mod-d" },
-        { p: "src/markdown_render.rs", loc: ":294-304", note: "宽度契约：表格降级键值对", to: "#mod-d" },
+        { p: "src/bottom_pane/chat_composer.rs", loc: ":442-483", note: "输入框能力开关：弹窗/斜杠/图片粘贴", to: "#mod-d" },
+        { p: "src/markdown_render.rs", loc: ":288-298", note: "宽度契约：表格降级键值对", to: "#mod-d" },
         { p: "src/markdown_stream.rs", loc: ":24-38, 76-78", note: "只管边界的收集器", to: "#mod-d" },
         { p: "src/slash_command.rs", loc: ":12-29", note: "斜杠命令枚举截取", to: "#mod-d" },
         { p: "src/streaming/commit_tick.rs", loc: ":29-36, 62-91", note: "节拍器：快照→策略→排空", to: "#mod-d" },
@@ -1166,13 +1200,13 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/policy.rs", loc: ":104-126", note: "策略匹配", to: "../labs/sandbox.html" }
       ]},
       { c: "login", files: [
-        { p: "src/auth/storage.rs", loc: ":38-61", note: "AuthDotJson 落盘形状", to: "#mod-a" }
+        { p: "src/auth/storage.rs", loc: ":39-61", note: "AuthDotJson 落盘形状", to: "#mod-a" }
       ]},
       { c: "config", files: [
         { p: "src/config_toml.rs", loc: "多段拼接", note: "常用键位原始定义", to: "#mod-b" }
       ]},
       { c: "hooks", files: [
-        { p: "src/registry.rs", loc: ":152-165, 210-223", note: "dispatch 中止规则", to: "#mod-e" }
+        { p: "src/registry.rs", loc: ":154-167, 212-225", note: "dispatch 中止规则", to: "#mod-e" }
       ]},
       { c: "code-mode", files: [
         { p: "src/lib.rs", loc: ":1-9（全文）", note: "九行看运行形态", to: "#mod-f" }
@@ -2199,7 +2233,7 @@ window.CATOUR_STEPS = [
   { sel: "#mod-d", title: "D · TUI 后台", text: "播放一段对话，点任意一格看驱动它的事件；下面还有斜杠命令面板。" },
   { sel: "#mod-e", title: "E · 扩展机制", text: "挂点卡与主干管线互相指。下方 hooks 事件轴有 8 个实测事件名，逐个点着看挂点。" },
   { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" },
-  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：38 个文件、13 个 crate 逐行拆过，悬停行看完整源码路径，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
+  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：39 个文件、13 个 crate 逐行拆过，悬停行看完整源码路径，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
 ];
 </script>
 

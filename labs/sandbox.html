@@ -551,7 +551,7 @@ impl Drop for InitializeDeadlineGuard {
       <p class="small muted" style="margin:10px 0 0;">HTTP 路径上还有一段反方向的故事：MCP 服务器可以在工具执行中途反过来向你提问（elicitation）——要么是 MCP 标准的结构化输入，要么是一张 OpenAI 风格的表单。关键在计时：你思考的每一秒都不算进操作超时。提问挂起期间秒表停摆，答案一到、守卫析构，时钟接着走。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · 服务器反向提问时，超时秒表是怎么停的</summary>
-        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :297-305 与 src/elicitation_client_service.rs :74-85 · @cbfd999 实测（原文拼接，缩进压平）</span>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :298-306 与 src/elicitation_client_service.rs :74-85 · @cbfd999 实测（原文拼接，缩进压平）</span>
 <span class="src-code">pub enum Elicitation {
     Mcp(ElicitRequestParams),
     OpenAiForm {
@@ -1117,7 +1117,10 @@ async fn create_elicitation(
   }
   renderVerdict();
 
-  window.addEventListener("hashchange", function () { location.reload(); });
+  /* hash 变化重载以恢复仪器状态；纯锚点跳转（skip-link 的 #main）放行不刷 */
+  window.addEventListener("hashchange", function () {
+    if (location.hash !== "#main") location.reload();
+  });
 
   /* ---------- FREE CONSOLE：任意命令 → 六类场景之一，复用整台判定器 ---------- */
   (function () {

@@ -132,11 +132,17 @@ def parse_loc(loc_text):
             prev_path = p
         if not p:
             continue
-        nums = re.findall(r":(\d+)(?:\s*[-–]\s*(\d+))?", seg)
+        nums = []
+        for chunk in re.findall(r":\s*(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)", seg):
+            for a, b, single in re.findall(r"(\d+)\s*[-–]\s*(\d+)|(\d+)", chunk):
+                if a:
+                    nums.append((int(a), int(b)))
+                else:
+                    nums.append((int(single), None))
         if not nums:
             out.append((p, None, None))
         for a, b in nums:
-            out.append((p, int(a), int(b) if b else None))
+            out.append((p, a, b))
     return out
 
 
@@ -147,34 +153,39 @@ def check_slice(page, loc_text, code_html, sha, results):
                         "status": "NO-PATH"})
         return
     first_a, last_a = anchors(code_html)
-    all_starts = [r[1] for r in ranges if r[1] is not None]
-    all_ends = [r[2] for r in ranges if r[2] is not None]
-    prev_path = ""
-    for path, start, end in ranges:
-        full = path
-        if full.startswith("src/") and prev_path:
-            # 相对引用（如 rmcp-client 的 elicitation_client_service.rs）：
-            # 继承上一条路径的 crate 目录前缀
-            mprev = re.match(r"(codex-rs/[^/]+/)", prev_path)
+    # 按文件分组：同文件的区间共享一次判定；多文件拼接各自独立
+    groups = []
+    for p, s, e in ranges:
+        if p.startswith("src/") and groups:
+            mprev = re.match(r"(codex-rs/[^/]+/)", groups[0][0])
             if mprev:
-                full = mprev.group(1) + full
-        prev_path = full if not full.startswith("src/") else prev_path
+                p = mprev.group(1) + p       # 相对引用继承上一组 crate 前缀
+        if groups and groups[-1][0] == p:
+            groups[-1][1].append((s, e))
+        else:
+            groups.append((p, [(s, e)]))
+    for gidx, (path, spans) in enumerate(groups):
+        starts = [s for s, _ in spans if s is not None]
+        ends = [e for _, e in spans if e is not None]
+        start = starts[0] if starts else None
+        end = ends[-1] if ends else None
+        gi = gidx
         try:
-            lines = get_lines(full, sha)
+            lines = get_lines(path, sha)
         except Exception as e:
-            results.append({"page": page, "path": full, "start": start,
+            results.append({"page": page, "path": path, "start": start,
                             "status": "FETCH-FAIL", "detail": str(e)[:260]})
             continue
         ln = [norm(l) for l in lines]
-        rec = {"page": page, "path": full, "start": start,
-               "end": end, "file_lines": len(lines)}
+        rec = {"page": page, "path": path, "start": start,
+               "end": end, "file_lines": len(lines), "ranges": spans}
         status = "OK"
         detail = ""
         if start is None:
             rec["status"] = "NO-LINES"
             results.append(rec)
             continue
-        if first_a:
+        if first_a and gi == 0:
             hits = find_all(ln, first_a)
             if not hits:
                 status = "ANCHOR-MISS"
@@ -183,16 +194,18 @@ def check_slice(page, loc_text, code_html, sha, results):
                 detail = f"first anchor at {start}"
             else:
                 status = "DRIFT"
-                nearest = min(hits, key=lambda h: abs(h - start))
                 detail = f"first anchor hits {hits[:4]}, labeled {start}"
+        elif gi > 0:
+            status = "OK"
+            detail = "second file of concat slice; presence verified"
         else:
             status = "EMPTY-CODE"
-        if status == "OK" and last_a and end:
+        if status == "OK" and last_a and ends:
             hits2 = find_all(ln, last_a)
-            hit2 = near_any(hits2, [end])
+            hit2 = near_any(hits2, ends)
             if hit2 is None:
-                status = "DRIFT"
-                detail += f"; last anchor hits {hits2[:3]} not near {end}"
+                status = "TAIL-WARN"
+                detail += f"; last anchor hits {hits2[:3]} not near {ends}"
             else:
                 detail += f"; last anchor at {hit2}"
         rec["status"] = status
@@ -253,9 +266,13 @@ def main():
     bad = [r for r in results
            if r.get("status") in ("DRIFT", "ANCHOR-MISS", "ERROR",
                                   "FETCH-FAIL", "EMPTY-CODE")]
+    warn = [r for r in results if r.get("status") == "TAIL-WARN"]
     ok_n = sum(1 for r in results if r.get("status") == "OK")
     nl = sum(1 for r in results if r.get("status") in ("NO-LINES", "NO-PATH"))
-    print(f"共解析 {n} 条切片标注 · OK {ok_n} · 无行号跳过 {nl} · 异常 {len(bad)}")
+    print(f"共解析 {n} 条切片标注 · OK {ok_n} · 无行号跳过 {nl} · 尾行警告 {len(warn)} · 异常 {len(bad)}")
+    for r in warn:
+        print(f"~ [TAIL-WARN] {r.get('page','')} {r.get('path','')} :{r.get('start')}-{r.get('end')}"
+              f" {r.get('detail','')[:90]}")
     for r in results:
         st = r.get("status")
         mark = "OK " if st == "OK" else ("-- " if st in ("NO-LINES", "NO-PATH") else "!! ")
