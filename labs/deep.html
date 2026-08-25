@@ -655,6 +655,53 @@ pub(super) enum TableHoldbackState {
     Confirmed { table_start: usize },
 }</span></pre>
        </details>
+       <p class="small muted" style="margin:14px 0 0;">队列自己不会动，得有人敲钟。每个 commit tick 先拍快照：两条流控制器一共积压几行、最老一行等了多久；再拿快照问自适应分块策略要一个决定——跟得上就单行细水长流，跟不上切入追赶模式成批放行。调用方还能给钟划范围：标了 CatchUpOnly 的 tick，只有策略确实处在追赶模式时才真的排空。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · run_commit_tick：拍快照 → 问策略 → 执行排空</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/commit_tick.rs :29-36, 62-91 · @343074d4 实测（streaming/ 目录归属由 use super::chunking 推断，行号为原文实测）</span>
+<span class="src-code">/// Describes whether a commit tick may run in all modes or only in catch-up mode.
+pub(crate) enum CommitTickScope {
+    /// Always run the tick, regardless of current chunking mode.
+    AnyMode,
+    /// Run model transitions and policy updates, but commit lines only in `CatchUp`.
+    CatchUpOnly,
+}
+
+pub(crate) fn run_commit_tick(
+    policy: &amp;mut AdaptiveChunkingPolicy,
+    stream_controller: Option&lt;&amp;mut StreamController&gt;,
+    plan_stream_controller: Option&lt;&amp;mut PlanStreamController&gt;,
+    scope: CommitTickScope,
+    now: Instant,
+) -&gt; CommitTickOutput {
+    let snapshot = stream_queue_snapshot(
+        stream_controller.as_deref(),
+        plan_stream_controller.as_deref(),
+        now,
+    );
+    let decision = resolve_chunking_plan(policy, snapshot, now);
+    if scope == CommitTickScope::CatchUpOnly &amp;&amp; decision.mode != ChunkingMode::CatchUp {
+        return CommitTickOutput::default();
+    }
+
+    apply_commit_tick_plan(
+        decision.drain_plan,
+        stream_controller,
+        plan_stream_controller,
+    )
+}</span></pre>
+       </details>
+       <p class="small muted" style="margin:14px 0 0;">这台节拍器不悬空：分块策略与两条流控制器就住在 ChatWidget 的字段上——正文一条流，计划输出另一条流，共享同一个策略实例。谁积压了、队龄多老了，钟一敲全部如实上报。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · 流式三件套在 ChatWidget 上的落位</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :597-602 · @343074d4 实测</span>
+<span class="src-code">    adaptive_chunking: AdaptiveChunkingPolicy,
+    // Stream lifecycle controller
+    stream_controller: Option&lt;StreamController&gt;,
+    // Stream lifecycle controller for proposed plan output.
+    plan_stream_controller: Option&lt;PlanStreamController&gt;,
+    pending_stream_consolidations: usize,</span></pre>
+       </details>
        <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 宽度契约：表格放不下就降级成键值对</summary>

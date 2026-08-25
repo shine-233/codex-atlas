@@ -187,6 +187,16 @@
     color: #ffe2b3; background: rgba(14,10,3,.42);
     padding: 3px 6px; white-space: nowrap;
   }
+  button.tm-band-tag { pointer-events: auto; cursor: pointer; border: none; font-family: var(--mono); }
+  button.tm-band-tag:hover { background: rgba(14,10,3,.7); color: #fff; }
+  .tm-back {
+    position: absolute; z-index: 4; top: 4px; left: 4px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em;
+    color: var(--amber); background: rgba(14,10,3,.5);
+    border: 1px solid rgba(255,180,84,.5);
+    padding: 3px 9px; cursor: pointer;
+  }
+  .tm-back:hover { background: rgba(255,180,84,.15); }
   .tmc {
     position: absolute; z-index: 2;
     display: block; overflow: hidden;
@@ -900,6 +910,9 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       el.style.height = Math.max(0, r.h) + "px";
     }
 
+    /* zoomBi = 放大到哪条带（null = 九带全览）。点带名放大、点「全览」缩回。 */
+    var zoomBi = null;
+
     function render() {
       var w = tmBox.clientWidth || tmBox.parentElement.clientWidth || 760;
       if (w < 40) return;
@@ -907,21 +920,9 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       tmBox.style.height = hgt + "px";
       tmBox.innerHTML = "";
 
-      var order = BANDS.map(function (b, i) { return { b: b, i: i }; })
-        .sort(function (a, c) { return c.b.crates.length - a.b.crates.length; });
-      var rects = squarify(order.map(function (o) { return { v: o.b.crates.length }; }), 0, 0, w, hgt);
-
-      rects.forEach(function (rect, k) {
-        var band = order[k].b, bi = order[k].i;
-        var tag = document.createElement("span");
-        tag.className = "tm-band-tag";
-        tag.textContent = band.no + " " + band.name + " · " + band.crates.length;
-        place(tag, { x: rect.x + 5, y: rect.y + 4, w: 0, h: 0 });
-        tmBox.appendChild(tag);
-
+      function makeCells(band, rect) {
         var cells = innerGrid(band.crates.length,
           rect.x + 2, rect.y + 22, Math.max(0, rect.w - 4), Math.max(0, rect.h - 26));
-
         band.crates.forEach(function (name, ci) {
           var btn = document.createElement("button");
           btn.type = "button";
@@ -933,14 +934,51 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
           place(btn, cells[ci]);
           if (cells[ci].w >= 46 && cells[ci].h >= 18) btn.textContent = name;
           /* 低透明度带上换浅色文字，保证可读 */
-          var aCell = 0.30 + RIBBON_ALPHA[bi] * 0.62;
+          var aCell = 0.30 + RIBBON_ALPHA[band._i] * 0.62;
           btn.style.background = "rgba(255,180,84," + aCell.toFixed(2) + ")";
           if (aCell >= 0.58) btn.style.color = "rgba(23,18,7,.85)";
           else btn.style.color = (window.CATheme && CATheme.isLight()) ? "#22303c" : "#f3e7d3";
           btn.addEventListener("click", function () { selectCrate(band, name, btn); });
           tmBox.appendChild(btn);
         });
-      });
+      }
+
+      if (zoomBi !== null) {
+        /* 放大态：单条带铺满全图 + 返回全览的按钮 */
+        var zb = BANDS[zoomBi];
+        zb._i = zoomBi;
+        var back = document.createElement("button");
+        back.type = "button";
+        back.className = "tm-back";
+        back.textContent = "⤡ 全览（九条带）";
+        back.title = "缩回九带全览";
+        back.addEventListener("click", function () { zoomBi = null; render(); });
+        tmBox.appendChild(back);
+        var ztag = document.createElement("span");
+        ztag.className = "tm-band-tag";
+        ztag.textContent = zb.no + " " + zb.name + " · " + zb.crates.length + " 个成员 · 放大态";
+        place(ztag, { x: 110, y: 4, w: 0, h: 0 });
+        tmBox.appendChild(ztag);
+        makeCells(zb, { x: 0, y: 0, w: w, h: hgt });
+      } else {
+        var order = BANDS.map(function (b, i) { return { b: b, i: i }; })
+          .sort(function (a, c) { return c.b.crates.length - a.b.crates.length; });
+        var rects = squarify(order.map(function (o) { return { v: o.b.crates.length }; }), 0, 0, w, hgt);
+
+        rects.forEach(function (rect, k) {
+          var band = order[k].b, bi = order[k].i;
+          band._i = bi;
+          var tag = document.createElement("button");
+          tag.type = "button";
+          tag.className = "tm-band-tag tm-band-zoom";
+          tag.textContent = band.no + " " + band.name + " · " + band.crates.length;
+          tag.title = "点击放大到 " + band.no + " " + band.name + " 带";
+          place(tag, { x: rect.x + 5, y: rect.y + 4, w: 0, h: 0 });
+          tag.addEventListener("click", function () { zoomBi = bi; render(); });
+          tmBox.appendChild(tag);
+          makeCells(band, { x: rect.x, y: rect.y, w: rect.w, h: rect.h });
+        });
+      }
 
       /* 渲染后补一次当前检索态与选中态 */
       applyFilter();
@@ -975,7 +1013,7 @@ var CA_DEG = {"app-server-protocol":14,"git-utils":16,"login":26,"model-provider
       PanelState.write({ vw: tree ? "tree" : (gal ? "galaxy" : (frc ? "force" : "")) });
       var note = document.getElementById("vw-note");
       if (note) note.textContent = tree
-        ? "树图模式：格子面积 = 该带成员数占比 · 悬停看全名 · 点击选中"
+        ? "树图模式：点带名放大到该带 · ⤡ 缩回全览 · 悬停看全名 · 点击成员选中"
         : gal
           ? "星系模式：拖拽旋转（松手带惯性）· 滚轮 / 双指缩放 · 悬停看名字 · 点击选中进详情"
           : frc

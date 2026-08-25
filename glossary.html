@@ -34,6 +34,7 @@
   .search-box::placeholder { color: var(--faint); }
   .match-readout { font-family: var(--mono); font-size: 11.5px; color: var(--faint); letter-spacing: .05em; white-space: nowrap; }
   .match-readout b { color: var(--amber); font-weight: 500; }
+  #mg-stat a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; white-space: normal; }
   table.rt tr.hidden { display: none; }
   .gl-cat h2 { margin-top: 40px; }
   .gl-cat:first-of-type h2 { margin-top: 26px; }
@@ -514,7 +515,7 @@
 window.CATOUR_STEPS = [
   { sel: "#q", title: "检索", text: "中文英文都能匹配，命中数实时显示。看不懂正文里的虚线词时，回来这里敲一下最快。" },
   { sel: "#deck", title: "翻卡记忆", text: "41 张卡，正面术语、背面人话。会与不会各标一边，进度存本机，首页线路图的 06 站外圈就是这个进度。" },
-  { sel: "#match-deck", title: "连线配对", text: "按住术语拖到人话短句上松手：连对锁琥珀线，连错晃一下弹回。五条全对收一轮，失误纪录存本机。" },
+  { sel: "#match-deck", title: "连线配对", text: "按住术语拖到人话短句上松手：连对锁琥珀线，连错晃一下弹回——弹回时成绩行会给出「去现场」直达链接，一步跳到讲它的仪器。五条全对收一轮，失误纪录存本机。" },
   { sel: ".rail-profile", title: "学习档案", text: "全站自检成绩和翻卡进度都在左栏这份档案里，能一键导出带走，也能整体清空重来。" }
 ];
 </script>
@@ -526,23 +527,24 @@ window.CATOUR_STEPS = [
 (function () {
   "use strict";
 
+  /* 第三列为可选深链：该术语连错时，成绩行出现「去现场」直达对应仪器（空串 = 无落点） */
   var PAIRS = [
-    ["队列对", "一进一出的两条异步通道"],
-    ["needs_follow_up", "有工具调用就再转一圈"],
-    ["steer_input", "插话并入正在跑的轮次"],
-    ["SSE", "服务器单向推流"],
-    ["AGENTS.md 层叠", "越近的目录越具体"],
-    ["提示缓存命中", "重复前缀约一折计费"],
-    ["TurnComplete", "一轮任务正式收束的事件"],
-    ["rollout", "会话轨迹落盘成 JSONL"],
-    ["Seatbelt", "macOS 的沙箱强制执行"],
-    ["Landlock", "Linux 内核级访问控制"],
-    ["MCP", "接外部工具的标准协议"],
-    ["斜杠命令", "客户端本地处理"],
-    ["crate", "Rust 的编译单元"],
-    ["apply_patch", "模型改文件的补丁格式"],
-    ["refresh_token", "静默换一对新令牌"],
-    ["Code Mode", "V8 里跑模型生成的代码"]
+    ["队列对", "一进一出的两条异步通道", "labs/loop.html#sim-panel"],
+    ["needs_follow_up", "有工具调用就再转一圈", ""],
+    ["steer_input", "插话并入正在跑的轮次", "labs/loop.html#sim-panel"],
+    ["SSE", "服务器单向推流", "labs/loop.html#s=10"],
+    ["AGENTS.md 层叠", "越近的目录越具体", "labs/prompt.html"],
+    ["提示缓存命中", "重复前缀约一折计费", "labs/loop.html#cost-demo"],
+    ["TurnComplete", "一轮任务正式收束的事件", "labs/appserver.html?msg=turn/completed"],
+    ["rollout", "会话轨迹落盘成 JSONL", "labs/appserver.html#act3-panel"],
+    ["Seatbelt", "macOS 的沙箱强制执行", "labs/sandbox.html"],
+    ["Landlock", "Linux 内核级访问控制", "labs/sandbox.html"],
+    ["MCP", "接外部工具的标准协议", "labs/sandbox.html#mcp-lane-panel"],
+    ["斜杠命令", "客户端本地处理", "labs/deep.html#mod-d"],
+    ["crate", "Rust 的编译单元", "labs/atlas.html"],
+    ["apply_patch", "模型改文件的补丁格式", "labs/deep.html#mod-c"],
+    ["refresh_token", "静默换一对新令牌", "labs/deep.html#mod-a"],
+    ["Code Mode", "V8 里跑模型生成的代码", "labs/deep.html#mod-f"]
   ];
 
   var wrap = document.getElementById("mg-wrap");
@@ -593,7 +595,7 @@ window.CATOUR_STEPS = [
     if (pool.length < 5) pool = shuffle(PAIRS.slice());
     var picked = pool.splice(0, 5);
     round = {
-      left: picked.map(function (p) { return { term: p[0], phrase: p[1], done: false, shakeT: 0 }; }),
+      left: picked.map(function (p) { return { term: p[0], phrase: p[1], href: p[2] || "", done: false, shakeT: 0 }; }),
       right: shuffle(picked.map(function (p) { return { phrase: p[1], done: false, shakeT: 0 }; })),
       links: [],
       drag: null,
@@ -786,7 +788,7 @@ window.CATOUR_STEPS = [
       src.shakeT = target.shakeT = performance.now();
       round.wrong = { x1: src.x + src.w / 2 - 6, y1: src.y, x2: target.x - target.w / 2 + 6, y2: target.y, t0: performance.now() };
       if (window.CASound) CASound.play("miss");
-      paintStat("");
+      paintStat(src.href ? ' · <a href="' + src.href + '">↗ 去「' + src.term + "」的现场</a>" : "");
     }
     draw();
   }
