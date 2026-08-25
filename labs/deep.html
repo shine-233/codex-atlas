@@ -2489,11 +2489,17 @@ window.CATOUR_STEPS = [
 (function () {
   var host = document.getElementById("cfg-flow");
   if (!host || !window.CanvasRenderingContext2D) return;
-  var canvas = document.createElement("canvas");
-  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default;";
-  host.appendChild(canvas);
-  var ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  var cc = window.CACanvas ? CACanvas.create(host, {
+    draw: function () { draw(); },
+    onInView: function (v) {
+      if (v && !REDUCED) startLoop(); else if (!v) stopLoop();
+    },
+    onVisibility: function (v) {
+      if (v && inView && !REDUCED) startLoop(); else stopLoop();
+    }
+  }) : null;
+  if (!cc) return;
+  var canvas = cc.canvas, ctx = cc.ctx;
 
   var REDUCED = window.PrefersReducedMotion === true;
   var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
@@ -2512,14 +2518,10 @@ window.CATOUR_STEPS = [
       tip: "<b>L3 CLI / -c</b> · 一次性的当场指令，优先级最高：同键相争，它说了算。" }
   ];
 
-  var W = 1, H = 1, dpr = 1;
+  var W = 1, H = 1;
   function size() {
-    var r = host.getBoundingClientRect();
-    if (r.width < 4) return false;
-    W = Math.round(r.width); H = Math.round(r.height);
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!cc.size()) return false;
+    W = cc.W(); H = cc.H();
     return true;
   }
   function laneY(i) { return H * LANES[i].fy; }
@@ -2684,6 +2686,7 @@ window.CATOUR_STEPS = [
     var dt = Math.min(0.05, (ts - last) / 1000);
     last = ts;
     if (!document.hidden) step(dt);
+    W = cc.W(); H = cc.H();
     draw();
     raf = requestAnimationFrame(loop);
   }
@@ -2693,25 +2696,6 @@ window.CATOUR_STEPS = [
     raf = requestAnimationFrame(loop);
   }
   function stopLoop() { running = false; cancelAnimationFrame(raf); }
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (ents) {
-      ents.forEach(function (en) {
-        inView = en.isIntersecting;
-        if (inView) { size(); draw(); startLoop(); }
-        else stopLoop();
-      });
-    }, { rootMargin: "80px" }).observe(host);
-  } else { startLoop(); }
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden) stopLoop();
-    else if (inView) startLoop();
-  });
-  var rzT = null;
-  window.addEventListener("resize", function () {
-    clearTimeout(rzT);
-    rzT = setTimeout(function () { if (size()) draw(); }, 140);
-  });
-
   if (size()) draw();
   if (REDUCED) { winner = 3; draw(); } else { burst(3); startLoop(); }
 })();

@@ -641,25 +641,19 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     var host = document.getElementById("hist-curve");
     if (!host || !window.CanvasRenderingContext2D) return null;
     var read = document.getElementById("hc-read");
-    var canvas = document.createElement("canvas");
-    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;";
-    host.appendChild(canvas);
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+    var cc = window.CACanvas ? CACanvas.create(host, { draw: function () { draw(); } }) : null;
+    if (!cc) return null;
+    var canvas = cc.canvas, ctx = cc.ctx;
 
     var REDUCed = window.PrefersReducedMotion === true;
     var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
     var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
     var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
 
-    var W = 1, H = 1, dpr = 1;
+    var W = 1, H = 1;
     function size() {
-      var r = host.getBoundingClientRect();
-      if (r.width < 4) return false;
-      W = Math.round(r.width); H = Math.round(r.height);
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = W * dpr; canvas.height = H * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!cc.size()) return false;
+      W = cc.W(); H = cc.H();
       return true;
     }
 
@@ -796,11 +790,6 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       if (window.CASound) CASound.play("click");
     });
 
-    var rzT = null;
-    window.addEventListener("resize", function () {
-      clearTimeout(rzT);
-      rzT = setTimeout(function () { if (size()) draw(); }, 140);
-    });
     if (size()) draw();
     return { sync: sync };
   })();

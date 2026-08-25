@@ -1668,11 +1668,23 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
   (function () {
     var host = document.getElementById("force");
     if (!host || !window.CanvasRenderingContext2D || typeof CA_DEPS !== "object") return;
-    var canvas = document.createElement("canvas");
-    canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:default;";
-    host.appendChild(canvas);
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    var cc = window.CACanvas ? CACanvas.create(host, {
+      draw: function () { draw(); },
+      onInView: function (v) {
+        inView = v;
+        if (!v) { running = false; cancelAnimationFrame(raf); hideTip(); }
+        else if (!REDUCED && alpha > 0) startLoop();
+        else if (REDUCED && everWoken) draw();
+      },
+      onVisibility: function (v) {
+        if (v && inView && !REDUCED && alpha > 0) startLoop();
+        else { running = false; cancelAnimationFrame(raf); }
+      }
+    }) : null;
+    if (!cc) return;
+    var canvas = cc.canvas, ctx = cc.ctx;
+    canvas.style.touchAction = "none";
+    canvas.style.cursor = "default";
 
     var REDUCED = window.PrefersReducedMotion === true;
     var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
@@ -1719,15 +1731,11 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     function radius(n) { return 3 + Math.min(10, Math.sqrt(n.deg) * 1.55); }
 
     /* ---- 视口 ---- */
-    var W = 1, H = 1, dpr = 1, S = 1, panX = 0, panY = 0;
+    var W = 1, H = 1, S = 1, panX = 0, panY = 0;
     function size() {
-      var r = host.getBoundingClientRect();
-      W = Math.max(1, Math.round(r.width));
-      H = Math.max(1, Math.round(r.height));
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!cc.size()) return false;
+      W = cc.W(); H = cc.H();
+      return true;
     }
     function sx(x) { return x * S + panX; }
     function sy(y) { return y * S + panY; }
@@ -1833,6 +1841,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     function hideTip() { tip.classList.remove("show"); }
 
     function draw() {
+      W = cc.W(); H = cc.H();
       ctx.clearRect(0, 0, W, H);
       var light = window.CATheme && CATheme.isLight();
       var i, a, b;
@@ -1931,21 +1940,6 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       cancelAnimationFrame(raf);
       hideTip();
     }
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (ents) {
-        ents.forEach(function (en) {
-          inView = en.isIntersecting;
-          if (!inView) { running = false; cancelAnimationFrame(raf); }
-          else if (!REDUCED && alpha > 0) startLoop();
-          else if (REDUCED && everWoken) draw();
-        });
-      }, { rootMargin: "80px" }).observe(host);
-    }
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) { running = false; cancelAnimationFrame(raf); }
-      else if (!REDUCED && alpha > 0 && inView) startLoop();
-    });
-
     /* ---- 指针交互：抓点 / 平移背景 / 悬停 / 点击选中 / 双指捏合缩放 ---- */
     var movedPx = 0, downX = 0, downY = 0, lastPX = 0, lastPY = 0, suppressClick = false;
     var pointers = {};   /* pointerId -> {x, y}，双指捏合用 */

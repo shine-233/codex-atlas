@@ -104,11 +104,20 @@
   var ctx = cv.getContext("2d");
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var lastT = 900;
 
+  /* 尺寸/DPR/resize 交给 CACanvas 基座（收养 HTML 里已有的画布） */
+  var cc = window.CACanvas ? CACanvas.create(cv.parentElement, {
+    canvas: cv,
+    draw: function () { draw(lastT); }
+  }) : null;
   function size() {
-    var r = cv.getBoundingClientRect();
-    cv.width = Math.max(1, Math.round(r.width * dpr));
-    cv.height = Math.max(1, Math.round(r.height * dpr));
+    if (cc) cc.size();
+    else {
+      var r = cv.getBoundingClientRect();
+      cv.width = Math.max(1, Math.round(r.width * dpr));
+      cv.height = Math.max(1, Math.round(r.height * dpr));
+    }
   }
 
   function draw(t) {
@@ -140,12 +149,9 @@
 
   size();
   if (reduced) { draw(900); return; }
-  window.addEventListener("resize", function () {
-    size();
-    if (reduced) draw(900);   /* 减动效没有 rAF 循环，resize 后得手动补一帧，否则画布空白 */
-  });
   (function frame(ts) {
-    draw(ts || 0);
+    lastT = ts || 0;
+    if (!cc || cc.inView()) draw(lastT);   /* 离屏时基座仍报尺寸，只是跳过绘制 */
     requestAnimationFrame(frame);
   })(0);
 })();

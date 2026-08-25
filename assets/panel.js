@@ -130,10 +130,13 @@
      size() 在宿主宽度 <4px（隐藏态）时返回 false，调用方据此跳过绘制。 */
   window.CACanvas = {
     create: function (host, opts) {
-      opts = opts || {};
-      var canvas = document.createElement("canvas");
+    opts = opts || {};
+    /* opts.canvas 传入则收养已有画布（如 404 页 HTML 里写死的那个） */
+    var canvas = opts.canvas || document.createElement("canvas");
+    if (!opts.canvas) {
       canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
       host.appendChild(canvas);
+    }
       var ctx = canvas.getContext("2d");
       if (!ctx) return null;
       var W = 1, H = 1, dpr = 1, inView = true, rzT = 0;

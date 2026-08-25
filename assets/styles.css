@@ -1579,6 +1579,38 @@ body::after {
 }
 .nc-presets button:focus-visible { outline: none; border-color: var(--amber); }
 
+/* 04 可听版开关 */
+.proto-audio-toggle.on { color: var(--amber); border-color: rgba(255, 180, 84, .6); }
+
+/* ---------- 自定义磁性光环光标（cursor.js 注入，触屏/reduced-motion 不启用）---------- */
+@media (hover: hover) and (pointer: fine) {
+  body.cur-on, body.cur-on a, body.cur-on button, body.cur-on .ca-scrub,
+  body.cur-on [role='button'], body.cur-on label.switch-row { cursor: none; }
+}
+.cur-ring {
+  position: fixed; left: 0; top: 0; z-index: 9998;
+  width: 32px; height: 32px;
+  border: 1.5px solid rgba(255, 180, 84, .55);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease, width .18s ease, height .18s ease, background .18s ease;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.cur-ring.press { background: rgba(255, 180, 84, .14); }
+.cur-dot {
+  position: fixed; left: 0; top: 0; z-index: 9999;
+  width: 5px; height: 5px;
+  background: var(--amber);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s ease;
+  will-change: transform;
+}
+.cur-dot.hide { opacity: 0 !important; }
+
 /* 3D 倾斜：外层平面负责接收指针（永不变形，防边缘 hover 抖动），
    内层 .panel 只吃 CSS 变量；进快（is-tilting 跟手）出弹（回位用缓出）。 */
 /* 外层平面接管外边距（面板原 margin 在 wrapper 内不再与相邻块折叠，
