@@ -1547,6 +1547,26 @@ body::after {
   overflow: hidden;
 }
 
+/* 星云调音台：把 shader 的三个 uniform 交给访客拖 */
+.nebula-console {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 18px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 8px 14px;
+  width: fit-content;
+  background: rgba(16, 20, 24, .55);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+.nc-title { letter-spacing: .16em; text-transform: uppercase; font-size: 10px; }
+.nebula-console label { display: inline-flex; gap: 6px; align-items: baseline; cursor: default; }
+
 /* 3D 倾斜：外层平面负责接收指针（永不变形，防边缘 hover 抖动），
    内层 .panel 只吃 CSS 变量；进快（is-tilting 跟手）出弹（回位用缓出）。 */
 /* 外层平面接管外边距（面板原 margin 在 wrapper 内不再与相邻块折叠，

@@ -71,6 +71,12 @@
     <!-- 主视觉 -->
     <section class="hero" style="padding-top:26px;">
       <div id="hero-field" aria-hidden="true"></div>
+      <div class="nebula-console" id="nebula-console" aria-label="星云参数调音台（左右拖动数字）">
+        <span class="nc-title">星云调音台</span>
+        <label>云量 <span class="scrub-slot" id="nb-cloud" tabindex="0"></span></label>
+        <label>色相 <span class="scrub-slot" id="nb-hue" tabindex="0"></span></label>
+        <label>流速 <span class="scrub-slot" id="nb-speed" tabindex="0"></span></label>
+      </div>
       <p class="eyebrow"><span class="tick">▮</span><span data-decode>OPENAI / CODEX 源码交互图鉴</span></p>
       <h1>把 Codex CLI 拆到事件级，<br>再看着它装回去。<span class="cursor-blink" aria-hidden="true">▌</span></h1>
       <p class="lede">
@@ -376,6 +382,56 @@
 <script src="assets/nebula.js"></script>
 <script src="assets/fx.js"></script>
 <script src="assets/loop-hero.js"></script>
+<script>
+/* 星云调音台：三个可拖数字直连 nebula shader 的 uniform（云量/色相/流速），
+   状态写入 PanelState（nc/nh/ns），任何一次调整都是可分享链接。 */
+(function () {
+  "use strict";
+  function wire() {
+    if (!window.CANebula || !CANebula.setParam || !window.CAScrub) return;
+    var st = window.PanelState ? PanelState.read() : {};
+    function num(v, d, lo, hi) {
+      v = parseFloat(v);
+      if (isNaN(v)) return d;
+      return Math.min(hi, Math.max(lo, v));
+    }
+    var cloud = num(st.nc, 0.55, 0, 1);
+    var hue = num(st.nh, 0, -3.14, 3.14);
+    var speed = num(st.ns2, 1, 0, 3);
+    function save(name, v) {
+      if (!window.PanelState) return;
+      var patch = {};
+      patch[name] = v;
+      PanelState.write(patch);
+    }
+    CAScrub.make(document.getElementById("nb-cloud"), {
+      min: 0, max: 1, step: 0.05, value: cloud,
+      label: "星云云量",
+      fmt: function (v) { return Math.round(v * 100) + "%"; },
+      onInput: function (v) { CANebula.setParam("cloud", v); save("nc", v); }
+    });
+    CAScrub.make(document.getElementById("nb-hue"), {
+      min: -3.14, max: 3.14, step: 0.05, value: hue,
+      label: "星云色相偏移",
+      fmt: function (v) { var d = Math.round(v * 57.2958); return (d > 0 ? "+" : "") + d + "°"; },
+      onInput: function (v) { CANebula.setParam("hue", v); save("nh", Math.round(v * 100) / 100); }
+    });
+    CAScrub.make(document.getElementById("nb-speed"), {
+      min: 0, max: 3, step: 0.25, value: speed,
+      label: "星云流动速度",
+      fmt: function (v) { return "×" + v; },
+      onInput: function (v) { CANebula.setParam("speed", v); save("ns2", v); }
+    });
+    /* 初始值从 hash 恢复（CAScrub.paint 只显示，不触发 onInput——手动推一遍） */
+    CANebula.setParam("cloud", cloud);
+    CANebula.setParam("hue", hue);
+    CANebula.setParam("speed", speed);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wire);
+  } else wire();
+})();
+</script>
 <script>
 /* 首页线路面板由 fx.js 的平面包裹倾斜负责（防边缘抖动 + 回弹过渡），
    CATilt 只接管没被包裹的散卡，避免两套 transform 互相覆盖。 */

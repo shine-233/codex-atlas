@@ -105,6 +105,12 @@
   .stack-wrap.s3d #stack .fg-label { opacity: 0.5; }
   .stack-wrap.s3d #stack .lyr {
     transition: opacity .18s, border-color .18s, box-shadow .18s, transform .45s var(--ease);
+    /* 材质光：顶缘高光 + 底部投影，随层在 Z 台阶上的位置强化立体感 */
+    background-image: linear-gradient(180deg, rgba(255, 180, 84, .07), transparent 34%);
+    box-shadow: 0 -1px 0 rgba(255, 180, 84, .10) inset, 0 6px 14px -8px rgba(0, 0, 0, .65);
+  }
+  .stack-wrap.s3d #stack .lyr:hover {
+    box-shadow: 0 -1px 0 rgba(255, 180, 84, .22) inset, 0 10px 22px -8px rgba(0, 0, 0, .7);
   }
   .stack-wrap.s3d #stack .lyr.off { background: rgba(16, 20, 24, .72); }
   .s3d-hint { display: none; }

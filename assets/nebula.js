@@ -26,7 +26,13 @@
       "uniform float uT;",
       "uniform vec2 uMouse;",      // -1..1 视差
       "uniform float uGrain;",     // 滚动速度注入的颗粒强度
+      "uniform float uCloud;",     // 云量 0..1
+      "uniform float uHue;",       // 色相偏移（弧度）
       "",
+      "vec3 hueRotate(vec3 c, float a){",
+      "  const vec3 k=vec3(.57735);",
+      "  float ca=cos(a), sa=sin(a);",
+      "  return c*ca+cross(k,c)*sa+k*dot(k,c)*(1.-ca);}",
       "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
       "float noise(vec2 p){",
       "  vec2 i=floor(p),f=fract(p);",
@@ -43,16 +49,18 @@
       "  float t=uT*.02;",
       "  vec2 par=uMouse*.035;",
       "",
-      "  /* 星云：双域扭曲 fbm，琥珀×钢青双色 */",
+      "  /* 星云：双域扭曲 fbm，琥珀×钢青双色；uCloud 控制云量对比 */",
       "  vec2 q=uv*1.6+par;",
       "  float w=fbm(q+t*.35);",
       "  float f=fbm(q+vec2(w*1.4,-w*.9)-t*.12);",
+      "  float cover=mix(.15,.85,uCloud);",
+      "  float body=smoothstep(cover-.35,cover+.35,f);",
       "  vec3 amber=vec3(1.0,.71,.33);",
       "  vec3 steel=vec3(.56,.78,.91);",
-      "  vec3 col=mix(steel*.30,amber*.42,smoothstep(.25,.85,f));",
-      "  col+=amber*pow(f,3.)*.22;",
+      "  vec3 col=mix(steel*mix(.42,.16,uCloud),amber*(.30+.30*uCloud),body);",
+      "  col+=amber*pow(f,3.)*(.10+.24*uCloud);",
       "  col*=smoothstep(1.25,.15,length(uv));       // 边缘压暗",
-      "  col*=.34+.30*f;",
+      "  col*=mix(.70,.34+.30*f,uCloud);",
       "",
       "  /* 星野：三层视差闪烁 */",
       "  for(int l=0;l<3;l++){",
@@ -69,6 +77,7 @@
       "  }",
       "",
       "  col+=(hash(gl_FragCoord.xy+uT)-.5)*uGrain;   // 滚动速度→颗粒",
+      "  col=hueRotate(max(col,0.0), uHue);           // 访客可拖的色相偏移",
       "  gl_FragColor=vec4(col,1.);",
       "}"
     ].join("\n");
@@ -101,6 +110,12 @@
     var uT = gl.getUniformLocation(prog, "uT");
     var uM = gl.getUniformLocation(prog, "uMouse");
     var uG = gl.getUniformLocation(prog, "uGrain");
+    var uCloud = gl.getUniformLocation(prog, "uCloud");
+    var uHue = gl.getUniformLocation(prog, "uHue");
+
+    /* 访客可玩参数：云量 / 色相 / 流速（setParam 更新并保证至少一帧生效） */
+    var params = { cloud: 0.55, hue: 0, speed: 1 };
+    var t0 = null, tOff = 12.3;
 
     var W = 0, H = 0;
     function resize() {
@@ -138,18 +153,21 @@
     window.addEventListener("scroll", onScroll, { passive: true });
 
     var REDUCED = window.PrefersReducedMotion === true;
-    var running = false, raf = 0, t0 = null;
+    var running = false, raf = 0;
 
+    function paint(timeSec) {
+      gl.uniform1f(uT, timeSec);
+      gl.uniform2f(uM, mx, my);
+      gl.uniform1f(uG, grain);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
     function frame(now) {
       if (t0 === null) t0 = now;
       mx += (tx - mx) * 0.06;
       my += (ty - my) * 0.06;
       grainT *= 0.92;
       grain += (grainT - grain) * 0.2;
-      gl.uniform1f(uT, (now - t0) / 1000);
-      gl.uniform2f(uM, mx, my);
-      gl.uniform1f(uG, grain);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      paint((now - t0) / 1000 * params.speed + tOff);
       if (running && !REDUCED) raf = requestAnimationFrame(frame);
       else raf = 0;
     }
@@ -164,10 +182,7 @@
     }
 
     /* 静止时也要有第一帧（reduced-motion / 唤醒前） */
-    gl.uniform1f(uT, 12.3);
-    gl.uniform2f(uM, 0, 0);
-    gl.uniform1f(uG, 0);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    paint(tOff);
 
     document.addEventListener("visibilitychange", function () {
       document.hidden ? stop() : start();
@@ -179,6 +194,20 @@
         es.forEach(function (en) { en.isIntersecting ? start() : stop(); });
       }, { rootMargin: "10% 0px" }).observe(host);
     } else start();
+
+    window.CANebula.setParam = function (name, value) {
+      if (!(name in params)) return false;
+      params[name] = value;
+      if (!running) {                     // 静帧（reduced-motion / 离屏）也要即时生效
+        var now = performance.now();
+        if (t0 === null) t0 = now;
+        paint((now - t0) / 1000 * params.speed + tOff);
+      }
+      return true;
+    };
+    window.CANebula.params = function () {
+      return { cloud: params.cloud, hue: params.hue, speed: params.speed };
+    };
 
     return true;
   }
