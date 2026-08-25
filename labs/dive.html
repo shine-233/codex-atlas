@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08 调用栈下潜 · 从你敲的命令到最深处的队列对 — CODEX ATLAS</title>
+<meta name="description" content="滚动即下潜：沿 openai/codex 的调用栈从 CLI 入口一路沉到 POST /responses 海沟底，每一站都有真实 file:line。深度计、光衰减、浮尘全部由同一个主值驱动。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/styles.css">
+<style>
+  /* ---------- 下潜页专属 ---------- */
+  html { background: #0b0f14; }
+  body.dive {
+    background: var(--db, #10161d);
+    transition: none;
+    overflow-x: hidden;
+  }
+  .dive-rail {
+    position: fixed; left: 18px; top: 50%; transform: translateY(-50%);
+    z-index: 30; text-align: left; pointer-events: none;
+    font-family: var(--mono);
+  }
+  .dr-num {
+    font-size: 40px; line-height: 1; color: var(--amber);
+    font-variant-numeric: tabular-nums; letter-spacing: .02em;
+    text-shadow: 0 0 24px rgba(255,180,84,.25);
+  }
+  .dr-cap { font-size: 10px; color: var(--faint); letter-spacing: .18em; margin-top: 6px; }
+  .dr-light { font-size: 11px; color: var(--dim); margin-top: 14px; }
+  .dr-light b { color: var(--ink); font-weight: 500; }
+  .dr-track { width: 3px; height: 46vh; margin-top: 16px; position: relative; background: rgba(255,255,255,.07); }
+  .dr-fill { position: absolute; top: 0; left: 0; width: 100%; background: linear-gradient(180deg, var(--amber), rgba(255,180,84,.15)); }
+  @media (max-width: 860px) { .dive-rail { display: none; } }
+
+  .dive-hero { min-height: 88vh; display: flex; flex-direction: column; justify-content: center; padding: 90px 26px 40px; }
+  .dive-hero h1 { font-size: clamp(28px, 4.6vw, 44px); line-height: 1.25; margin: 0 0 14px; }
+  .dive-hero .sub { max-width: 620px; }
+  .scroll-cue { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .22em; margin-top: 34px; animation: cuebob 1.8s ease-in-out infinite; }
+  @keyframes cuebob { 0%,100% { transform: translateY(0); opacity: .65; } 50% { transform: translateY(7px); opacity: 1; } }
+
+  .dive-stop {
+    max-width: 720px;
+    margin: 42vh auto;
+    padding: 22px 26px;
+    background: rgba(13, 17, 23, .82);
+    border: 1px solid var(--line-strong);
+    border-left: 3px solid var(--amber);
+  }
+  .dive-stop .ds-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ds-depth { font-family: var(--mono); font-size: 11px; color: var(--steel); letter-spacing: .12em; }
+  .ds-title { font-size: 17px; color: var(--ink); font-weight: 600; }
+  .dive-stop p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.85; color: var(--dim); }
+  .src-mini {
+    margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--faint);
+    border-top: 1px dashed var(--line); padding-top: 9px;
+  }
+  .src-mini code { color: var(--steel); }
+  .trench {
+    max-width: 720px; margin: 46vh auto 20vh; text-align: center;
+    padding: 34px 26px; border: 1px solid var(--line-strong);
+    background: radial-gradient(ellipse at 50% 120%, rgba(255,180,84,.09), transparent 70%), rgba(8, 11, 15, .9);
+  }
+  .trench h2 { margin: 0 0 10px; color: var(--ink); font-size: 20px; }
+  .trench p { color: var(--dim); font-size: 13.5px; line-height: 1.85; margin: 0 0 8px; }
+  .float-dust { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+  .dive-foot { position: relative; z-index: 6; padding: 26px; }
+  .skipnote { position: relative; z-index: 31; }
+  .dive-stop, .trench { opacity: 0; transform: translateY(26px); transition: opacity .6s ease, transform .6s ease; }
+  .dive-stop.vis, .trench.vis { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .dive-stop, .trench { opacity: 1; transform: none; transition: none; }
+    .scroll-cue { animation: none; }
+  }
+</style>
+</head>
+<body class="dive">
+<a class="skip-link skipnote" href="#stops">跳到站点列表</a>
+
+<canvas class="float-dust" id="dust" aria-hidden="true"></canvas>
+
+<div class="dive-rail" aria-hidden="true">
+  <div class="dr-num" id="dr-num">L0.0</div>
+  <div class="dr-cap">CALL DEPTH · 示意刻度</div>
+  <div class="dr-light">UI 光照剩余 <b id="dr-light">100%</b></div>
+  <div class="dr-track"><i class="dr-fill" id="dr-fill" style="height:0%"></i></div>
+</div>
+
+<header class="dive-hero">
+  <p class="eyebrow"><span class="tick">▮</span><span data-decode>SIDEBRANCH · CALL STACK DIVE</span></p>
+  <h1>从你敲下的那行命令，<br>一路沉到最深处的事件队列。</h1>
+  <p class="lede sub">
+    这不是五条线路里的任何一条——这是把它们<b style="color:var(--ink);">纵向串起来</b>的一次下潜。
+    往下滚，你离用户界面越来越远、离事件队列越来越近；每一站的文件与行号都来自本站已核对的切片，
+    深度刻度是示意，坐标是真的。
+  </p>
+  <p class="scroll-cue">▼ 开始下潜</p>
+</header>
+
+<main id="stops">
+
+  <section class="dive-stop" data-l="0">
+    <div class="ds-head"><span class="ds-depth">L0 · 表面</span><span class="ds-title">你敲下的命令</span></div>
+    <p>一切从这里开始：终端里的一行 <code>codex "跑一遍测试"</code>。此刻你还在用户空间，光照充足。</p>
+    <div class="src-mini">codex-cli/bin/codex.js :195 · JS 启动器（@钉住基线实测）</div>
+  </section>
+
+  <section class="dive-stop" data-l="1">
+    <div class="ds-head"><span class="ds-depth">L1 · 浅层</span><span class="ds-title">参数解析与分发</span></div>
+    <p>Node 启动器把控制权交给 Rust 主程序。参数在这里变成结构化的意图：子命令、模型、审批档位。</p>
+    <div class="src-mini">codex-rs/cli/src/main.rs :1093</div>
+  </section>
+
+  <section class="dive-stop" data-l="2">
+    <div class="ds-head"><span class="ds-depth">L2 · 透光层</span><span class="ds-title">TUI 外壳点亮</span></div>
+    <p>终端界面初始化：你看到的输入框、历史区、状态栏都在这层装配。从这里往下，代码不再直接跟你说话。</p>
+    <div class="src-mini">codex-rs/tui/src/lib.rs :269 · 斜杠命令枚举见 07D</div>
+  </section>
+
+  <section class="dive-stop" data-l="3">
+    <div class="ds-head"><span class="ds-depth">L3 · 中层</span><span class="ds-title">协议接入：turn_processor</span></div>
+    <p>TUI 与内核之间隔着一台 App Server。你的输入被翻译成 thread/start 与 turn/start 报文——04 时间线的那些报文就是在这层处理的。</p>
+    <div class="src-mini">codex-rs/app-server/src/request_processors/turn_processor.rs :447, :478</div>
+  </section>
+
+  <section class="dive-stop" data-l="4">
+    <div class="ds-head"><span class="ds-depth">L4 · 深中层</span><span class="ds-title">会话容器</span></div>
+    <p>core 里每条线程是一个会话容器，容量上限 512 条排队指令。线程可创建、恢复、分叉——04 的 THREAD SANDBOX 演的就是这层的生命周期。</p>
+    <div class="src-mini">codex-rs/core/src/session/mod.rs :533（容量常量 :461 = 512）</div>
+  </section>
+
+  <section class="dive-stop" data-l="5">
+    <div class="ds-head"><span class="ds-depth">L5 · 弱光层</span><span class="ds-title">Op::TurnInput 入队</span></div>
+    <p>你的话变成一条核心操作，塞进一对队列：一边进指令、一边出事件。01 第 5–6 站画过的队列对，物理本体就在这几行。</p>
+    <div class="src-mini">codex-rs/core/src/session/turn_input.rs :282, :477-486, :545-563</div>
+  </section>
+
+  <section class="dive-stop" data-l="6">
+    <div class="ds-head"><span class="ds-depth">L6 · 深层</span><span class="ds-title">RegularTask 开跑</span></div>
+    <p>任务对象从队列里领到活。从这里开始，驱动节奏不再是「用户做了什么」，而是「模型说了什么」。</p>
+    <div class="src-mini">codex-rs/core/src/tasks/regular.rs :50</div>
+  </section>
+
+  <section class="dive-stop" data-l="7">
+    <div class="ds-head"><span class="ds-depth">L7 · 无光层</span><span class="ds-title">采样循环</span></div>
+    <p>一轮的核心循环：发请求、收流式响应、决定要不要再转一圈。needs_follow_up 的判断、steer 并入、收束分支都在这条循环里。</p>
+    <div class="src-mini">codex-rs/core/src/session/turn.rs :1312（采样喂输入 :1371）、:500 / :2226 / :2397 收束</div>
+  </section>
+
+  <section class="dive-stop" data-l="8">
+    <div class="ds-head"><span class="ds-depth">L8 · 海床坡</span><span class="ds-title">工具路由与审批闸</span></div>
+    <p>模型要动你的系统了：命令路由到执行器，权限判定横在中间。03 的三模式判定器和审批弹窗对应的就是这层的守卫。</p>
+    <div class="src-mini">codex-rs/core/src/tools/router.rs :148 · permissions.rs :746-779</div>
+  </section>
+
+  <section class="dive-stop" data-l="9">
+    <div class="ds-head"><span class="ds-depth">L9 · 深渊坡</span><span class="ds-title">MCP 与网络出站</span></div>
+    <p>要出网了：MCP 服务器经三种传输配方握手连接，HTTP 客户端带上令牌出发。05 图谱里 rmcp-client 的注解在这层有了纵深感。</p>
+    <div class="src-mini">codex-rs/rmcp-client/src/rmcp_client.rs :142-175（传输配方 + 握手 RAII）</div>
+  </section>
+
+  <div class="trench vis" data-l="10">
+    <h2>海沟底 · POST /responses</h2>
+    <p>这是整条栈的最深处：请求离开本机，飞向模型端点。没有比这更深的本地代码了——再往下就是网络和模型本身。</p>
+    <p>而回流从同一深度开始：SSE 事件沿原路上浮，经过流式渲染链（收集器 → FIFO 队列 → commit tick 节拍器），最终在 TUI 里变成你看到的字。</p>
+    <div class="src-mini" style="text-align:left;">codex-api/src/endpoint/responses.rs :148 · common.rs :76（Completed :92）· 上浮渲染链见 07D</div>
+    <p class="small muted" style="margin-top:14px;">▼ 继续滚到底，或者掉头上浮——栈一直在那儿。</p>
+  </div>
+
+  <footer class="dive-foot">
+    <p class="small muted">
+      深度刻度为示意，全部 file:line 来自本站已核对切片（@钉住基线）。想横向看这些层的全景，去
+      <a href="deep.html#mod-g">07G 覆盖地图</a>；想看某一层的仪器演示，回 01–05。
+    </p>
+  </footer>
+</main>
+
+<script src="../assets/panel.js"></script>
+<script src="../assets/sound.js"></script>
+<script src="../assets/loop-hero.js"></script>
+<script>
+(function () {
+  "use strict";
+  var REDUCED = window.PrefersReducedMotion === true;
+
+  /* ---------- 主值：depth 由 DOM 实测锚点插值（学 The Deep Sea / Abyssal Station）----------
+     不缓存锚点：每帧实时量各站 rect，任何布局漂移（字体交换、图片、面板伸缩）自动免疫。 */
+  var stopEls = Array.prototype.slice.call(document.querySelectorAll("[data-l]"));
+
+  function depthAt(probeLine) {
+    if (!stopEls.length) return 0;
+    var prevL = 0, prevDist = null, firstL = parseFloat(stopEls[0].getAttribute("data-l")) || 0;
+    var out = firstL;
+    for (var i = 0; i < stopEls.length; i++) {
+      var l = parseFloat(stopEls[i].getAttribute("data-l")) || 0;
+      var dist = stopEls[i].getBoundingClientRect().top - probeLine;
+      if (dist >= 0) {
+        /* probe 落在本站上方：与上一站插值 */
+        if (prevDist === null) return l;
+        return prevL + (l - prevL) * (prevDist / Math.max(1, prevDist + dist));
+      }
+      prevL = l; prevDist = dist;
+      out = l;
+    }
+    return out;
+  }
+
+  var numEl = document.getElementById("dr-num");
+  var lightEl = document.getElementById("dr-light");
+  var fillEl = document.getElementById("dr-fill");
+  var MAX_L = 10;
+  var eased = 0, target = 0;
+  var lastLayer = -1;
+
+  function hud() {
+    numEl.textContent = "L" + eased.toFixed(1);
+    var light = Math.max(0, 100 * Math.exp(-eased / 3.4));   // 光照随深度指数衰减
+    lightEl.textContent = light.toFixed(0) + "%";
+    fillEl.style.height = Math.min(100, eased / MAX_L * 100).toFixed(1) + "%";
+    document.body.style.setProperty("--db",
+      mixColor([16, 22, 29], [6, 9, 13], eased / MAX_L));
+    var layer = Math.round(eased);
+    if (layer !== lastLayer && window.CASound) {
+      lastLayer = layer;
+      if (layer > 0 && !document.hidden) { try { CASound.play("click"); } catch (e) {} }
+    }
+  }
+  function mixColor(a, b, k) {
+    function m(i) { return Math.round(a[i] + (b[i] - a[i]) * k); }
+    return "rgb(" + m(0) + "," + m(1) + "," + m(2) + ")";
+  }
+
+  function loop() {
+    target = depthAt(window.innerHeight * 0.55);
+    eased += (target - eased) * (REDUCED ? 1 : 0.14);
+    try { hud(); } catch (err) { console.error("hud:", err); }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* ---------- 浮尘：随滚动反向漂移（下沉感的来源）---------- */
+  var dust = document.getElementById("dust");
+  var dctx = dust.getContext("2d");
+  var DW = 0, DH = 0, ddpr = 1;
+  function dsize() {
+    ddpr = Math.min(1.5, window.devicePixelRatio || 1);
+    DW = Math.round(innerWidth * ddpr); DH = Math.round(innerHeight * ddpr);
+    dust.width = DW; dust.height = DH;
+  }
+  dsize();
+  window.addEventListener("resize", dsize);
+
+  var motes = [];
+  for (var i = 0; i < 70; i++) {
+    motes.push({
+      x: Math.random(), y: Math.random(),
+      v: 0.0004 + Math.random() * 0.0012,
+      r: (Math.random() * 1.4 + 0.5),
+      ph: Math.random() * 6.2832
+    });
+  }
+  var lastScroll = window.scrollY;
+  var drift = 0;
+  window.addEventListener("scroll", function () {
+    drift += (lastScroll - window.scrollY) * 0.0016;   // 向下滚 → 尘向上飘 = 我们在下沉
+    lastScroll = window.scrollY;
+  }, { passive: true });
+
+  var dustRunning = false;
+  function dustFrame() {
+    dctx.clearRect(0, 0, DW, DH);
+    for (var i = 0; i < motes.length; i++) {
+      var m = motes[i];
+      m.y -= m.v + drift * 0.02;
+      if (m.y < -0.02) m.y = 1.02;
+      if (m.y > 1.02) m.y = -0.02;
+      var wob = Math.sin(Date.now() / 900 + m.ph) * 0.004;
+      dctx.fillStyle = "rgba(200,214,228," + (0.10 + 0.14 * m.r / 1.9).toFixed(3) + ")";
+      dctx.beginPath();
+      dctx.arc((m.x + wob) * DW, m.y * DH, m.r * ddpr, 0, 6.2832);
+      dctx.fill();
+    }
+    drift *= 0.94;
+    if (dustRunning) requestAnimationFrame(dustFrame);
+  }
+  if (REDUCED) {
+    dustFrame();          // 一帧静态
+    dustRunning = false;
+  } else {
+    dustRunning = true;
+    requestAnimationFrame(dustFrame);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) dustRunning = false;
+      else if (!dustRunning) { dustRunning = true; requestAnimationFrame(dustFrame); }
+    });
+  }
+
+  /* ---------- 站点浮现 ---------- */
+  if ("IntersectionObserver" in window && !REDUCED) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("vis"); io.unobserve(en.target); }
+      });
+    }, { rootMargin: "0px 0px -12% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { io.observe(s); });
+  } else {
+    Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { s.classList.add("vis"); });
+  }
+})();
+</script>
+</body>
+</html>

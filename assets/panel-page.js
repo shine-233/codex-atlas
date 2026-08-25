@@ -105,7 +105,8 @@
     var ALLPAGES = ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html"];
     var PNAME = {
       "loop.html": "01 循环回路", "prompt.html": "02 输入组装", "sandbox.html": "03 权限沙箱",
-      "appserver.html": "04 协议线路", "atlas.html": "05 Crate 图谱", "deep.html": "07 深水区"
+      "appserver.html": "04 协议线路", "atlas.html": "05 Crate 图谱", "deep.html": "07 深水区",
+      "dive.html": "08 调用栈下潜"
     };
     var seenCount = ALLPAGES.filter(function (p) { return seen[p]; }).length;
 
@@ -249,7 +250,8 @@ window.CAProfileOpen = openProfile;
     var quiz = window.CAProgress ? CAProgress.read() : {};
     var ORDER = [
       ["loop.html", "01 循环回路"], ["prompt.html", "02 输入组装"], ["sandbox.html", "03 权限沙箱"],
-      ["appserver.html", "04 协议线路"], ["atlas.html", "05 Crate 图谱"], ["deep.html", "07 深水区"]
+      ["appserver.html", "04 协议线路"], ["atlas.html", "05 Crate 图谱"], ["deep.html", "07 深水区"],
+      ["dive.html", "08 调用栈下潜"]
     ];
     function unfinished(k) {
       var r = quiz[k];
@@ -373,6 +375,7 @@ window.CAProfileOpen = openProfile;
       { name: "↳ HOOKS 事件轴 · 8 个实测钩子", sub: "session_start…session_end", href: P("labs/deep.html") + "#mod-e", kw: "hooks events 事件 钩子 pre_tool_use post_tool_use" },
       { name: "深水区 F · Code Mode 实验位", sub: "V8 跑模型代码（推演）", href: P("labs/deep.html") + "#mod-f", kw: "code mode v8 实验 javascript host" },
       { name: "深水区 G · 源码覆盖地图", sub: "39 文件 · 13 crate 切片台账", href: P("labs/deep.html") + "#mod-g", kw: "coverage 覆盖 台账 切片 清单 files sliced" },
+      { name: "08 · 调用栈下潜", sub: "滚动即下潜：L0 命令行到海沟底", href: P("labs/dive.html"), kw: "dive 下潜 调用栈 call stack 深度 纵览 scrollytelling" },
       { name: "↳ ACT III · rollout 文件解剖", sub: "JSONL 落盘与恢复", href: P("labs/appserver.html") + "#act3-panel", kw: "rollout jsonl 落盘 恢复 文件名 解剖" },
       { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" },
       { act: "profile", no: "◆", name: "学习档案 · 成绩与重置", sub: "左栏底部也有入口", href: "", kw: "progress 档案 进度 重置 reset 导出 export 成绩 分数" }
