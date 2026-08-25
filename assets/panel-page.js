@@ -359,6 +359,7 @@ window.CAProfileOpen = openProfile;
       { name: "↳ 会话建立段 / 重采样回路图", sub: "拓扑联动", href: P("labs/loop.html") + "#setup-panel", kw: "topology 拓扑 setup 建立段" },
       { name: "↳ TURN SIMULATOR · 自己开一轮", sub: "队列对 / steer 沙盒", href: P("labs/loop.html") + "#sim-panel", kw: "simulator 沙盒 队列 steer 并入 状态机 turn 自己开" },
       { no: "02", name: "输入组装 · 组装仪", sub: "七层开关", href: P("labs/prompt.html"), kw: "prompt payload agents 层叠 32kib 负载" },
+      { name: "↳ PULL-OUT LAB · 抽层实验", sub: "把请求塔抽塌", href: P("labs/prompt.html") + "#pull-lab", kw: "抽层 jenga 塔 稳定度 塌 后果 pull" },
       { no: "03", name: "权限沙箱 · 场景判定器", sub: "模式×审批×动作", href: P("labs/sandbox.html"), kw: "sandbox 权限 沙箱 seatbelt landlock wfp 判定 审批" },
       { name: "↳ CONFIG BRIDGE · 配置片段生成", sub: "", href: P("labs/sandbox.html") + "#cfg-panel", kw: "config toml 配置 cli 片段" },
       { name: "↳ SANDBOX YARD · 空间沙盘", sub: "围墙在哪，包往哪走", href: P("labs/sandbox.html") + "#yard-panel", kw: "yard 沙盘 围墙 空间 可视化 fence" },

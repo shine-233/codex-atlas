@@ -56,6 +56,31 @@
     document.body.appendChild(tbtn);
   })();
 
+  /* ---------- 动效总开关「静/动」：ciechanow.ski 的 global pause 手法 ----------
+     关掉后写入 ca-motion=off 并刷新一次：所有仪器在初始化时读到静态标志，
+     直接以终态呈现（与系统减动效同一通道，见 panel.js 的 PrefersReducedMotion）。 */
+  (function () {
+    var mbtn = document.createElement("button");
+    mbtn.type = "button";
+    mbtn.className = "theme-toggle motion-toggle";
+    function isOff() {
+      try { return localStorage.getItem("ca-motion") === "off"; } catch (err) { return false; }
+    }
+    function paint() {
+      var off = isOff();
+      mbtn.textContent = off ? "\u25B6" : "\u9759";
+      mbtn.setAttribute("aria-pressed", off ? "true" : "false");
+      mbtn.setAttribute("aria-label", off ? "恢复全站动效" : "关闭全站动效（静音面板模式）");
+      mbtn.title = off ? "恢复动效（会刷新一次页面）" : "静：关掉全部动画，仪器落定成终态（会刷新一次页面）";
+    }
+    paint();
+    mbtn.addEventListener("click", function () {
+      try { localStorage.setItem("ca-motion", isOff() ? "on" : "off"); } catch (err) { /* 忽略 */ }
+      setTimeout(function () { location.reload(); }, 60);
+    });
+    document.body.appendChild(mbtn);
+  })();
+
   /* Web 字体就绪后重排一遍 SVG 文本：个别在回退字体下完成首排的节点，
       字体交换后不重新量宽，拉丁词会以零宽度消失（Chromium 实测）。 */
   function resvgTexts() {

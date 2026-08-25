@@ -51,7 +51,7 @@
       d: "Windows Filtering Platform：Windows 上管网络流量的内核框架。",
       w: "03 Windows 一列", href: "labs/sandbox.html" },
     { v: ["MCP"], name: "MCP",
-      d: "Model Context Protocol：给模型接外部工具的标准协议。注意：MCP 工具不在 Codex 沙箱管辖内。",
+      d: "Model Context Protocol：给模型接外部工具的标准协议。MCP 工具不在 Codex 沙箱管辖内——为什么，去 03 看 MCP DETOUR。",
       w: "03 底部说明", href: "labs/sandbox.html" },
     { v: ["App Server", "AppServerTarget"], name: "App Server",
       d: "把 Codex 核心包成 JSON-RPC 服务的进程；IDE 插件、桌面 App、TUI 都是它的客户端。",

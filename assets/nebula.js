@@ -115,7 +115,7 @@
 
     /* 访客可玩参数：云量 / 色相 / 流速（setParam 更新并保证至少一帧生效） */
     var params = { cloud: 0.55, hue: 0, speed: 1 };
-    var t0 = null, tOff = 12.3;
+    var t0 = null, tOff = 12.3, simT = null, lastNow = null;
 
     var W = 0, H = 0;
     function resize() {
@@ -143,12 +143,14 @@
     });
     hero.addEventListener("pointerleave", function () { tx = 0; ty = 0; });
 
-    /* 滚动速度 → 颗粒强度（zenith-interface 的动态 film grain） */
-    var lastY = window.scrollY, grain = 0, grainT = 0;
+    /* 滚动速度 → 颗粒强度 + 流速加成（zenith-interface 动态 film grain 的扩展：
+       快速滚动时星云不但变糙，还明显流得更快——页面给你的回力） */
+    var lastY = window.scrollY, grain = 0, grainT = 0, boost = 0;
     function onScroll() {
       var v = Math.min(1, Math.abs(window.scrollY - lastY) / 90);
       lastY = window.scrollY;
       grainT = Math.max(grainT, v * 0.16);
+      boost = Math.max(boost, v * 2.2);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -169,12 +171,16 @@
         raf = requestAnimationFrame(frame);      /* 未到节拍：跳帧不重绘 */
         return;
       }
+      if (simT === null) simT = tOff;
+      if (lastNow != null) simT += Math.min((now - lastNow) / 1000, 0.1) * params.speed * (1 + boost);
+      lastNow = now;
       lastPaint = now;
       mx += (tx - mx) * 0.06;
       my += (ty - my) * 0.06;
       grainT *= 0.92;
       grain += (grainT - grain) * 0.2;
-      paint((now - t0) / 1000 * params.speed + tOff);
+      boost *= 0.94;
+      paint(simT);
       if (running && !REDUCED) raf = requestAnimationFrame(frame);
       else raf = 0;
     }
@@ -190,7 +196,6 @@
 
     /* 静止时也要有第一帧（reduced-motion / 唤醒前） */
     paint(tOff);
-
     /* 离屏与页签隐藏共用一个闸门：任一不满足就停，别让星云在看不见时烧 GPU */
     var ioOn = true;
     function gate() {
@@ -211,9 +216,8 @@
       if (!(name in params)) return false;
       params[name] = value;
       if (!running) {                     // 静帧（reduced-motion / 离屏）也要即时生效
-        var now = performance.now();
-        if (t0 === null) t0 = now;
-        paint((now - t0) / 1000 * params.speed + tOff);
+        if (simT === null) simT = tOff;
+        paint(simT);
       }
       return true;
     };

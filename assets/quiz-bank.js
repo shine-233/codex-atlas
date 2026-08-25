@@ -14,7 +14,7 @@
       why: "AppServerTarget 默认 embedded；远端模式才走 websocket。" },
     { page: "01 循环回路", q: "上一轮还在跑，你又发了一条新输入。Codex 会怎么做？",
       opts: ["新输入排队，等这轮彻底结束", "走 steer_input 并入正在跑的这轮", "取消当前轮，从头再来"], a: 1,
-      why: "一个 Session 同时只有一个 running task，新输入并入——打断不是排队。" },
+      why: "一个 Session 同时只有一个 running task：空闲才新建 turn，忙碌时新输入走 steer_input 并进正在跑的这轮。" },
     { page: "02 输入组装", q: "四个目录位的 AGENTS.md 全部启用时，会发生什么？",
       opts: ["请求直接报错", "层叠总量触顶 32 KiB 默认上限，最早读入的被截断", "自动压缩成一条摘要"], a: 1,
       why: "上限约束层叠总量，截断发生在读入侧。" },

@@ -248,6 +248,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -265,6 +266,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -468,7 +470,7 @@
         琥珀沙粒是<b style="color:var(--ink);">命令包</b>。往下落时依次穿过三道权限膜：
         <b style="color:var(--steel);">读层</b>（普遍放行）、<b style="color:var(--ink);">写层</b>（看模式开口）、
         <b style="color:var(--deny);">拒绝层</b>（实线即墙）。穿过去的落到池底变绿；被膜挡住的当场堆红。
-        切换模式看膜的开口怎么变——<b style="color:var(--ink);">这就是三种沙箱档位对一条命令的全部含义</b>。
+        切一次模式再撒一把，对比三层膜的开口：read-only 只留读缝，workspace-write 放开写层，full-access 整片拆掉。
       </p>
       <div class="controls" style="padding:0 24px 12px;border:none;">
         <div class="seg" role="group" aria-label="选择沙箱档位">
@@ -502,8 +504,7 @@
       </div>
       <p class="small muted" style="margin:10px 0 0;">
         上路的内置工具被围墙全程管着；下路的 MCP 工具从 ToolRouter 直接出墙——围墙对它视而不见。
-        能拦住它的只有两样：MCP 服务器自己的权限设计，和你会不会点「拒绝」。
-        这就是 02 第 2 层把「内置 + API + MCP」合并成一份工具清单、却只给内置那部分配沙箱声明的原因。
+        这也是 02 第 2 层把「内置 + API + MCP」合并成一份工具清单、却只给内置那部分配沙箱声明的原因。
       </p>
       <p class="small muted" style="margin:10px 0 0;">MCP 侧的管家叫 McpManager：工具目录是两级缓存（运行时连接的工具 + 全量目录），注册来源是 plugins 与 extensions 两套体系——固定提交恰好就是给这套体系加「运行时连接状态上报」。</p>
       <details class="src-details">
@@ -771,7 +772,7 @@ async fn create_elicitation(
       mech:"普通文件读取，无需额外授权。" },
     { id:"ra", glyph:"cat ~/", name:"读工作区外的文件（如 ~/.ssh/config）",
       v:{ ro:"allow", ww:"allow", full:"allow" },
-      why:"同样是放行，但<b>全盘可读是设计取舍，不是疏忽</b>。敏感文件的隔离要靠磁盘权限和信任边界解决，别指望沙箱替你保密。",
+      why:"同样是放行。<b>沙箱不隔离读取</b>：保密靠磁盘权限和你自己的信任边界，敏感文件别指望这层替你挡。",
       mech:"同上；读取不受沙箱约束——policy 层只管写入与网络。" },
     { id:"ww", glyph:"edit", name:"修改工作区内的文件",
       v:{ ro:"deny", ww:"allow", full:"allow" },

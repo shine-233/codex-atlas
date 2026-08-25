@@ -37,6 +37,7 @@
     <a class="rail-ch" href="labs/atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="labs/deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="labs/dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">
     基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关
@@ -56,6 +57,7 @@
   <a href="labs/atlas.html">05 · Crate 图谱</a>
   <a href="glossary.html">06 · 术语速查</a>
   <a href="labs/deep.html">07 · 深水区</a>
+  <a href="labs/dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -115,10 +117,10 @@
     <section id="metro">
       <p class="eyebrow"><span class="tick">01</span>全站线路图
         <span class="readout" style="margin-left:14px;text-transform:none;letter-spacing:.04em;">你的进度画在站上 · 点站直达</span></p>
-      <h2 style="margin-top:6px;">八站一线，进度环跟着你走</h2>
+      <h2 style="margin-top:6px;">九站连线，进度环跟着你走</h2>
       <div class="panel" style="margin-top:16px;">
         <div class="metro-wrap">
-          <div id="metro-map" role="group" aria-label="全站线路图：00 总览经 01 到 05 五站主线，06 术语速查与 07 深水区为支线；每个站点外圈显示该页自检进度，点击直达"></div>
+          <div id="metro-map" role="group" aria-label="全站线路图：00 总览经 01 到 05 五站主线，06 术语速查、07 深水区与 08 调用栈下潜为支线；每个站点外圈显示该页自检进度，点击直达"></div>
         </div>
         <div class="metro-legend">
           <span><i style="background:var(--amber);"></i>外圈 = 该站自检进度</span>
@@ -370,6 +372,22 @@
 
     <hr class="sep">
 
+    <!-- 拨弦休息区 -->
+    <section id="strings">
+      <p class="eyebrow"><span class="tick">07</span>休息区
+        <span class="readout" style="margin-left:14px;text-transform:none;letter-spacing:.04em;">五根弦 = 五条主线 · 划过即响</span></p>
+      <h2 style="margin-top:6px;">验收完了？来拨两下再走</h2>
+      <div class="panel" style="margin-top:16px;">
+        <div id="strings-viz" role="group" aria-label="拨弦休息区：五根弦对应五条主线，光标划过或点按即振动发声，键盘 Tab 后回车也能拨"></div>
+        <p class="small muted" style="margin:10px 0 0;">
+          弦音落在五声音阶上，怎么划都不难听。右下角 ♪ 开着才有声——关着的时候，看弦颤也行。
+          划得越快，弦晃得越狠。
+        </p>
+      </div>
+    </section>
+
+    <hr class="sep">
+
     <!-- 证据边界 -->
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
@@ -390,7 +408,9 @@
 <script src="assets/nebula.js"></script>
 <script src="assets/dotfield.js"></script>
 <script src="assets/cursor.js"></script>
+<script src="assets/fluid.js"></script>
 <script src="assets/fx.js"></script>
+<script src="assets/strings.js"></script>
 <script src="assets/loop-hero.js"></script>
 <script>
 /* 星云调音台：三个可拖数字直连 nebula shader 的 uniform（云量/色相/流速），
@@ -612,7 +632,7 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
 </script>
 <script src="assets/terms.js"></script>
 <script>
-/* ---------- 全站线路图：8 站 metro，进度环 = 各页自检/翻卡成绩 ---------- */
+/* ---------- 全站线路图：9 站 metro，进度环 = 各页自检/翻卡成绩 ---------- */
 (function () {
   "use strict";
   var host = document.getElementById("metro-map");
@@ -629,7 +649,8 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
     { no: "04", name: "协议线路", x: 550, y: 150, href: "labs/appserver.html", qp: "appserver.html" },
     { no: "05", name: "Crate 图谱", x: 670, y: 150, href: "labs/atlas.html", qp: "atlas.html" },
     { no: "06", name: "术语速查", x: 310, y: 62, href: "glossary.html", branch: true, flash: true },
-    { no: "07", name: "深水区", x: 670, y: 238, href: "labs/deep.html", qp: "deep.html", branch: true }
+    { no: "07", name: "深水区", x: 670, y: 238, href: "labs/deep.html", qp: "deep.html", branch: true },
+    { no: "08", name: "调用栈下潜", x: 670, y: 62, href: "labs/dive.html", branch: true }
   ];
 
   var svg = E("svg", { viewBox: "0 0 760 300", preserveAspectRatio: "xMidYMid meet" });
@@ -640,7 +661,8 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
   svg.appendChild(mainPath);
   var br1 = E("path", { class: "metro-branch", d: "M 310 150 V 62" });
   var br2 = E("path", { class: "metro-branch", d: "M 670 150 V 238" });
-  svg.appendChild(br1); svg.appendChild(br2);
+  var br3 = E("path", { class: "metro-branch", d: "M 670 150 V 62" });
+  svg.appendChild(br1); svg.appendChild(br2); svg.appendChild(br3);
 
   var quiz = window.CAProgress ? CAProgress.read() : {};
   var seen = {};
@@ -681,7 +703,7 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
     var no = E("text", { class: "st-no", x: s.x, y: s.y + (s.hub ? -22 : -20) });
     no.textContent = (tip ? tip + " · " : "") + s.no;
     g.appendChild(no);
-    var nm = E("text", { class: "st-name", x: s.x, y: s.y + (s.branch ? (s.no === "06" ? -30 : 38) : 34) });
+    var nm = E("text", { class: "st-name", x: s.x, y: s.y + (s.branch ? (s.y < 150 ? -30 : 38) : 34) });
     nm.textContent = s.name;
     g.appendChild(nm);
     if (s.hub && grand) {
@@ -744,9 +766,15 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
       { el: E("circle", { class: "metro-pulse", r: 3 }), t: 0.2, speed: 0.00019, dir: 1 }
     ];
     pulses.forEach(function (p) { svg.appendChild(p.el); });
-    var brLen = br2.getTotalLength();
-    var brPulse = { el: E("circle", { class: "metro-pulse amber", r: 3.5 }), t: 0, speed: 0.0003, dir: 1, path: br2, len: brLen };
-    svg.appendChild(brPulse.el);
+    var brPulses = [br2, br3].map(function (path, i) {
+      var p = {
+        el: E("circle", { class: "metro-pulse" + (i ? "" : " amber"), r: 3.5 }),
+        t: i ? 0.4 : 0, speed: 0.0003 - i * 0.00007, dir: i ? -1 : 1,
+        path: path, len: path.getTotalLength()
+      };
+      svg.appendChild(p.el);
+      return p;
+    });
     var last = null;
     var metroInView = true;
     if ("IntersectionObserver" in window) {
@@ -766,12 +794,14 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
           var pt = mainPath.getPointAtLength(p.t * mainLen);
           p.el.setAttribute("cx", pt.x); p.el.setAttribute("cy", pt.y);
         });
-        if (!isFinite(brPulse.t)) brPulse.t = 0;
-        brPulse.t += brPulse.speed * dt * brPulse.dir;
-        if (brPulse.t > 1) { brPulse.t = 1; brPulse.dir = -1; }
-        if (brPulse.t < 0) { brPulse.t = 0; brPulse.dir = 1; }
-        var bp = brPulse.path.getPointAtLength(brPulse.t * brPulse.len);
-        brPulse.el.setAttribute("cx", bp.x); brPulse.el.setAttribute("cy", bp.y);
+        brPulses.forEach(function (p) {
+          if (!isFinite(p.t)) p.t = 0;
+          p.t += p.speed * dt * p.dir;
+          if (p.t > 1) { p.t = 1; p.dir = -1; }
+          if (p.t < 0) { p.t = 0; p.dir = 1; }
+          var bp = p.path.getPointAtLength(p.t * p.len);
+          p.el.setAttribute("cx", bp.x); p.el.setAttribute("cy", bp.y);
+        });
       }
       /* 离屏或隐藏时降频轮询。注意 setTimeout 不带参调用，
          frame 的 ts 由 requestAnimationFrame 补上——直接 setTimeout(frame)

@@ -27,8 +27,11 @@
     "03 底部那个审批弹窗是真的能点的——批准一次、本轮允许和拒绝，给的结果各不相同。",
     "03 的沙盘把围墙画了出来：换动作看命令包走位，撞墙、等签字、穿墙，全是活的。",
     "02 答疑表下面有个 compact 演示：拖到触顶，亲眼看历史被压成一段加密摘要。",
-    "04 新增 ACT III：rollout 文件逐行点开看，文件名生成器能演示回滚线程怎么命名。",
-    "07E 的 hooks 事件轴有 8 个实测事件名——session_start 到 session_end，点着看挂点。"
+    "04 的 ACT III：rollout 文件逐行点开看，文件名生成器能演示回滚线程怎么命名。",
+    "07E 的 hooks 事件轴有 8 个实测事件名——session_start 到 session_end，点着看挂点。",
+    "右下角的「静」一键关掉全站动画：演示、截图或者想让页面凉快一下的时候用。",
+    "首页底部的拨弦区有五根弦，一根弦对应一条线路——扫弦也算复习。",
+    "按住我可以把你手里的这条鱼拎起来甩出去——落点随缘，鱼没事。"
   ];
   var tipIdx = -1;
   function nextTip() {
@@ -302,7 +305,8 @@
     "别忘了我底下还藏着彩蛋。",
     "有工具调用才会转第二圈哦。",
     "累了就按 ? 歇一会儿。",
-    "♪ 开了的话，我游泳也有水泡声。"
+    "♪ 开了的话，我游泳也有水泡声。",
+    "「静」按下去之后，我就一动不动装石头。"
   ];
   var bubble = document.createElement("div");
   bubble.className = "cod-bubble";
@@ -385,7 +389,7 @@
     swimOnce(function () {
       if (done2) return;
       done2 = true;
-      showToast("<b>小鳕</b> · ALL CLEAR！这条线路通关了。五条都通的话，源码地图基本就是你的了。");
+      showToast("<b>小鳕</b> · ALL CLEAR！这条线路通关了。五条全通那天，我给你撒最大的那把彩纸。");
     });
     if (!window.PrefersReducedMotion) setTimeout(swimOnce, 700);
   });

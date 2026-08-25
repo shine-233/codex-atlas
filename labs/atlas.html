@@ -171,6 +171,40 @@
     border: 1px solid var(--line-strong);
   }
   .galaxy-cap { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .05em; margin: 8px 0 0; line-height: 1.7; }
+  /* GUESS WHO · 猜 crate */
+  .gw-top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .gw-input {
+    flex: 1; min-width: 240px; background: rgba(255,255,255,.04); border: 1px solid var(--line-strong);
+    border-radius: 6px; color: var(--ink); font-family: var(--mono); font-size: 13px; padding: 9px 12px;
+  }
+  .gw-input:focus { outline: none; border-color: var(--amber); }
+  .gw-head, .gw-row {
+    display: grid; grid-template-columns: 1.35fr .9fr .55fr .55fr 1.6fr; gap: 8px; align-items: center;
+    font-family: var(--mono); font-size: 11.5px;
+  }
+  .gw-head { color: var(--faint); letter-spacing: .1em; font-size: 10px; text-transform: uppercase; padding: 0 2px 6px; border-bottom: 1px dashed var(--line-strong); }
+  #gw-rows { display: flex; flex-direction: column; gap: 6px; }
+  .gw-row {
+    background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 6px;
+    padding: 7px 10px; animation: gw-in .28s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  .gw-row.win { border-color: rgba(123,201,139,.6); background: rgba(123,201,139,.07); }
+  @keyframes gw-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .gw-row { animation: none; } }
+  .gw-name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gw-band { color: var(--dim); font-size: 10.5px; }
+  .gw-band.hit { color: var(--amber); }
+  .gw-num { color: var(--dim); font-variant-numeric: tabular-nums; }
+  .gw-num i { font-style: normal; margin-left: 4px; }
+  .gw-num .up { color: var(--amber); } .gw-num .dn { color: var(--steel); } .gw-num .eq { color: var(--ok); }
+  .gw-rel { font-size: 11px; }
+  .gw-rel.dep { color: var(--amber); } .gw-rel.by { color: var(--steel); } .gw-rel.no { color: var(--faint); }
+  .gw-out { margin: 12px 0 0; font-size: 13px; line-height: 1.7; }
+  @media (max-width: 720px) {
+    .gw-head { display: none; }
+    .gw-row { grid-template-columns: 1fr 1fr; row-gap: 4px; }
+    .gw-rel { grid-column: 1 / -1; }
+  }
   /* 力学视图：力导向依赖图 */
   #force { height: 480px; }
   @media (max-width: 720px) { #force { height: 360px; } }
@@ -248,6 +282,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -265,6 +300,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -326,9 +362,10 @@
           <button data-ef="in" type="button">入边 · 依赖它的</button>
           <label class="edge-tune">边透明 <span class="scrub-slot" id="gx-ea" tabindex="0"></span></label>
           <label class="edge-tune">点大小 <span class="scrub-slot" id="gx-ps" tabindex="0"></span></label>
+          <button id="gx-wire" type="button" aria-pressed="false" title="GitHub Globe 手法：经纬线框 + 依赖边圆弧航线 + 光点飞行">◌ 线框球</button>
         </div>
       </div>
-      <p class="galaxy-cap" id="galaxy-cap" hidden>136 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。点选任意成员后，它的实测依赖会连成线框——琥珀是它依赖的，钢青是依赖它的（CA_DEPS 全量边表）。</b></p>
+      <p class="galaxy-cap" id="galaxy-cap" hidden>136 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。点选任意成员后，它的实测依赖会连成线框——琥珀是它依赖的，钢青是依赖它的（CA_DEPS 全量边表）。右上角「◌ 线框球」再进一步：经纬细线框当舞台，直连线升级为带高度的圆弧航线，一粒粒光点沿弧飞行（GitHub Globe 的手法——距离越远弧拱得越高）。</b></p>
       <p style="margin:10px 0 0;"><button class="btn" id="gal-tour" type="button" hidden>▶ 自动导览：九条带挨个看</button></p>
 
       <div id="force" class="tm-wrap" hidden></div>
@@ -345,6 +382,34 @@
         <h4 id="dc-name">点任意成员或带标题查看注解</h4>
         <p id="dc-body">每个成员的名字都取自固定提交下的 workspace 名单。带标题给出该带的整体职责。</p>
         <div class="dc-neigh" id="dc-neigh" hidden></div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- GUESS WHO · 猜 crate：Wordle 规则 × 实测依赖边当线索 -->
+    <section class="panel" id="guess-lab" style="margin-top:30px;">
+      <div class="panel-title">
+        <h3>GUESS WHO · 猜猜它是谁</h3>
+        <span class="readout">六次机会 · 线索全是实测数据</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
+        我心里藏了一个 crate（只从「有邻居」的成员里挑，孤岛不猜）。你猜一个名字，四条线索一起回来：
+        它在哪条带、被依赖数和依赖数比谜底大还是小、以及最值钱的——
+        <b style="color:var(--ink);">它和谜底之间有没有一条实测依赖边</b>。边表就是 CA_DEPS，没有玄学。
+      </p>
+      <div style="padding:0 24px 22px;">
+        <div class="gw-top">
+          <input class="gw-input" id="gw-in" list="gw-names" placeholder="猜一个 crate 名，回车提交（如 core / tui / apply-patch）"
+                 autocomplete="off" spellcheck="false" aria-label="猜一个 crate 名">
+          <datalist id="gw-names"></datalist>
+          <button class="btn" id="gw-new" type="button">↻ 换一个谜底</button>
+        </div>
+        <div class="gw-head" aria-hidden="true">
+          <span>猜测</span><span>所在带</span><span>被依赖</span><span>依赖</span><span>与谜底的关系</span>
+        </div>
+        <div id="gw-rows" aria-live="polite"></div>
+        <p class="gw-out" id="gw-out">谜底已就位。随便猜一个开头——猜 core 不亏。</p>
       </div>
     </section>
 
@@ -433,7 +498,7 @@
         <span class="readout">136 crate · 819 条成员内边 · 2026-08-25 爬自固定提交</span>
       </div>
       <p class="small muted" style="margin:0 0 14px;">
-        不是归纳，是数出来的：逐份抓取 136 个成员的 Cargo.toml，统计 <code>codex-*</code> 内部依赖（成员对成员 819 条；另有 10 条指向 chatgpt / message-history / windows-sandbox 三个非成员包）。
+        逐份抓取 136 个成员的 Cargo.toml 数出来的：统计 <code>codex-*</code> 内部依赖（成员对成员 819 条；另有 10 条指向 chatgpt / message-history / windows-sandbox 三个非成员包）。
         点任意一行，检索框会帮你定位到那个 crate。
       </p>
       <div class="dep-grid">
@@ -1089,10 +1154,10 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     var edgeFilter = "all";
     var chipBox = document.getElementById("edge-chips");
     if (chipBox) {
-      Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (b) {
+      Array.prototype.forEach.call(chipBox.querySelectorAll("button[data-ef]"), function (b) {
         b.addEventListener("click", function () {
           edgeFilter = b.getAttribute("data-ef") || "all";
-          Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (x) {
+          Array.prototype.forEach.call(chipBox.querySelectorAll("button[data-ef]"), function (x) {
             x.classList.toggle("on", x === b);
           });
           lastInteract = performance.now();
@@ -1103,10 +1168,31 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       var savedEf = PanelState.read().ef;
       if (savedEf === "out" || savedEf === "in") {
         edgeFilter = savedEf;
-        Array.prototype.forEach.call(chipBox.querySelectorAll("button"), function (x) {
+        Array.prototype.forEach.call(chipBox.querySelectorAll("button[data-ef]"), function (x) {
           x.classList.toggle("on", x.getAttribute("data-ef") === edgeFilter);
         });
       }
+    }
+
+    /* 线框球模式（GitHub Globe 手法）：经纬线框舞台 + 依赖边圆弧航线 + 光点飞行。
+       开关状态写进 hash（wf=1），刷新/分享不丢。 */
+    var wf = false;
+    var wireBtn = document.getElementById("gx-wire");
+    if (wireBtn) {
+      wf = PanelState.read().wf === "1";
+      var wfUi = function () {
+        wireBtn.classList.toggle("on", wf);
+        wireBtn.setAttribute("aria-pressed", String(wf));
+        wireBtn.textContent = wf ? "◉ 线框球" : "◌ 线框球";
+      };
+      wfUi();
+      wireBtn.addEventListener("click", function () {
+        wf = !wf;
+        wfUi();
+        PanelState.write({ wf: wf ? "1" : "" });
+        lastInteract = performance.now();
+        sync();
+      });
     }
 
     /* 线框调音台：边透明倍率 / 点大小倍率（CAScrub 可拖，持久化 ea/ps） */
@@ -1276,10 +1362,72 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         var sy = (st.y * H * 1.3 - H * 0.15) + panY * st.z * 0.25 - ax * 14 * st.z;
         if (sx < -4 || sx > W + 4 || sy < -4 || sy > H + 4) continue;
         var tw = REDUCED ? 0.5 : (0.45 + 0.55 * Math.abs(Math.sin(now / 900 + st.tw)));
-        ctx.fillStyle = "rgba(231,237,243," + (0.16 * st.z * tw).toFixed(3) + ")";
+        ctx.fillStyle = "rgba(" + INK + "," + (0.16 * st.z * tw).toFixed(3) + ")";
         ctx.fillRect(sx, sy, st.z > 0.8 ? 1.6 : 1, st.z > 0.8 ? 1.6 : 1);
       }
       ctx.restore();
+
+      /* 线框球舞台：经纬细线圈包住整个星团（GitHub Globe 的点阵球语法）。
+         半径取 1.26——刚好罩住带心（单位球面）加成员云（半径 ≤1.17）。 */
+      if (wf) {
+        var GRAT_R = 1.26, SEG = 60;
+        ctx.lineWidth = 1;
+        var gl;
+        /* 纬线：-60°/-30°/0°/30°/60° 五圈 */
+        for (gl = 0; gl < 5; gl++) {
+          var latR = (gl - 2) * Math.PI / 6;
+          var ry = Math.sin(latR) * GRAT_R, rc = Math.cos(latR) * GRAT_R;
+          ctx.beginPath();
+          for (var sj = 0; sj <= SEG; sj++) {
+            var th2 = sj / SEG * 6.2832;
+            var gp = proj(rc * Math.cos(th2), ry, rc * Math.sin(th2));
+            if (sj === 0) ctx.moveTo(gp.sx, gp.sy); else ctx.lineTo(gp.sx, gp.sy);
+          }
+          ctx.strokeStyle = "rgba(" + STEEL + "," + (0.085 * introE).toFixed(3) + ")";
+          ctx.stroke();
+        }
+        /* 经线：每 30° 一条大圆，过南北极 */
+        for (gl = 0; gl < 6; gl++) {
+          var lon0 = gl * Math.PI / 6;
+          ctx.beginPath();
+          for (var sj2 = 0; sj2 <= SEG; sj2++) {
+            var tt = sj2 / SEG * 6.2832;
+            var gp2 = proj(Math.cos(tt) * Math.cos(lon0) * GRAT_R, Math.sin(tt) * GRAT_R, Math.cos(tt) * Math.sin(lon0) * GRAT_R);
+            if (sj2 === 0) ctx.moveTo(gp2.sx, gp2.sy); else ctx.lineTo(gp2.sx, gp2.sy);
+          }
+          ctx.strokeStyle = "rgba(" + STEEL + "," + (0.07 * introE).toFixed(3) + ")";
+          ctx.stroke();
+        }
+      }
+
+      /* GitHub globe 式线框球壳：三条纬圈 + 四条经圈的淡色 wireframe，
+         给点云一个「球体感」的空间参照（随姿态一起旋转） */
+      var RING_SEGS = 64;
+      var SHELL_R = 1.02;
+      function ringPath(latAxis, angleOffset, lat) {
+        /* lat: -1..1（纬度 sin 值）；latAxis 为旋转轴标记 */
+        ctx.beginPath();
+        for (var s = 0; s <= RING_SEGS; s++) {
+          var th = s / RING_SEGS * Math.PI * 2;
+          var x = Math.cos(th) * Math.sqrt(1 - lat * lat);
+          var y = lat;
+          var z = Math.sin(th) * Math.sqrt(1 - lat * lat);
+          if (angleOffset) {
+            var ca = Math.cos(angleOffset), sa = Math.sin(angleOffset);
+            var x2 = x * ca + z * sa; z = -x * sa + z * ca; x = x2;
+          }
+          var pp = proj(x * SHELL_R, y * SHELL_R, z * SHELL_R);
+          s ? ctx.lineTo(pp.sx, pp.sy) : ctx.moveTo(pp.sx, pp.sy);
+        }
+        ctx.stroke();
+      }
+      ctx.lineWidth = 0.7;
+      ctx.strokeStyle = "rgba(143,199,232,.10)";
+      [0.62, 0, -0.62].forEach(function (lat) { ringPath("y", 0, lat); });       // 纬圈
+      ctx.strokeStyle = "rgba(143,199,232,.07)";
+      [0, Math.PI / 4, Math.PI / 2, Math.PI * 3 / 4].forEach(function (off) {
+        ringPath("x", off, 0);                                                    // 经圈（大圆）
+      });
 
       /* 带心 → 成员的暗连线（constellation 语法） */
       var pc = [];
@@ -1316,19 +1464,70 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
           var ex = x1 + t * dx - mx, ey = y1 + t * dy - my;
           return Math.sqrt(ex * ex + ey * ey);
         }
+        /* 圆弧航线上的一点：3D 二次贝塞尔，控制点沿径向抬出球面，
+           高度随两端点角距增长（GitHub Globe 的弧线语法——远门更拱）。 */
+        function arcPoint(a, b, t) {
+          var o = 1 - t;
+          var mxx = a.x + b.x, myy = a.y + b.y, mzz = a.z + b.z;
+          var ml = Math.sqrt(mxx * mxx + myy * myy + mzz * mzz) || 1;
+          var dotP = a.x * b.x + a.y * b.y + a.z * b.z;
+          var ang = Math.acos(Math.max(-1, Math.min(1, dotP)));
+          var lift = 1 + 0.10 + 0.34 * (ang / 3.1416);
+          mxx = mxx / ml * lift; myy = myy / ml * lift; mzz = mzz / ml * lift;
+          return {
+            x: o * o * a.x + 2 * o * t * mxx + t * t * b.x,
+            y: o * o * a.y + 2 * o * t * myy + t * t * b.y,
+            z: o * o * a.z + 2 * o * t * mzz + t * t * b.z
+          };
+        }
+        /* 线框球开＝逐段投影的圆弧（近亮远暗）；关＝原来的直连线 */
+        function drawDepEdge(q, rgb, base) {
+          if (q._sx == null) return;
+          if (!wf) {
+            ctx.strokeStyle = "rgba(" + rgb + "," + Math.min(1, edgeAlpha(q, base) * eaMul).toFixed(3) + ")";
+            ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(q._sx, q._sy); ctx.stroke();
+            return;
+          }
+          var NARC = 20, prevX = 0, prevY = 0, prevZ = 0;
+          for (var ai = 0; ai <= NARC; ai++) {
+            var pt3 = arcPoint(sp, q, ai / NARC);
+            var ap2 = proj(pt3.x, pt3.y, pt3.z);
+            if (ai > 0) {
+              var dep3 = 1 - ((ap2.z + prevZ) / 2 + 1) / 2;
+              var al3 = Math.min(1, base * (0.35 + 0.65 * dep3) *
+                (focusBi !== null && q.bi !== focusBi && sp.bi !== focusBi ? 0.25 : 1) * eaMul);
+              ctx.strokeStyle = "rgba(" + rgb + "," + al3.toFixed(3) + ")";
+              ctx.beginPath(); ctx.moveTo(prevX, prevY); ctx.lineTo(ap2.sx, ap2.sy); ctx.stroke();
+            }
+            prevX = ap2.sx; prevY = ap2.sy; prevZ = ap2.z;
+          }
+        }
         ctx.lineWidth = 0.9;
         var showOut = edgeFilter !== "in", showIn = edgeFilter !== "out";
         for (i = 0; showOut && i < selDeps.out.length; i++) {
-          var qo = PTS[PTS_BY[selDeps.out[i]]];
-          if (!qo || qo._sx == null) continue;
-          ctx.strokeStyle = "rgba(" + AMBER + "," + Math.min(1, edgeAlpha(qo, 0.5) * eaMul).toFixed(3) + ")";
-          ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qo._sx, qo._sy); ctx.stroke();
+          drawDepEdge(PTS[PTS_BY[selDeps.out[i]]], AMBER, 0.5);
         }
         for (i = 0; showIn && i < selDeps.ins.length; i++) {
-          var qi = PTS[PTS_BY[selDeps.ins[i]]];
-          if (!qi || qi._sx == null) continue;
-          ctx.strokeStyle = "rgba(" + STEEL + "," + Math.min(1, edgeAlpha(qi, 0.42) * eaMul).toFixed(3) + ")";
-          ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qi._sx, qi._sy); ctx.stroke();
+          drawDepEdge(PTS[PTS_BY[selDeps.ins[i]]], STEEL, 0.42);
+        }
+        /* 航线光点：均匀撒到过滤后的每条边上循环飞行；
+           reduced-motion 下退化为固定位置的静子。 */
+        if (wf) {
+          var totalE = (showOut ? selDeps.out.length : 0) + (showIn ? selDeps.ins.length : 0);
+          var pulseN = Math.min(totalE, 26);
+          for (var pi3 = 0; pi3 < pulseN; pi3++) {
+            var gi = Math.floor(pi3 * totalE / pulseN);
+            var isOut = showOut && gi < selDeps.out.length;
+            var eName = isOut ? selDeps.out[gi] : selDeps.ins[gi - (showOut ? selDeps.out.length : 0)];
+            var ep = PTS[PTS_BY[eName]];
+            if (!ep || ep._sx == null) continue;
+            var et = REDUCED ? (pi3 * 0.37 % 1) : ((now / 1500 + pi3 * 0.113) % 1);
+            var pos3 = arcPoint(sp, ep, et);
+            var pp2 = proj(pos3.x, pos3.y, pos3.z);
+            var pdp = 1 - (pp2.z + 1) / 2;
+            ctx.fillStyle = "rgba(" + (isOut ? AMBER : STEEL) + "," + (0.25 + 0.6 * pdp).toFixed(3) + ")";
+            ctx.beginPath(); ctx.arc(pp2.sx, pp2.sy, 1.5 + 1.5 * pdp, 0, 6.2832); ctx.fill();
+          }
         }
         /* 悬停选边：只在指针静止于画布上时生效；只扫过滤后仍显示的边 */
         if (mx >= 0 && !dragging && !panning) {
@@ -1653,7 +1852,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         var i = pickAt(x, y);
         return i >= 0 ? { name: PTS[i].name, band: BANDS[PTS[i].bi].no, x: PTS[i]._sx, y: PTS[i]._sy } : null;
       },
-      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi }; }
+      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi, wire: wf }; }
     };
     /* 直达 #vw=galaxy 时初始恢复先于本 IIFE 执行、当时 CAGalaxy 还不存在——这里补唤醒，
        否则画布停在默认 300×150 空白（分享链接打开即黑屏的既有 bug）。 */
@@ -2652,6 +2851,157 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       else history.replaceState(null, "", location.pathname);
     } catch (e) { /* file:// 等环境失败就忽略 */ }
   });
+})();
+</script>
+
+<script>
+/* ================= GUESS WHO · 猜 crate =================
+   Wordle 的骨架，CA_DEPS 的血肉：每条线索都来自 829 条实测依赖边。
+   谜底按日期取种子——同一天全站是同一题，明天来换一题。 */
+(function () {
+  "use strict";
+  var inBox = document.getElementById("gw-in");
+  var rowsBox = document.getElementById("gw-rows");
+  var outBox = document.getElementById("gw-out");
+  var newBtn = document.getElementById("gw-new");
+  if (!inBox || !rowsBox || !outBox || typeof CA_DEPS !== "object") return;
+
+  var NAMES = Object.keys(CA_DEPS).sort();
+  var BAND_OF = {};
+  if (typeof BANDS === "object" && BANDS.length) {
+    BANDS.forEach(function (B) {
+      (B.crates || []).forEach(function (c) { BAND_OF[c] = B; });
+    });
+  }
+  var IN_DEG = {};
+  NAMES.forEach(function (n) { IN_DEG[n] = 0; });
+  NAMES.forEach(function (n) {
+    CA_DEPS[n].forEach(function (d) { if (IN_DEG[d] !== undefined) IN_DEG[d]++; });
+  });
+  /* 谜底池：有出边也有入边的「社交成员」——纯叶子猜着没意思 */
+  var POOL = NAMES.filter(function (n) {
+    return CA_DEPS[n].length >= 2 && IN_DEG[n] >= 1 && BAND_OF[n];
+  });
+
+  /* 日期种子 LCG：同一天同一谜底，「换一个」只换本地状态不写地址栏 */
+  function daySeed() {
+    var d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  }
+  function pick(seed) {
+    var s = seed >>> 0;
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return POOL[s % POOL.length];
+  }
+  var secret = pick(daySeed());
+  var guesses = [];
+  var done = false;
+
+  var datalist = document.getElementById("gw-names");
+  NAMES.forEach(function (n) {
+    var o = document.createElement("option");
+    o.value = n;
+    datalist.appendChild(o);
+  });
+
+  /* 连击存档：今天赢了吗 */
+  var STK = "ca-guess-streak";
+  function loadStreak() {
+    try { return JSON.parse(localStorage.getItem(STK) || "{}"); } catch (e) { return {}; }
+  }
+  function saveStreak(st) {
+    try { localStorage.setItem(STK, JSON.stringify(st)); } catch (e) { }
+  }
+
+  function rel(a, b) {
+    /* a 与谜底 b 的关系：a→b 出边 / b→a 入边 / 无边 */
+    if (a === b) return { cls: "hit", txt: "就是它！" };
+    if (CA_DEPS[a] && CA_DEPS[a].indexOf(b) !== -1) return { cls: "dep", txt: "它依赖谜底 →" };
+    if (CA_DEPS[b] && CA_DEPS[b].indexOf(a) !== -1) return { cls: "by", txt: "← 谜底依赖它" };
+    return { cls: "no", txt: "无直接边" };
+  }
+  function arrow(g, s) {
+    if (g > s) return '<i class="up">↓ 谜底更小</i>';   /* 猜大了 */
+    if (g < s) return '<i class="dn">↑ 谜底更大</i>';
+    return '<i class="eq">= 正中</i>';
+  }
+  function bandLabel(n) {
+    var B = BAND_OF[n];
+    return B ? "第 " + B.no + " 带 · " + B.name : "—";
+  }
+
+  function render() {
+    rowsBox.innerHTML = "";
+    guesses.forEach(function (g) {
+      var r = rel(g, secret);
+      var row = document.createElement("div");
+      row.className = "gw-row" + (r.cls === "hit" ? " win" : "");
+      row.innerHTML =
+        '<span class="gw-name">' + g + "</span>" +
+        '<span class="gw-band' + (BAND_OF[g] && BAND_OF[secret] === BAND_OF[g] ? " hit" : "") + '">' + bandLabel(g) + "</span>" +
+        '<span class="gw-num">' + IN_DEG[g] + arrow(IN_DEG[g], IN_DEG[secret]) + "</span>" +
+        '<span class="gw-num">' + CA_DEPS[g].length + arrow(CA_DEPS[g].length, CA_DEPS[secret].length) + "</span>" +
+        '<span class="gw-rel ' + r.cls + '">' + r.txt + "</span>";
+      rowsBox.appendChild(row);
+    });
+  }
+
+  function submit() {
+    var v = inBox.value.trim();
+    if (!v || done) return;
+    if (NAMES.indexOf(v) === -1) {
+      outBox.innerHTML = "「" + v.replace(/</g, "&lt;") + "」不在 136 个成员名单里——名字要跟 workspace 里的一字不差。";
+      if (window.CASound) CASound.play("miss");
+      return;
+    }
+    if (guesses.indexOf(v) !== -1) {
+      outBox.textContent = "这个刚猜过了，换一个。";
+      return;
+    }
+    guesses.push(v);
+    inBox.value = "";
+    var r = rel(v, secret);
+    render();
+    if (r.cls === "hit") {
+      done = true;
+      var st = loadStreak();
+      st[daySeed()] = guesses.length;
+      saveStreak(st);
+      var msg = guesses.length <= 2 ? "两步之内拿下，你对这张图已经很熟了。"
+        : guesses.length <= 4 ? "漂亮，边表没白看。"
+        : "第 " + guesses.length + " 次压哨命中——也算赢。";
+      outBox.innerHTML = "<b style='color:var(--ok);'>谜底就是 " + secret + "（" + bandLabel(secret) +
+        "，被依赖 " + IN_DEG[secret] + " · 依赖 " + CA_DEPS[secret].length + "）。</b>" + msg;
+      if (window.CASound) CASound.play("clear");
+      if (window.CAConfetti) CAConfetti.fire(true);
+    } else if (guesses.length >= 6) {
+      done = true;
+      outBox.innerHTML = "六次用完，谜底是 <b>" + secret + "</b>（" + bandLabel(secret) +
+        "，被依赖 " + IN_DEG[secret] + " · 依赖 " + CA_DEPS[secret].length +
+        "）。去上面的星系里点它一圈，明天再来。";
+      if (window.CASound) CASound.play("deny");
+    } else {
+      outBox.innerHTML = "第 <b>" + guesses.length + "</b>/6 猜。线索都在上面——注意关系列，一条实测边能砍掉一半可能。";
+    }
+  }
+
+  inBox.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); submit(); }
+  });
+  newBtn.addEventListener("click", function () {
+    secret = pick((daySeed() * 31 + guesses.length * 7 + Date.now()) >>> 0);
+    guesses = []; done = false;
+    render();
+    outBox.textContent = "新谜底已就位。老规矩：先猜 hub，用关系列收网。";
+    inBox.focus();
+  });
+
+  window.GUESSCRATE = {
+    secret: function () { return secret; },
+    guesses: function () { return guesses.length; },
+    done: function () { return done; },
+    guess: function (n) { inBox.value = n; submit(); }
+  };
 })();
 </script>
 

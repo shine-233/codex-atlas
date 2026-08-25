@@ -184,6 +184,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -201,6 +202,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -446,7 +448,9 @@ ExecCommandApproval {
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，均出自 OpenAI 官方博客《Unlocking the Codex harness》。2026-08-24 追加实证：全部 wire 方法名已对固定提交下 <code>app-server-protocol/src/protocol/common.rs</code> 的 wire 注册表逐条核对——thread/new 实为 thread/start，审批反向请求实为 item/commandExecution/requestApproval（旧称来自社区早期分析），agent 正文增量的真实通道是 item/agentMessage/delta。报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@cbfd999 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
+      三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，出自 OpenAI 官方博客《Unlocking the Codex harness》。
+      全部 wire 方法名已对固定提交下 <code>app-server-protocol/src/protocol/common.rs</code> 的 wire 注册表逐条核对，三处与旧社区口径不同：thread/new 实为 thread/start；审批反向请求实为 item/commandExecution/requestApproval；agent 正文增量的真实通道是 item/agentMessage/delta。
+      报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@cbfd999 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
     </aside>
 
   </main>

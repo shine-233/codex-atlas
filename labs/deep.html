@@ -116,6 +116,29 @@
     100% { background: rgba(240,121,106,.10); }
   }
   .pl-file .ctx { color: var(--ink); }
+  /* 标注笔覆盖层：关模式时对下层交互完全透明 */
+  #pl-mark[aria-pressed="true"] { color: var(--amber); border-color: rgba(255,180,84,.7); background: rgba(255,180,84,.08); }
+  .pl-ink { position: absolute; inset: 0; z-index: 6; pointer-events: none; touch-action: none; cursor: crosshair; }
+  /* 逐行讲解器：行条目 + 行内自述气泡（带向上的尾巴） */
+  .ll-wrap { margin-top: 18px; border-top: 1px dashed var(--line-strong); padding-top: 14px; position: relative; }
+  .ll-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; margin-bottom: 8px; }
+  .ll-code { font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-x: auto; }
+  .ll-row { display: flex; gap: 10px; width: 100%; text-align: left; padding: 2px 8px; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; white-space: pre; border-left: 2px solid transparent; }
+  .ll-row:hover { background: rgba(255,180,84,.06); }
+  .ll-row.open { border-left-color: var(--amber); background: rgba(255,180,84,.08); }
+  .ll-row .ln { color: var(--faint); user-select: none; width: 1.4em; text-align: right; flex: none; }
+  .ll-row .st-begin, .ll-row .st-update, .ll-row .st-end { color: var(--steel); }
+  .ll-row .st-anchor { color: var(--amber); }
+  .ll-row .st-del { color: var(--deny); }
+  .ll-row .st-add { color: var(--ok); }
+  .ll-row .st-ctx { color: var(--dim); }
+  .ll-bubble { position: relative; margin: 6px 0 6px 26px; max-width: 640px; border: 1px solid rgba(255,180,84,.45); background: rgba(16,20,24,.92); border-radius: 10px; padding: 10px 14px 11px; font-size: 13px; line-height: 1.75; color: var(--ink); animation: ll-pop .18s ease-out both; }
+  .ll-bubble::before { content: ""; position: absolute; top: -6px; left: 18px; width: 10px; height: 10px; transform: rotate(45deg); background: inherit; border-left: 1px solid rgba(255,180,84,.45); border-top: 1px solid rgba(255,180,84,.45); }
+  html[data-theme="light"] .ll-bubble { background: rgba(255,252,246,.96); }
+  html[data-theme="light"] .ll-bubble::before { background: rgb(255,252,246); }
+  @keyframes ll-pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .ll-tag { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--amber); border: 1px solid rgba(255,180,84,.4); border-radius: 3px; padding: 1px 7px; margin-bottom: 5px; }
+  .ll-try { display: inline-block; margin-top: 6px; font-size: 12px; }
   .pl-src {
     width: 100%; box-sizing: border-box; min-height: 250px;
     font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
@@ -306,6 +329,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -323,6 +347,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -339,11 +364,10 @@
         <p class="eyebrow"><span class="tick">▮</span>07 深水区 · 支线</p>
         <h1>主干讲完之后，<br>还有七间没开门的房间。</h1>
         <p class="lede">
-          01–05 是主干道，真用起来时问题多半落在支线上：
-          登录令牌存在哪、config.toml 里谁覆盖谁、apply_patch 的补丁到底长什么样、
-          TUI 里每一格画面背后是哪条事件、技能记忆这些新词挂在系统的哪个位置、
-          Code Mode 那个 V8 实验到底想干什么。
-          这一页把六扇门各推开一条缝，每间房放一台能动手的小仪器。
+          01–05 是主干道，真用起来时问题多半落在支线上。
+          这一页把七间房各推开一条缝，每间放一台能动手的小仪器：
+          凭据流、config 组装、补丁格式、TUI 后台、扩展挂点、Code Mode 实验位，
+          最后是一张全站源码覆盖地图。先挑一间，进去拨开关。
         </p>
         <div class="room-jumps">
           <a href="#mod-a">A · 凭据流</a>
@@ -515,7 +539,12 @@ pub developer_instructions: Option&lt;String&gt;,                               
         或者被拒绝。拒绝时读一下失败原因，那正是解析器的校验顺序。
       </p>
       <div style="padding:0 24px 20px;">
-        <div class="pl-grid">
+        <div class="pl-actions" style="margin-bottom:10px;border-top:1px dashed var(--line-strong);padding-top:10px;">
+          <button class="btn" id="pl-mark" type="button" aria-pressed="false">✏️ 标注模式</button>
+          <button class="btn" id="pl-mark-clear" type="button">🧽 清除标注</button>
+          <span class="small muted">Excalidraw 手感：开启后在整个面板上直接画，给同伴圈重点。Ctrl+Z 撤销上一笔，Esc 退出，刷新即消失。</span>
+        </div>
+        <div class="pl-grid" id="pl-grid">
           <div class="pl-pane">
             <h4>目标文件 · src/task_runner.rs（示例）</h4>
             <pre class="pl-file" id="pl-file"></pre>
@@ -543,6 +572,13 @@ pub developer_instructions: Option&lt;String&gt;,                               
           <span class="chip" title="删掉的行">− 开头 = 删</span>
           <span class="chip" title="新增的行">＋ 开头 = 增</span>
           <span class="chip" title="原样保留的行，用于校验位置">空格开头 = 上下文</span>
+        </div>
+        <div class="ll-wrap">
+          <div class="ll-head">
+            <span>Line by line · 点一行，听它自述</span>
+            <span class="small muted" style="letter-spacing:0;text-transform:none;">顺序就是解析器的校验顺序 · 以「正常改动」预设为例 · ↑↓ 换行 · Esc 收起</span>
+          </div>
+          <div class="ll-code" id="ll-code"></div>
         </div>
       </div>
     </section>
@@ -713,7 +749,7 @@ pub(crate) fn insert_history_lines_with_mode_and_wrap_policy&lt;B&gt;(...)
     )
 }</span></pre>
        </details>
-       <p class="small muted" style="margin:14px 0 0;">正在流式输出的那段回答是另一条路：边收 delta 边找「稳定边界」，生产环境不做增量解析——宽度一变，从累积的源串整体重渲染。这就是为什么答案长到一半时格式也不会错乱。</p>
+        <p class="small muted" style="margin:14px 0 0;">正在流式输出的那段回答走另一条路：边收 delta 边找「稳定边界」，生产环境不做增量解析——宽度一变，就从累积的源串整体重渲染，所以答案长到一半格式也不会错乱。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 流式 Markdown 收集器：只管边界，不管解析</summary>
          <pre><span class="src-loc">codex-rs/tui/src/markdown_stream.rs :24-38, 76-78 · @cbfd999 实测</span>
@@ -1110,7 +1146,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       <div style="padding:0 24px 20px;">
         <p class="muted small" style="margin:0 0 14px;">
           把全站的逐行切片摊开给你查：哪个 crate 被打开过、拆的是哪些文件、拆到哪几行。
-          精读和扫读分开记账——逐行切片是一类，图谱注解是另一类，两个数放一起，覆盖到哪一目了然，不用猜。
+          精读和扫读分开记账——逐行切片是一类，图谱注解是另一类。两个数并排摆着，缺口自己会显出来。
         </p>
         <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
           <div>
@@ -1322,7 +1358,16 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      A 房凭据流程出自仓库公开文档 authentication.md 的通行转述与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。B 房键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。C 房格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，但失败后的副作用边界请以源码为准。D 房界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。E 房挂点位置依据 05 图谱 B7 带注与各 crate 命名；hooks 事件轴的 8 个事件名为固定提交下 events/ 目录实测，事件语义为本站归纳。F 房 Code Mode 的双模式对比是<b>本站推演的形状示意</b>——上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。G 房台账逐行对应全站各页的 src-loc 标注，文件数与 crate 数由此清点；「还没拆的」名单来自已切片源码中的类型引用与目录树，不构成对上游结构的完整枚举。基线 openai/codex@cbfd999。
+      <ul style="margin:0;padding-left:1.25em;">
+        <li>A 房：凭据流程转述自仓库公开文档 authentication.md 与官方博客既有结论（端点域名已在 01 第 10 站出现过）；<code>auth.json</code> 字段名为示意形状，真实 schema 请开自己的 <code>~/.codex/auth.json</code> 对照。</li>
+        <li>B 房：键位名单与优先级规则出自 config-reference 的常用子集（仓库 docs/config.md 在固定提交下只是指路页），完整键位以该参考为准。</li>
+        <li>C 房：补丁格式为 apply-patch crate 的公开格式；「先整体解析、失败即拒绝」的教学实现与社区分析一致，失败后的副作用边界请以源码为准。</li>
+        <li>D 房：界面元素对应的事件映射依据 01 / 04 已确立的协议结构推得，属<b>结构示意</b>；具体控件与快捷键随版本演变快。</li>
+        <li>E 房：挂点位置依据 05 图谱 B7 带注与各 crate 命名；hooks 事件轴的 8 个事件名为固定提交下 events/ 目录实测，事件语义为本站归纳。</li>
+        <li>F 房：Code Mode 双模式对比是<b>本站推演的形状示意</b>，上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。</li>
+        <li>G 房：台账逐行对应全站各页的 src-loc 标注，文件数与 crate 数由此清点；「还没拆的」名单来自已切片源码中的类型引用与目录树，不构成对上游结构的完整枚举。</li>
+      </ul>
+      基线 openai/codex@cbfd999。
     </aside>
 
   </main>
@@ -1770,6 +1815,216 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
 
     setPreset("good");
     renderFile(null);
+
+    /* ---- 标注笔：Excalidraw 式自由手绘覆盖层。
+       笔迹用中点二次曲线平滑，再以每笔固定的种子做双描微抖，
+       手绘感来自抖动、稳定性也来自同一份抖动（重绘不变形）。 ---- */
+    (function () {
+      var grid = document.getElementById("pl-grid");
+      var markBtn = document.getElementById("pl-mark");
+      var clearBtn = document.getElementById("pl-mark-clear");
+      if (!grid || !markBtn || !clearBtn || !window.CanvasRenderingContext2D) return;
+      grid.style.position = "relative";
+      var cv = document.createElement("canvas");
+      cv.className = "pl-ink";
+      cv.setAttribute("aria-hidden", "true");
+      grid.appendChild(cv);
+      var ctx2 = cv.getContext("2d");
+      var AMBER2 = window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84";
+      var strokes = [], cur = null, on = false, W2 = 1, H2 = 1;
+
+      function size() {
+        var r = grid.getBoundingClientRect();
+        W2 = Math.max(1, r.width); H2 = Math.max(1, r.height);
+        var dpr = Math.min(2, window.devicePixelRatio || 1);
+        cv.width = Math.round(W2 * dpr); cv.height = Math.round(H2 * dpr);
+        ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+        redraw();
+      }
+      /* 每笔一个种子：抖动在重绘之间保持不变，笔迹不会自己飘 */
+      function lcg(s) {
+        return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+      }
+      function drawStroke(st) {
+        var pts = st.pts;
+        ctx2.lineCap = "round"; ctx2.lineJoin = "round";
+        if (pts.length === 1) {
+          ctx2.fillStyle = "rgba(" + AMBER2 + ",.85)";
+          ctx2.beginPath(); ctx2.arc(pts[0][0] * W2, pts[0][1] * H2, 1.6, 0, 6.2832); ctx2.fill();
+          return;
+        }
+        var rnd = lcg(st.seed);
+        for (var pass = 0; pass < 2; pass++) {
+          var ox = (rnd() - 0.5) * 2.4, oy = (rnd() - 0.5) * 2.4;
+          ctx2.strokeStyle = "rgba(" + AMBER2 + "," + (pass ? 0.32 : 0.85) + ")";
+          ctx2.lineWidth = pass ? 1.3 : 2.1;
+          ctx2.beginPath();
+          ctx2.moveTo(pts[0][0] * W2 + ox, pts[0][1] * H2 + oy);
+          for (var i = 1; i < pts.length - 1; i++) {
+            var mx2 = (pts[i][0] + pts[i + 1][0]) / 2 * W2 + ox;
+            var my2 = (pts[i][1] + pts[i + 1][1]) / 2 * H2 + oy;
+            ctx2.quadraticCurveTo(pts[i][0] * W2 + ox, pts[i][1] * H2 + oy, mx2, my2);
+          }
+          var lp = pts[pts.length - 1];
+          ctx2.lineTo(lp[0] * W2 + ox, lp[1] * H2 + oy);
+          ctx2.stroke();
+        }
+      }
+      function redraw() {
+        ctx2.clearRect(0, 0, W2, H2);
+        for (var i = 0; i < strokes.length; i++) drawStroke(strokes[i]);
+        if (cur) drawStroke(cur);
+      }
+      function setMode(v) {
+        on = v;
+        markBtn.setAttribute("aria-pressed", String(on));
+        markBtn.textContent = on ? "✏️ 标注中…" : "✏️ 标注模式";
+        cv.style.pointerEvents = on ? "auto" : "none";
+      }
+      function xy(e) {
+        var r = cv.getBoundingClientRect();
+        return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+      }
+      cv.addEventListener("pointerdown", function (e) {
+        if (!on) return;
+        cur = { pts: [xy(e)], seed: (Math.random() * 4294967296) >>> 0 };
+        try { cv.setPointerCapture(e.pointerId); } catch (err) { }
+        e.preventDefault();
+      });
+      cv.addEventListener("pointermove", function (e) {
+        if (!cur) return;
+        var p = xy(e), lp = cur.pts[cur.pts.length - 1];
+        var dx = (p[0] - lp[0]) * W2, dy = (p[1] - lp[1]) * H2;
+        if (dx * dx + dy * dy < 4) return;   /* 小于 2px 不采样 */
+        cur.pts.push(p);
+        redraw();
+      });
+      function up() {
+        if (!cur) return;
+        strokes.push(cur); cur = null; redraw();
+        if (window.CASound) CASound.play("click");
+      }
+      cv.addEventListener("pointerup", up);
+      cv.addEventListener("pointercancel", up);
+      clearBtn.addEventListener("click", function () {
+        strokes = []; redraw();
+        if (window.CAToast) CAToast("标注已清空");
+      });
+      markBtn.addEventListener("click", function () { setMode(!on); });
+      document.addEventListener("keydown", function (e) {
+        if (!on) return;
+        if (e.key === "Escape") { setMode(false); return; }
+        if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
+          if (strokes.length) { strokes.pop(); redraw(); }
+          e.preventDefault();
+        }
+      });
+      window.addEventListener("resize", size);
+      size(); setMode(false);
+      window.CAInk = { count: function () { return strokes.length; }, mode: function () { return on; } };
+    })();
+
+    /* ---- Line by line：点补丁的任意一行，弹出这行的自述气泡。
+       气泡顺序＝解析器校验顺序；能弄坏的两行附「亲手弄坏它」直达链接。 ---- */
+    (function () {
+      var llCode = document.getElementById("ll-code");
+      if (!llCode) return;
+      var LL = [
+        { tag: "第 1 关 · 开场白",
+          txt: "解析器睁眼第一件事就是找这行。找不到？后面写得再漂亮也整张拒收，一行都不会被读。" },
+        { tag: "第 2 关 · 报文件名",
+          txt: "声明要改哪个文件。路径必须跟仓库里的对得上——这张工作台上只有 src/task_runner.rs，写别的名字当场被拒。" },
+        { tag: "第 3 关 · 定位锚（可选）", try: "badanchor", tryLabel: "锚点打偏",
+          txt: "给解析器指个大概：「先找含 pub fn retry 的行，从那儿对起」。没有行号的补丁全靠文字锚＋上下文落位；锚在文件里找不到落点，整张补丁作废。" },
+        { tag: "第 4 关 · 上对齐",
+          txt: "空格开头＝原样保留的上下文。校验时要在文件里逐字找到这一行，位置确认无误才敢动手——apply_patch 敢不写行号，底气就在这类行上。" },
+        { tag: "第 5 关 · 验旧",
+          txt: "− 开头＝删掉这行。别看它是删除，校验阶段它跟上下文一样必须在文件里被找到（找不到＝上下文对不齐）；应用阶段它不会出现在新文件里。" },
+        { tag: "第 6 关 · 插入",
+          txt: "＋ 开头＝新内容。新增行不需要被「找到」，它插在上一个验证过的位置后面。这也是为什么补丁里加多少行，都不会把后面的落点挤歪。" },
+        { tag: "第 6 关 · 插入（续）",
+          txt: "连续几条 ＋ 行会按顺序插进同一道缝隙——一次补丁塞进整段新代码，就是这么做到的。" },
+        { tag: "第 7 关 · 下夹板",
+          txt: "改动之后再跟一行上下文，把改动「夹」在中间：解析器据此确认改动范围刚好落在预期处，不多一行不少一行。" },
+        { tag: "第 8 关 · 收尾", try: "noend", tryLabel: "缺收尾行",
+          txt: "读到这行才承认补丁完整。文件读完了还没等到它？解析器不会替你脑补，直接拒绝。" }
+      ];
+      var lines = PATCH_GOOD.replace(/\n$/, "").split("\n");
+      function cls(ln) {
+        if (ln.indexOf("*** Begin") === 0 || ln.indexOf("*** End") === 0) return "st-begin";
+        if (ln.indexOf("*** ") === 0) return "st-update";
+        if (ln.indexOf("@@") === 0) return "st-anchor";
+        if (ln.charAt(0) === "-") return "st-del";
+        if (ln.charAt(0) === "+") return "st-add";
+        return "st-ctx";
+      }
+      var llRows = [];
+      lines.forEach(function (ln, li) {
+        var row = document.createElement("button");
+        row.type = "button";
+        row.className = "ll-row";
+        row.innerHTML = '<span class="ln">' + (li + 1) + '</span><span class="' + cls(ln) + '">' +
+          ln.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span>";
+        row.addEventListener("click", function () { toggleBubble(li); });
+        llCode.appendChild(row);
+        llRows.push(row);
+      });
+
+      var openIdx = -1;
+      function closeBubble() {
+        if (openIdx < 0) return;
+        var b = document.getElementById("ll-bubble");
+        if (b) b.remove();
+        llRows[openIdx].classList.remove("open");
+        openIdx = -1;
+      }
+      function toggleBubble(idx) {
+        if (idx === openIdx) { closeBubble(); return; }
+        closeBubble();
+        openIdx = idx;
+        var meta = LL[idx];
+        var b = document.createElement("div");
+        b.className = "ll-bubble";
+        b.id = "ll-bubble";
+        b.setAttribute("role", "status");
+        b.innerHTML = '<span class="ll-tag">' + meta.tag + "</span>" + meta.txt +
+          (meta.try
+            ? '<br><span class="ll-try"><a href="#pl-src" data-ll-try="' + meta.try + '">装载「' + meta.tryLabel + '」预设，亲手弄坏它 ↑</a></span>'
+            : "");
+        llRows[idx].classList.add("open");
+        llRows[idx].after(b);
+        Array.prototype.forEach.call(b.querySelectorAll("[data-ll-try]"), function (a) {
+          a.addEventListener("click", function (ev) {
+            ev.preventDefault();
+            var btn = document.querySelector('[data-pl="' + a.getAttribute("data-ll-try") + '"]');
+            if (btn) btn.click();
+            closeBubble();
+            try { srcBox.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "center" }); } catch (err) { }
+            srcBox.focus({ preventScroll: true });
+            if (window.CAToast) CAToast("预设已装进上面的编辑框——按「▶ 应用补丁」，听解析器怎么说");
+          });
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (openIdx < 0) return;
+        var ae = document.activeElement;
+        if (ae && (ae.tagName === "TEXTAREA" || ae.tagName === "INPUT")) return;
+        if (e.key === "Escape") { closeBubble(); return; }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          var nx = Math.min(lines.length - 1, Math.max(0, openIdx + (e.key === "ArrowDown" ? 1 : -1)));
+          if (nx !== openIdx) {
+            toggleBubble(nx);
+            try { llRows[nx].scrollIntoView({ block: "nearest" }); } catch (err) { }
+          }
+        }
+      });
+      document.addEventListener("click", function (e) {
+        if (openIdx < 0) return;
+        if (!llCode.contains(e.target)) closeBubble();
+      });
+      window.CALLines = { count: function () { return llRows.length; }, open: function () { return openIdx; } };
+    })();
   })();
 
   /* ================= D · TUI ================= */
@@ -2203,7 +2458,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
     { q: "四层配置里，最终谁说了算？",
       opts: ["config.toml——文件里写的最稳", "[profiles]——场景包优先", "CLI 旗标与 -c——越临时的越算数"],
       a: 2,
-      why: "优先级阶梯从下往上：内置默认 < config.toml < profile < CLI。规则一句话：越临时的来路越算数。所以 CI 里钉死审批策略用的是旗标，不是配置文件。" },
+      why: "优先级阶梯从下往上：内置默认 < config.toml < profile < CLI，越临时的来路越算数。所以 CI 里钉死审批策略用的是旗标，不是配置文件。" },
     { q: "【A 房】codex login 拿到的凭据，落在哪个文件里？",
       opts: ["~/.codex/auth.json", "~/.config/codex/credentials.toml", "系统钥匙串（Keychain）"],
       a: 0,
@@ -2691,13 +2946,130 @@ window.CATOUR_STEPS = [
     raf = requestAnimationFrame(loop);
   }
   function startLoop() {
-    if (running || REDUCED) return;
-    running = true; last = 0;
-    raf = requestAnimationFrame(loop);
+   if (running || REDUCED) return;
+  running = true; last = 0;
+  raf = requestAnimationFrame(loop);
+}
+function stopLoop() { running = false; cancelAnimationFrame(raf); }
+if (size()) draw();
+if (REDUCED) { winner = 3; draw(); } else { burst(3); startLoop(); }
+})();
+</script>
+
+<script>
+/* ---------- C 房标注层：Excalidraw 手感自由笔（tldraw/Excalidraw 技法）
+   · 平滑折线 + 轻微手绘抖动（roughness）
+   · 笔迹保存在 strokes 数组，resize 按相对坐标重绘不丢
+   · 标注只在本机显示——这是给「讲给同伴听」用的粉笔，不是数据 ---------- */
+(function () {
+  "use strict";
+  var grid = document.getElementById("pl-grid");
+  var markBtn = document.getElementById("pl-mark");
+  var clearBtn = document.getElementById("pl-mark-clear");
+  if (!grid || !markBtn) return;
+
+  var cv = document.createElement("canvas");
+  cv.className = "pl-mark-cv";
+  cv.setAttribute("aria-hidden", "true");
+  grid.appendChild(cv);
+  var ctx = cv.getContext("2d");
+  if (!ctx) return;
+
+  var strokes = [];        /* [{pts:[{x,y} 相对坐标0..1], w}] */
+  var cur = null;
+  var on = false;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+
+  function resize() {
+    var r = grid.getBoundingClientRect();
+    cv.width = Math.max(1, r.width * dpr);
+    cv.height = Math.max(1, r.height * dpr);
+    repaint();
   }
-  function stopLoop() { running = false; cancelAnimationFrame(raf); }
-  if (size()) draw();
-  if (REDUCED) { winner = 3; draw(); } else { burst(3); startLoop(); }
+  function repaint() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    strokes.forEach(function (s) {
+      strokePath(s.pts, s.w);
+    });
+    if (cur && cur.pts.length > 1) strokePath(cur.pts, cur.w);
+  }
+  function jitter() { return (Math.random() - 0.5) * 1.6 * dpr; }   // 手绘抖动
+  function strokePath(pts, w) {
+    if (pts.length < 2) {
+      if (pts.length === 1) {
+        ctx.fillStyle = "rgba(255,180,84,.9)";
+        ctx.beginPath();
+        ctx.arc(pts[0].x * cv.width, pts[0].y * cv.height, w, 0, 6.2832);
+        ctx.fill();
+      }
+      return;
+    }
+    ctx.strokeStyle = "rgba(255,180,84,.92)";
+    ctx.lineWidth = w;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      var x = pts[i].x * cv.width + jitter();
+      var y = pts[i].y * cv.height + jitter();
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function pos(e) {
+    var r = cv.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) / r.width,
+      y: (e.clientY - r.top) / r.height
+    };
+  }
+  cv.addEventListener("pointerdown", function (e) {
+    if (!on) return;
+    cur = { pts: [pos(e)], w: 2.4 * dpr };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+    repaint();
+    e.preventDefault();
+  });
+  cv.addEventListener("pointermove", function (e) {
+    if (!on || !cur) return;
+    var p = pos(e);
+    var lastP = cur.pts[cur.pts.length - 1];
+    if (Math.hypot((p.x - lastP.x) * cv.width, (p.y - lastP.y) * cv.height) < 3 * dpr) return;
+    cur.pts.push(p);
+    repaint();
+    e.preventDefault();
+  });
+  ["pointerup", "pointercancel"].forEach(function (ev) {
+    cv.addEventListener(ev, function () {
+      if (!cur) return;
+      if (cur.pts.length > 1) strokes.push(cur);
+      cur = null;
+      repaint();
+    });
+  });
+
+  markBtn.addEventListener("click", function () {
+    on = !on;
+    markBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    document.body.classList.toggle("pl-mark-on", on);
+    markBtn.classList.toggle("on", on);
+    if (on) {
+      resize();
+      if (window.CASound) CASound.play("toggleOn");
+      markBtn.textContent = "✏️ 标注中…（再点退出）";
+    } else {
+      if (window.CASound) CASound.play("toggleOff");
+      markBtn.textContent = "✏️ 标注模式";
+    }
+  });
+  clearBtn.addEventListener("click", function () {
+    strokes = [];
+    repaint();
+    if (window.CASound) CASound.play("pop");
+  });
+  window.addEventListener("resize", resize);
+  resize();
 })();
 </script>
 

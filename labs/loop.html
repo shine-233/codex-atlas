@@ -214,6 +214,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -231,6 +232,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -569,7 +571,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       next:"队列对是后面一切的地基：第 7 站的占用检查、第 13 站的历史写回，都发生在这两条通道上。" },
     { n:"会话占用检查", files:["core/src/session/mod.rs"], ev:["user_input_or_turn_inner","steer_input"],
       body:"一个 Session 同一时刻<b>最多只有一个 running task</b>。空闲：新建 turn 并启动 RegularTask。忙碌：尝试 steer_input，把你这句新输入导入正在跑的那一轮。<b>打断不是取消，是并入。</b>",
-      next:"这就是为什么连续追问不会排队等上一轮彻底结束。" },
+      next:"连续追问因此不用排队。TURN SIMULATOR 里运行中插一句话，能看到它走 steer_input 这条岔道。" },
     { n:"TurnStarted 广播", files:["core/src/session（task wrapper）"], ev:["EventMsg::TurnStarted","RegularTask::run"],
       body:"RegularTask::run 很短：先发出 <b>TurnStarted</b>，然后进入真正的循环体反复调用 run_turn。「轮次」从这里才正式开始计数——它是用户任务的生命周期单位，<b>不是</b>模型请求次数。",
       next:"一次 turn 包含几次采样，取决于模型要几次才能完成任务。" },
@@ -686,7 +688,36 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     var pts = [];        /* pts[i] = 第 i+1 圈的历史单位 */
     var hoverI = -1;
     var pulseT0 = 0;     /* 新点落地的一圈涟漪 */
+    /* Place Your Bets：先拖动琥珀把手画出预测（第 10 圈时的历史单位），
+       真实点落下后与预测虚线同框对比——预期落差本身就是教学材料 */
+    var pred = 100;      /* 预测的第 10 圈历史单位。默认 100 = 天真的线性外推，拖把手改它 */
+    var predDrag = false;
+    function predX() { return xOf(MAXLAP - 1); }
+    function predY() { return yOf(pred); }
 
+    function updateRead() {
+      if (!read) return;
+      if (pred != null && pts.length) {
+        var actual, lapNote;
+        if (pts.length >= 10) { actual = pts[9]; lapNote = "第 10 圈实际"; }
+        else { actual = pts[pts.length - 1]; lapNote = "第 " + pts.length + " 圈实际"; }
+        var diff = Math.round(pred - actual);
+        var verdict;
+        if (pts.length < 10) {
+          verdict = "才走到第 " + pts.length + " 圈——继续，看曲线最终站你预测的哪边。";
+        } else if (diff === 0) {
+          verdict = "神预测。";
+        } else if (diff > 0) {
+          verdict = "你高估了 " + diff + " 单位——compact 和缓存都在把曲线往下压。";
+        } else {
+          verdict = "你低估了 " + (-diff) + " 单位——重采样确实很能吃历史。";
+        }
+        read.innerHTML = '你的预测（第 10 圈 ≈ <b>' + Math.round(pred) + '</b>）· ' + lapNote +
+          ' ≈ <b>' + actual + '</b> 单位 · ' + verdict;
+      } else if (pred != null) {
+        read.innerHTML = '预测已下注：第 10 圈 ≈ <b>' + Math.round(pred) + '</b> 单位。走一圈，看现实站哪边。';
+      }
+    }
     function sync(laps) {
       var n = laps + 1;
       while (pts.length < n) { pts.push(10 * (pts.length + 1)); if (!REDUCed) pulseT0 = performance.now(); }
@@ -696,9 +727,10 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       MAXU = Math.max(110, MAXLAP * 10);
       if (hoverI >= pts.length) hoverI = -1;
       draw();
+      if (pred != null && pts.length) { updateRead(); return; }
       if (read) read.innerHTML = pts.length
         ? '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位'
-        : "走一圈，多点一个数据点";
+        : (pred != null ? "预测已下注。走一圈，多点一个数据点" : "先下注，或直接走一圈");
     }
 
     function draw() {
@@ -735,6 +767,27 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         ctx.setLineDash([]);
       }
 
+      /* 预测虚线 + 可拖把手（下注模式） */
+      if (pred != null) {
+        var px = predX(), py = predY();
+        ctx.strokeStyle = "rgba(" + AMBER + ",0.55)";
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(xOf(0), yOf(10));
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(" + AMBER + "," + (predDrag ? 1 : 0.75) + ")";
+        ctx.beginPath();
+        ctx.arc(px, py, predDrag ? 7 : 5.5, 0, 6.2832);
+        ctx.fill();
+        ctx.font = "10px 'IBM Plex Mono', monospace";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(" + AMBER + ",0.95)";
+        ctx.fillText("你的预测 ≈ " + Math.round(pred), px - 12, py);
+      }
       /* 主折线 */
       if (pts.length) {
         ctx.strokeStyle = "rgba(" + AMBER + ",0.9)";
@@ -778,7 +831,8 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         ctx.fillStyle = "rgba(" + FAINT + ",0.85)";
         ctx.textAlign = "center";
         ctx.font = "11px 'IBM Plex Mono', monospace";
-        ctx.fillText("在第 13 站再按一次「下一步」——环转回第 9 站，这里落下第一个点", W / 2, H / 2);
+        ctx.fillText("先下注：拖右上角的琥珀把手，画出你预测的增长", W / 2, H / 2 - 14);
+        ctx.fillText("然后去第 13 站按「下一步」——看现实站在你预测的哪一边", W / 2, H / 2 + 6);
       }
     }
 
@@ -791,6 +845,14 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       }
       return best;
     }
+    function unitsAt(y) {
+      var u = (H - PADB - y) / (H - PADT - PADB) * MAXU;
+      return Math.max(10, Math.min(MAXU, Math.round(u)));
+    }
+    function nearPredHandle(x, y) {
+      var dx = predX() - x, dy = predY() - y;
+      return dx * dx + dy * dy < 324;   /* 18px 命中半径（触屏 + 字体漂移余量） */
+    }
     canvas.addEventListener("pointermove", function (e) {
       var r = host.getBoundingClientRect();
       var hit = pick(e.clientX - r.left, e.clientY - r.top);
@@ -801,8 +863,37 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     });
     canvas.addEventListener("pointerleave", function () {
       hoverI = -1; draw();
+      if (pred != null) { updateRead(); return; }
       if (read) read.innerHTML = '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位';
     });
+    canvas.addEventListener("pointerdown", function (e) {
+      if (window.__curveDbg) {
+        window.__curveDbg.downs = (window.__curveDbg.downs || 0) + 1;
+        window.__curveDbg.lastCX = e.clientX;
+        window.__curveDbg.lastCY = e.clientY;
+      }
+      var r = host.getBoundingClientRect();
+      var x = e.clientX - r.left, y = e.clientY - r.top;
+      if (!nearPredHandle(x, y)) return;
+      predDrag = true;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) { }
+      e.preventDefault();
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      if (!predDrag) return;
+      var r = host.getBoundingClientRect();
+      pred = unitsAt(e.clientY - r.top);
+      draw();
+    });
+    function predUp() {
+      if (!predDrag) return;
+      predDrag = false;
+      draw();
+      if (window.CASound) CASound.play("click");
+      updateRead();
+    }
+    canvas.addEventListener("pointerup", predUp);
+    canvas.addEventListener("pointercancel", predUp);
     canvas.addEventListener("click", function (e) {
       var r = host.getBoundingClientRect();
       var hit = pick(e.clientX - r.left, e.clientY - r.top);
@@ -812,7 +903,13 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     });
 
     if (size()) draw();
-    return { sync: sync };
+    window.__curveDbg = {
+      W: function () { return W; }, H: function () { return H; },
+      MAXLAP: function () { return MAXLAP; },
+      predX: function () { return predX(); }, predY: function () { return predY(); },
+      near: function (x, y) { return nearPredHandle(x, y); }
+    };
+    return { sync: sync, pred: function () { return pred; }, predDrag: function () { return predDrag; } };
   })();
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -1657,7 +1754,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     { q: "上一轮还在跑，你又发了一条新输入。Codex 会怎么做？",
       opts: ["新输入排队，等这轮彻底结束", "走 steer_input 并入正在跑的这轮", "取消当前轮，从头再来"],
       a: 1,
-      why: "第 7 站的占用检查：一个 Session 同时只有一个 running task，忙碌时的新输入由 steer_input 导入当前轮——打断不是排队也不是取消。下面的 TURN SIMULATOR 可以亲手试一遍。" }
+      why: "第 7 站的占用检查：一个 Session 同时只有一个 running task，忙碌时的新输入由 steer_input 导入当前轮，不打断也不排队。下面的 TURN SIMULATOR 可以亲手试一遍。" }
   ]);
 })();
 </script>

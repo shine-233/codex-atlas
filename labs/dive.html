@@ -31,6 +31,25 @@
   .dr-light b { color: var(--ink); font-weight: 500; }
   .dr-track { width: 3px; height: 46vh; margin-top: 16px; position: relative; background: rgba(255,255,255,.07); }
   .dr-fill { position: absolute; top: 0; left: 0; width: 100%; background: linear-gradient(180deg, var(--amber), rgba(255,180,84,.15)); }
+  /* 深度转盘：轨道可拖可点可键盘，11 站直接可达 */
+  .dr-track::after { content: ""; position: absolute; inset: -14px -16px; pointer-events: auto; cursor: crosshair; }
+  .dr-tick { position: absolute; left: -3px; width: 9px; height: 1px; background: rgba(231,237,243,.26); pointer-events: none; }
+  .dr-tick.major { width: 13px; left: -5px; background: rgba(231,237,243,.5); }
+  .dr-handle {
+    position: absolute; left: 50%; top: 0; width: 13px; height: 13px; border-radius: 50%;
+    background: var(--amber); border: 2px solid #10161d; transform: translate(-50%,-50%);
+    cursor: grab; pointer-events: auto; box-shadow: 0 0 12px rgba(255,180,84,.5); z-index: 2;
+  }
+  .dr-handle:active { cursor: grabbing; }
+  .dr-handle:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .dr-tip {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+    font-size: 10.5px; color: var(--amber); background: rgba(16,20,24,.94);
+    border: 1px solid rgba(255,180,84,.4); padding: 2px 8px; border-radius: 4px;
+    opacity: 0; transition: opacity .15s; pointer-events: none;
+  }
+  .dr-track:hover .dr-tip, .dr-handle:focus-visible .dr-tip { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .dr-tip { transition: none; } }
   @media (max-width: 860px) { .dive-rail { display: none; } }
 
   .dive-hero { min-height: 88vh; display: flex; flex-direction: column; justify-content: center; padding: 90px 26px 40px; }
@@ -120,12 +139,12 @@
 
 <canvas class="float-dust" id="dust" aria-hidden="true"></canvas>
 
-<div class="dive-rail" aria-hidden="true">
+<div class="dive-rail">
   <div class="dr-num" id="dr-num">L0.0</div>
-  <div class="dr-cap">CALL DEPTH · 示意刻度</div>
+  <div class="dr-cap">CALL DEPTH · 示意刻度 · 可拖</div>
   <div class="dr-light">UI 光照剩余 <b id="dr-light">100%</b></div>
   <div class="dr-light">压力 <b id="dr-press">1.0 atm</b> · 水温 <b id="dr-temp">22°C</b></div>
-  <div class="dr-track"><i class="dr-fill" id="dr-fill" style="height:0%"></i></div>
+  <div class="dr-track" id="dr-track"><i class="dr-fill" id="dr-fill" style="height:0%"></i></div>
 </div>
 
 <header class="dive-hero">
@@ -308,6 +327,7 @@
   var MAX_L = 10;
   var eased = 0, target = 0;
   var lastLayer = -1;
+  var dialSync = null;   /* 深度转盘注册进 hud 主循环 */
 
   function hud() {
     numEl.textContent = "L" + eased.toFixed(1);
@@ -320,6 +340,7 @@
     fillEl.style.height = Math.min(100, k * 100).toFixed(1) + "%";
     document.body.style.setProperty("--db",
       mixColor([16, 22, 29], [6, 9, 13], k));
+    if (dialSync) dialSync();
     var layer = Math.round(eased);
     if (layer !== lastLayer && window.CASound) {
       lastLayer = layer;
@@ -338,6 +359,90 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  /* ---------- 深度转盘：左侧轨道从「只读仪表」升级为双向控制器。
+     滚动推着把手走，把手也拖着页面走——11 站不用滚，直接到。 ---------- */
+  (function () {
+    var track = document.getElementById("dr-track");
+    if (!track) return;
+    var handle = document.createElement("div");
+    handle.className = "dr-handle";
+    handle.setAttribute("role", "slider");
+    handle.setAttribute("tabindex", "0");
+    handle.setAttribute("aria-label", "深度转盘：拖动、点轨道，或用上下方向键在十一站之间移动");
+    handle.setAttribute("aria-valuemin", "0");
+    handle.setAttribute("aria-valuemax", "10");
+    handle.setAttribute("aria-valuenow", "0");
+    var tip = document.createElement("span");
+    tip.className = "dr-tip";
+    handle.appendChild(tip);
+    track.appendChild(handle);
+    for (var i = 0; i <= 10; i++) {
+      var t = document.createElement("i");
+      t.className = "dr-tick" + (i % 5 === 0 ? " major" : "");
+      t.style.top = (i * 10) + "%";
+      track.appendChild(t);
+    }
+
+    function stationScroll(idx) {
+      var el = stopEls[idx];
+      if (!el) return 0;
+      return el.getBoundingClientRect().top + window.pageYOffset - window.innerHeight * 0.55;
+    }
+    function scrollToDepth(v) {
+      v = Math.max(0, Math.min(10, v));
+      var lo = Math.floor(v), hi = Math.ceil(v);
+      var y = lo === hi ? stationScroll(lo)
+        : stationScroll(lo) + (stationScroll(hi) - stationScroll(lo)) * (v - lo);
+      window.scrollTo(0, Math.max(0, y));
+    }
+    function nameAt(v) {
+      var el = stopEls[Math.round(v)];
+      var h = el && (el.querySelector("h2") || el.querySelector("h3"));
+      return "L" + Math.round(v) + " · " + (h ? h.textContent.trim() : "");
+    }
+    function syncHandle() {
+      var k = Math.max(0, Math.min(1, eased / 10));
+      handle.style.top = (k * 100).toFixed(2) + "%";
+      handle.setAttribute("aria-valuenow", eased.toFixed(1));
+      handle.setAttribute("aria-valuetext", nameAt(eased));
+      tip.textContent = nameAt(eased);
+    }
+    dialSync = syncHandle;
+    var dragging = false;
+    function jumpTo(v) {
+      scrollToDepth(v);
+      if (window.CASound && !document.hidden) { try { CASound.play("click"); } catch (e) { } }
+    }
+    track.addEventListener("pointerdown", function (e) {
+      var r = track.getBoundingClientRect();
+      dragging = true;
+      try { track.setPointerCapture(e.pointerId); } catch (err) { }
+      jumpTo((e.clientY - r.top) / r.height * 10);
+      e.preventDefault();
+    });
+    track.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var r = track.getBoundingClientRect();
+      jumpTo((e.clientY - r.top) / r.height * 10);
+    });
+    function endDrag() { dragging = false; }
+    track.addEventListener("pointerup", endDrag);
+    track.addEventListener("pointercancel", endDrag);
+    handle.addEventListener("keydown", function (e) {
+      var v = parseFloat(handle.getAttribute("aria-valuenow")) || 0;
+      var step = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1
+        : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1
+        : e.key === "PageDown" ? 10 : e.key === "PageUp" ? -10 : 0;
+      if (!step) return;
+      e.preventDefault();
+      jumpTo(Math.max(0, Math.min(10, Math.round(v) + step)));
+    });
+    window.DIAL = {
+      state: function () { return { depth: eased, dragging: dragging }; },
+      goto: function (v) { jumpTo(v); }
+    };
+  })();
 
   /* ---------- 浮尘：随滚动反向漂移（下沉感的来源）---------- */
   var dust = document.getElementById("dust");

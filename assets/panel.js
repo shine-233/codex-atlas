@@ -77,9 +77,14 @@
     isLight: function () { return document.documentElement.getAttribute("data-theme") === "light"; }
   };
 
-  /* 动效偏好 */
+  /* 动效偏好：系统「减少动态效果」或站内「静」开关（ca-motion=off，见 panel-theme.js）
+     任一命中都走静态通道——全部 canvas/SVG 仪器已经认这个标志，无需各自改造 */
   window.PrefersReducedMotion = window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  try {
+    if (localStorage.getItem("ca-motion") === "off") window.PrefersReducedMotion = true;
+  } catch (err) { /* 存不了就用系统值 */ }
+  if (window.PrefersReducedMotion) document.documentElement.classList.add("motion-off");
 
   /* 当前线路高亮（按 pathname 匹配 rail 链接） */
   ready(function () {
@@ -92,7 +97,7 @@
     });
     /* 编号说明：纯数字导航 */
     document.querySelectorAll(".ch-no").forEach(function (el) {
-      el.title = "编号：00 总览 · 01–05 五条线路 · 06 术语速查 · 07 深水区支线";
+        el.title = "编号：00 总览 · 01–05 五条线路 · 06 术语速查 · 07 深水区支线 · 08 调用栈下潜支线";
     });
   });
 

@@ -210,6 +210,7 @@ def hist_curve(ctx):
     pg = ctx.new_page()
     pg.goto(BASE + "/labs/loop.html")
     pg.wait_for_load_state("networkidle")
+    pg.evaluate("() => document.fonts ? document.fonts.ready : null")   # 字体换行会挪动量好的坐标
     pg.evaluate("() => window.CAHistJump && CAHistJump(13)")
     pg.wait_for_timeout(400)
     check("curve lap 13", pg.evaluate("() => document.getElementById('lap-n').textContent") == "13")
@@ -352,6 +353,166 @@ def skip_link(ctx):
     pg.close()
 
 
+def galaxy_wireframe(ctx):
+    """05 星系线框球：开关切换、hash 持久化、弧线绘制改变画面。"""
+    pg = ctx.new_page()
+    pg.goto(BASE + "/labs/atlas.html")
+    pg.wait_for_load_state("networkidle")
+    pg.evaluate("() => document.querySelector('[data-vw=\"galaxy\"]').click()")
+    pg.wait_for_timeout(400)
+    check("wire toggle present", pg.evaluate("() => !!document.getElementById('gx-wire')"))
+    # 选中一个有出边的 crate（core），让依赖边出现
+    pg.evaluate("""() => {
+        const chips = Array.from(document.querySelectorAll('#bands .cr'));
+        const core = chips.find(c => c.textContent.trim() === 'core');
+        if (core) core.click();
+    }""")
+    pg.wait_for_timeout(400)
+    hash0 = pg.evaluate("() => location.hash")
+    shot_off = pg.screenshot()
+    pg.evaluate("() => document.getElementById('gx-wire').click()")
+    pg.wait_for_timeout(500)
+    check("wire state on", pg.evaluate("() => window.CAGalaxy && CAGalaxy.state().wire === true"))
+    check("wire aria-pressed", pg.evaluate("() => document.getElementById('gx-wire').getAttribute('aria-pressed')") == "true")
+    check("wire persisted in hash", "wf=1" in pg.evaluate("() => location.hash"))
+    shot_on = pg.screenshot()
+    check("wireframe changes render", shot_off != shot_on)
+    # 刷新后恢复
+    pg.reload()
+    pg.wait_for_load_state("networkidle")
+    pg.evaluate("() => document.querySelector('[data-vw=\"galaxy\"]').click()" if pg.evaluate("() => !!document.querySelector('#galaxy[hidden]')") else "() => {}")
+    pg.wait_for_timeout(400)
+    check("wire restored after reload", pg.evaluate("() => window.CAGalaxy && CAGalaxy.state().wire === true"))
+    pg.evaluate("() => document.getElementById('gx-wire').click()")   # 恢复现场
+    _ = hash0
+    pg.close()
+
+
+def patch_annotation_pen(ctx):
+    """07C 标注笔：开模式→画一笔→计数+1，Ctrl+Z 撤销，清除清零，Esc 退出。"""
+    pg = ctx.new_page()
+    pg.goto(BASE + "/labs/deep.html")
+    pg.wait_for_load_state("networkidle")
+    check("pen handle exposed", pg.evaluate("() => !!window.CAInk"))
+    check("pen overlay pointer-events none by default",
+          pg.evaluate("() => getComputedStyle(document.querySelector('.pl-ink')).pointerEvents") == "none")
+    pg.evaluate("() => document.getElementById('pl-mark').click()")
+    pg.wait_for_timeout(100)
+    check("pen mode on", pg.evaluate("() => CAInk.mode() === true"))
+    pg.locator("#pl-grid").scroll_into_view_if_needed()
+    pg.wait_for_timeout(400)
+    box = pg.locator("#pl-grid").bounding_box()
+    x0, y0 = box["x"] + 30, box["y"] + 30
+    pg.mouse.move(x0, y0)
+    pg.mouse.down()
+    for k in range(8):
+        pg.mouse.move(x0 + (k + 1) * 14, y0 + ((k * 7) % 23))
+    pg.mouse.up()
+    pg.wait_for_timeout(100)
+    check("stroke recorded", pg.evaluate("() => CAInk.count()") == 1,
+          pg.evaluate("() => CAInk.count()"))
+    pg.keyboard.press("Control+z")
+    pg.wait_for_timeout(100)
+    check("ctrl+z undoes stroke", pg.evaluate("() => CAInk.count()") == 0)
+    pg.keyboard.type("hello")   # 焦点在 body：确认画布不吞键盘
+    pg.evaluate("() => document.getElementById('pl-mark-clear').click()")
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(100)
+    check("esc exits pen mode", pg.evaluate("() => CAInk.mode() === false"))
+    pg.close()
+
+
+def patch_line_explainer(ctx):
+    """07C 逐行讲解器：9 行可点、气泡内容对应、弄坏链接装载预设、Esc/外点收起。"""
+    pg = ctx.new_page()
+    pg.goto(BASE + "/labs/deep.html")
+    pg.wait_for_load_state("networkidle")
+    check("explainer rows == 9", pg.evaluate("() => window.CALLines && CALLines.count()") == 9)
+    rows = pg.locator("#ll-code .ll-row")
+    rows.nth(2).click()   # @@ 锚点行
+    pg.wait_for_timeout(150)
+    check("bubble opens on anchor row", pg.evaluate("() => CALLines.open() === 2"))
+    bubble_txt = pg.evaluate("() => document.getElementById('ll-bubble').textContent")
+    check("bubble mentions anchor", "锚" in bubble_txt, bubble_txt[:60])
+    check("bubble has break link", pg.evaluate(
+        "() => !!document.querySelector('#ll-bubble [data-ll-try=\"badanchor\"]')"))
+    pg.evaluate("() => document.querySelector('#ll-bubble [data-ll-try]').click()")
+    pg.wait_for_timeout(200)
+    src_val = pg.evaluate("() => document.getElementById('pl-src').value")
+    check("break link loads badanchor preset", "fn shutdown" in src_val, src_val[:80])
+    check("bubble closed after break link", pg.evaluate("() => CALLines.open() === -1"))
+    rows.nth(5).click()   # ＋ 行
+    pg.wait_for_timeout(150)
+    check("add-row bubble open", pg.evaluate("() => CALLines.open() === 5"))
+    pg.keyboard.press("ArrowDown")
+    pg.wait_for_timeout(120)
+    check("arrow-down moves bubble", pg.evaluate("() => CALLines.open() === 6"))
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(120)
+    check("esc closes bubble", pg.evaluate("() => CALLines.open() === -1"))
+    rows.nth(8).click()   # End Patch 行 → noend 弄坏链接
+    pg.wait_for_timeout(120)
+    check("end-row has noend link", pg.evaluate(
+        "() => !!document.querySelector('#ll-bubble [data-ll-try=\"noend\"]')"))
+    pg.close()
+
+
+def pull_out_lab(ctx):
+    """02 抽层实验：抽层扣稳定度、抽塌有塌法文案、重置还原。"""
+    pg = ctx.new_page()
+    pg.goto(BASE + "/labs/prompt.html")
+    pg.wait_for_load_state("networkidle")
+    check("pull lab exposed", pg.evaluate("() => !!window.PULLLAB"))
+    check("tower has 7 blocks", pg.evaluate("() => document.querySelectorAll('#pol-tower .pol-block').length") == 7)
+    pg.evaluate("() => PULLLAB.pull('instr')")
+    pg.wait_for_timeout(120)
+    check("one layer pulled", pg.evaluate("() => PULLLAB.count()") == 1)
+    check("instr weight 34 -> stab 66", pg.evaluate("() => PULLLAB.stability()") == 66)
+    check("block marked out", pg.evaluate(
+        "() => document.querySelector('#pol-tower .pol-block').getAttribute('aria-pressed')") == "true")
+    pg.evaluate("() => PULLLAB.reset()")
+    pg.wait_for_timeout(100)
+    check("reset restores 100", pg.evaluate("() => PULLLAB.stability()") == 100)
+    # 抽 history(48)+instr(34)+agents(26) = 108 -> 塌
+    pg.evaluate("() => { PULLLAB.pull('history'); PULLLAB.pull('instr'); }")
+    pg.wait_for_timeout(150)
+    verdict2 = pg.evaluate("() => document.getElementById('pol-out').textContent")
+    check("verdict label matches why", "base_instructions" in verdict2 and "工具箱" in verdict2,
+          verdict2[:80])
+    pg.evaluate("() => { PULLLAB.pull('agents'); }")
+    pg.wait_for_timeout(200)
+    check("tower topples at <=0", pg.evaluate("() => PULLLAB.toppled()") is True)
+    verdict = pg.evaluate("() => document.getElementById('pol-out').textContent")
+    check("topple verdict explains", "塌了" in verdict and "分摊" in verdict, verdict[:60])
+    pg.evaluate("() => PULLLAB.reset()")
+    pg.wait_for_timeout(100)
+    check("reset after topple", pg.evaluate("() => PULLLAB.toppled()") is False)
+    pg.close()
+
+
+def dive_dial(ctx):
+    """08 深度转盘：11 刻度、goto 跳站、方向键逐站。"""
+    pg = ctx.new_page()
+    pg.goto(BASE + "/labs/dive.html")
+    pg.wait_for_load_state("networkidle")
+    check("dial handle exists", pg.evaluate("() => !!document.querySelector('.dr-handle')"))
+    check("dial 11 ticks", pg.evaluate("() => document.querySelectorAll('.dr-tick').length") == 11)
+    check("handle is slider", pg.evaluate(
+        "() => document.querySelector('.dr-handle').getAttribute('role')") == "slider")
+    pg.evaluate("() => DIAL.goto(10)")
+    pg.wait_for_timeout(900)
+    check("goto reaches trench", pg.evaluate("() => DIAL.state().depth") > 9.0,
+          pg.evaluate("() => DIAL.state().depth"))
+    check("aria tracks depth", pg.evaluate(
+        "() => parseFloat(document.querySelector('.dr-handle').getAttribute('aria-valuenow'))") > 9.0)
+    pg.evaluate("() => document.querySelector('.dr-handle').focus()")
+    pg.keyboard.press("ArrowUp")
+    pg.wait_for_timeout(700)
+    check("arrow-up climbs a station", pg.evaluate("() => DIAL.state().depth") < 9.6,
+          pg.evaluate("() => DIAL.state().depth"))
+    pg.close()
+
+
 def reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 960}, reduced_motion="reduce")
     pg = ctx.new_page()
@@ -390,6 +551,11 @@ def main():
             prompt_toggles(ctx)
             act1_race(ctx)
             neighbor_graph(ctx)
+            galaxy_wireframe(ctx)
+            patch_annotation_pen(ctx)
+            patch_line_explainer(ctx)
+            pull_out_lab(ctx)
+            dive_dial(ctx)
             skip_link(ctx)
             reduced_motion(browser)
         browser.close()

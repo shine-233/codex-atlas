@@ -90,7 +90,14 @@
     tx:        function (t, seq) { tone(penta(seq || 0) * 1.0, "square", t, 0.05, 0.11); },
     rx:        function (t, seq) { tone(penta((seq || 0) + 2), "sine", t, 0.10, 0.15); },
     pgate:     function (t) { tone(196, "triangle", t, 0.22, 0.16); tone(392, "sine", t + 0.05, 0.18, 0.10); }, /* 审批挂起 */
-    verdict:   function (t) { tone(587, "triangle", t, 0.07, 0.2); tone(880, "triangle", t + 0.08, 0.14, 0.22); }
+    verdict:   function (t) { tone(587, "triangle", t, 0.07, 0.2); tone(880, "triangle", t + 0.08, 0.14, 0.22); },
+    /* ---------- 拨弦（首页琴弦休息区）：低八度基音 + 八度泛音 + 指肚噪声，seq 落五声音阶 ---------- */
+    pluck:     function (t, seq) {
+      var f = penta((seq == null ? 2 : seq) + 7) / 2;
+      tone(f, "triangle", t, 0.5, 0.22);
+      tone(f * 2, "sine", t, 0.3, 0.10);
+      noise(t, 0.03, 0.05, 2400);
+    }
   };
 
   function play(name, seq) {

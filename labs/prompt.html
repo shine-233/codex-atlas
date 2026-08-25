@@ -154,6 +154,40 @@
     position: absolute; top: -15px; left: -10px;
     font-family: var(--mono); font-size: 9.5px; color: var(--deny);
   }
+  /* 抽层实验：把请求塔当积木抽 */
+  .pol-grid { display: grid; grid-template-columns: auto 1fr; gap: 30px; align-items: start; padding: 0 24px 22px; }
+  @media (max-width: 860px) { .pol-grid { grid-template-columns: 1fr; } }
+  .pol-stage { display: flex; flex-direction: column; align-items: center; }
+  .pol-tower {
+    display: flex; flex-direction: column-reverse; gap: 3px;
+    transform: rotate(var(--lean, 0deg)); transform-origin: 50% 94%;
+    transition: transform .55s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .pol-tower.toppled { transform: rotate(9deg); }
+  .pol-block {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    width: 218px; border: 1px solid var(--line-strong); border-radius: 5px;
+    padding: 0 12px; cursor: pointer; text-align: left;
+    font-family: var(--mono); font-size: 11px; color: var(--ink);
+    transition: transform .45s cubic-bezier(.5,1.6,.4,1), opacity .45s, border-color .3s;
+  }
+  .pol-block:hover { border-color: var(--amber); }
+  .pol-block .pw { color: var(--faint); font-size: 10px; flex: none; }
+  .pol-block.out { transform: translateX(64%) rotate(5deg); opacity: .26; }
+  .pol-block[aria-pressed="true"] { border-color: rgba(255,180,84,.65); }
+  .pol-base { width: 258px; height: 8px; margin-top: 6px; border-radius: 3px;
+    background: linear-gradient(180deg, var(--line-strong), transparent); }
+  @media (prefers-reduced-motion: reduce) {
+    .pol-tower, .pol-block { transition: none; }
+  }
+  .pol-meter-row { font-family: var(--mono); font-size: 12px; color: var(--dim); display: flex; align-items: center; gap: 10px; }
+  .pol-meter-row b { color: var(--amber); font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  .pol-meter { flex: 1; max-width: 300px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.07); overflow: hidden; }
+  .pol-meter i { display: block; height: 100%; width: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--amber), rgba(255,180,84,.55)); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+  .pol-meter i.bad { background: linear-gradient(90deg, var(--deny), rgba(240,121,106,.55)); }
+  .pol-verdict { margin: 14px 0 16px; font-size: 13.5px; line-height: 1.8; max-width: 560px; min-height: 3.2em; }
+  @media (prefers-reduced-motion: reduce) { .pol-meter i { transition: none; } }
 </style>
 </head>
 <body>
@@ -174,6 +208,7 @@
     <a class="rail-ch" href="atlas.html"><span class="ch-no">05</span>Crate 图谱</a>
     <a class="rail-ch" href="../glossary.html"><span class="ch-no">06</span>术语速查</a>
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
+    <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
   <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
@@ -191,6 +226,7 @@
   <a href="atlas.html">05 · Crate 图谱</a>
   <a href="../glossary.html">06 · 术语速查</a>
   <a href="deep.html">07 · 深水区</a>
+  <a href="dive.html">08 · 调用栈下潜</a>
 </div>
 
 <div class="wrap">
@@ -378,6 +414,29 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       </div>
     </section>
 
+    <section class="panel" id="pull-lab" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>PULL-OUT LAB · 抽层实验</h3>
+        <span class="readout">把请求塔当积木抽 · 抽到塌为止</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
+        开关只能证明「这层在」，抽积木才告诉你「这层值多少」。点任意一块把它从请求里抽走，
+        看塔斜多少、稳定度掉多少；抽塌了读读塌法——那正是每层的真实分量。
+        实验独立于上方的层开关，随便折腾。
+      </p>
+      <div class="pol-grid">
+        <div class="pol-stage">
+          <div class="pol-tower" id="pol-tower"></div>
+          <div class="pol-base" aria-hidden="true"></div>
+        </div>
+        <div>
+          <div class="pol-meter-row">稳定度 <b id="pol-stab">100%</b><span class="pol-meter"><i id="pol-bar"></i></span></div>
+          <p class="pol-verdict" id="pol-out" aria-live="polite">塔还完整。抽一块试试——建议先抽分量最重的「全量历史」，感受一下它有多贵。</p>
+          <button class="btn" id="pol-reset" type="button">↺ 把塔砌回去</button>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" style="margin-top:26px;">
       <div id="quiz"></div>
     </section>
@@ -409,7 +468,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       ev:["官方博客","codex-rs/core/gpt_5_codex_prompt.md"] },
     { id:"tools", grp:"tools", name:"tools · 工具清单", src:"内置 + API + MCP 三类合并",
       w:22, on:true,
-      detail:"三类工具统一列在 tools 字段：CLI 内置工具（shell 执行、文件编辑）、API 侧返回的工具、用户经 MCP 服务器接入的工具。模型在推理时自主选择调用哪个。注意：Codex 沙箱只约束内置 shell 工具，MCP 工具的安全防护由提供方自己负责。",
+      detail:"三类工具统一列在 tools 字段：CLI 内置工具（shell 执行、文件编辑）、API 侧返回的工具、用户经 MCP 服务器接入的工具。模型在推理时自主选择调用哪个。「MCP 工具为什么在墙外」是个大话题，03 底部的 MCP DETOUR 专节讲，这里不展开。",
       ev:["官方博客"] },
     { id:"sandbox", grp:"input[0]", name:"developer message · 沙箱声明", src:"打包的 Markdown 模板",
       w:12, on:true,
@@ -1154,6 +1213,120 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
         moved = 0;
       }
     }, true);
+  })();
+
+  /* ================= 抽层实验：把请求塔当积木抽 =================
+     权重直接复用上方 LAYERS 的示意权重（w）——抽掉的层从稳定度里
+     扣多少，与负载构成条里画的分量完全同源。塌法是教学材料本身。 */
+  (function () {
+    var tower = document.getElementById("pol-tower");
+    if (!tower) return;
+    var out = document.getElementById("pol-out");
+    var stabEl = document.getElementById("pol-stab");
+    var barEl = document.getElementById("pol-bar");
+    var pulled = {}, toppled = false;
+    var blocks = {};
+
+    /* 每层被抽走后真实发生什么——与各层 detail 同源，换成人话 */
+    var WHY = {
+      instr: "模型不知道自己是 Codex、不知道有哪些操作。它还会回话，但只剩一个没带工具箱的普通聊天员。",
+      tools: "tools 字段空了。想执行 shell 也无从发起——只能用嘴改代码：你贴，它猜。",
+      sandbox: "那条 developer 消息消失，模型对读写边界一无所知，哪里能碰全靠脑补。",
+      devinstr: "这层本来就是可选的（默认甚至不在场）。抽掉几乎无感，只是你的长期偏好没了。",
+      agents: "项目约定全部蒸发：构建命令、代码风格、目录规矩。模型按通用习惯干活，跟仓库的默契归零。",
+      env: "模型不知道自己在哪台机器、什么 shell。跨平台的命令选择开始靠猜。",
+      history: "第二轮起每次都当初次见面。成本倒是立省——这也是 compact 存在的理由：把历史压薄，而不是全删。"
+    };
+    var TINT = ["rgba(255,180,84,.30)", "rgba(143,199,232,.26)", "rgba(123,201,139,.22)"];
+
+    /* column-reverse：数组首层（base_instructions）落在塔底当地基 */
+    LAYERS.forEach(function (L, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pol-block";
+      b.setAttribute("aria-pressed", "false");
+      b.setAttribute("aria-label", "抽掉 " + L.name);
+      b.style.height = Math.max(30, Math.round(L.w * 1.15)) + "px";
+      b.style.background = TINT[i % 3];
+      b.innerHTML = "<span>" + L.name + "</span><span class='pw'>" + L.w + "</span>";
+      b.addEventListener("click", function () { toggle(L.id); });
+      tower.appendChild(b);
+      blocks[L.id] = b;
+    });
+
+    function sumPulled() {
+      var s = 0, n = 0, last = null;
+      LAYERS.forEach(function (L) {
+        if (pulled[L.id]) { s += L.w; n++; last = L; }
+      });
+      return { s: s, n: n, last: last };
+    }
+    function update(lastL) {
+      var r = sumPulled();
+      var stab = Math.max(0, 100 - r.s);
+      stabEl.textContent = stab + "%";
+      barEl.style.width = stab + "%";
+      barEl.classList.toggle("bad", stab < 35);
+      if (stab <= 0) { collapse(lastL); return; }
+      tower.style.setProperty("--lean", Math.min(9, r.s * 0.09).toFixed(1) + "deg");
+      if (!r.n) { out.textContent = "塔还完整。抽一块试试——建议先抽分量最重的「全量历史」，感受一下它有多贵。"; return; }
+      var mood = stab > 66 ? "塔还站得住，但已经开始斜了。"
+        : stab > 34 ? "摇摇欲坠。再抽一层大的试试？"
+        : "就差一脚。";
+      out.innerHTML = "已抽 <b>" + r.n + "</b> 层 · " + mood + "<br>刚抽掉的 <b>" +
+        lastL.name + "</b>：" + WHY[lastL.id];
+    }
+    function toggle(id) {
+      if (toppled) return;
+      var L2 = LAYERS.filter(function (x) { return x.id === id; })[0];
+      if (pulled[id]) {
+        delete pulled[id];
+        blocks[id].classList.remove("out");
+        blocks[id].setAttribute("aria-pressed", "false");
+      } else {
+        pulled[id] = true;
+        blocks[id].classList.add("out");
+        blocks[id].setAttribute("aria-pressed", "true");
+        if (window.CASound) CASound.play("stamp");
+      }
+      update(L2);
+    }
+    function collapse(last) {
+      toppled = true;
+      tower.classList.add("toppled");
+      tower.style.setProperty("--lean", "0deg");
+      var i = 0;
+      LAYERS.forEach(function (L) {
+        var dx = (i % 2 ? 1 : -1) * (26 + (i * 13) % 44);
+        blocks[L.id].style.transform =
+          "translate(" + dx + "px," + (16 + (i * 29) % 52) + "px) rotate(" +
+          ((i % 2 ? 1 : -1) * (7 + i * 3)) + "deg)";
+        i++;
+      });
+      out.innerHTML = "<b>塌了。</b>最后抽掉的是「" + (last ? last.name : "?") +
+        "」，但压死塔的不是它一块——前面抽掉的每一层都在分摊。真实请求同理：没有哪层是装饰。" +
+        (last && WHY[last.id] ? "「" + last.name + "」的分量，就是负载构成条里那一段的宽度。" : "");
+      if (window.CASound) CASound.play("deny");
+    }
+    document.getElementById("pol-reset").addEventListener("click", function () {
+      pulled = {}; toppled = false;
+      tower.classList.remove("toppled");
+      LAYERS.forEach(function (L) {
+        blocks[L.id].classList.remove("out");
+        blocks[L.id].setAttribute("aria-pressed", "false");
+        blocks[L.id].style.transform = "";
+      });
+      update(null);
+      if (window.CASound) CASound.play("click");
+    });
+
+    window.PULLLAB = {
+      count: function () { return sumPulled().n; },
+      stability: function () { return Math.max(0, 100 - sumPulled().s); },
+      toppled: function () { return toppled; },
+      pull: function (id) { if (!pulled[id]) toggle(id); },
+      reset: function () { document.getElementById("pol-reset").click(); }
+    };
   })();
 })();
 </script>

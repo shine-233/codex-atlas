@@ -77,6 +77,16 @@ html[data-theme="light"] .btn.primary {
   transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 .theme-toggle:hover { border-color: var(--amber); color: var(--amber); }
+/* 动效总开关：与主题钮同族，竖排在导览钮上方（tour-fab 占 bottom:102） */
+.motion-toggle {
+  bottom: 148px;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.motion-toggle[aria-pressed="true"] {
+  color: var(--steel);
+  border-color: rgba(143, 199, 232, .55);
+}
 
 
 /* 控制行共享基样式：各仪器页可在此基础上加页内覆盖 */
@@ -112,6 +122,13 @@ a, button, input[type="range"] { touch-action: manipulation; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.001s !important;
   }
+}
+
+/* 「静」开关（右下角，ca-motion=off）：站内版减动效，与上面同一待遇 */
+html.motion-off *, *::before, *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
 }
 
 ::selection { background: var(--amber); color: #14100a; }
@@ -1365,6 +1382,31 @@ table.rt tr.hidden { display: none; }
 .budget-seg:active { transform: scaleY(0.92); }
 .budget-seg { transform-origin: bottom; }
 
+/* ---------- 可爱 pass：kawaii 界面语法用在交互件上（圆润、微弹、幅度克制） ----------
+   研究结论（IASDR kawaii 论文）：中等线宽、圆润微胖、轻微不对称最讨喜；
+   仪器面板的精度感不能被晃没，所以只给按钮和选项加弹簧，数据区保持方正。 */
+.btn {
+  border-radius: 7px;
+}
+.btn.primary:hover:not(:disabled) {
+  transform: translateY(-1.5px) scale(1.02);
+  transition: border-color var(--t-fast), background var(--t-fast),
+              filter var(--t-fast), transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn.primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.96);
+}
+.sr-opt, .cq-opt {
+  border-radius: 8px;
+}
+.sr-opt {
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast),
+              transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sr-opt:hover:not(:disabled) {
+  transform: translateX(4px);
+}
+
 /* 内容闪示：选中/切换后给目标卡一次琥珀底光，标出"刚才那一下改了这里" */
 @keyframes ca-flash {
   0% { background-color: rgba(255, 180, 84, 0.12); }
@@ -1584,6 +1626,16 @@ body::after {
 
 /* Kandinsky 手势实验室（04） */
 .gl-host { border: 1px dashed var(--line-strong); }
+
+/* Excalidraw 手感标注层（07C PATCH LAB） */
+#pl-grid { position: relative; }
+.pl-mark-cv {
+  position: absolute; inset: 0; z-index: 5;
+  pointer-events: none;
+  touch-action: none;
+}
+body.pl-mark-on #pl-grid { outline: 1.5px dashed rgba(255, 180, 84, .55); }
+body.pl-mark-on .pl-mark-cv { pointer-events: auto; cursor: crosshair; }
 .gl-wrap { position: relative; }
 .gl-canvas {
   display: block; width: 100%; height: 190px;
@@ -1887,6 +1939,42 @@ body::after {
 .tour-fab:hover { color: var(--amber); border-color: var(--amber); }
 .tour-fab:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
+/* ---------- 流体光标尾迹（assets/fluid.js，零依赖 Stable Fluids） ---------- */
+.ca-fluid {
+  position: fixed;
+  inset: 0;
+  z-index: 60;              /* 内容之上、弹层/站宠/按钮栈之下 */
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: .5;
+}
+html[data-theme="light"] .ca-fluid {
+  mix-blend-mode: multiply;
+  opacity: .22;
+}
+html.motion-off .ca-fluid { display: none; }
+
+/* ---------- 拨弦休息区（首页 STRING ROOM） ---------- */
+.ca-str {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  transition: stroke var(--t-fast);
+}
+.ca-str-g:hover .ca-str,
+.ca-str-g:focus-visible .ca-str,
+.ca-str-g.hit .ca-str { stroke: var(--amber); }
+.ca-str-g.hit .ca-str { stroke-width: 2.2; filter: drop-shadow(0 0 5px rgba(255, 180, 84, .45)); }
+.ca-str-g { cursor: pointer; outline: none; }
+.ca-str-g:focus-visible .ca-str-label { fill: var(--amber); }
+.ca-str-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--faint);
+  letter-spacing: .04em;
+}
+
 /* ---------- 拖拽排序挑战 ---------- */
 .ord-board { display: flex; flex-direction: column; gap: 6px; max-width: 560px; }
 .ord-chip {
@@ -1943,7 +2031,7 @@ body::after {
 @media print {
   .rail, .topbar, .mobile-nav, .cod-pet, .cod-swim, .cod-toast, .cod-bubble,
   .cmdk-fab, .cmdk-layer, .kbd-layer, .tour-layer, .tour-fab,
-  .snd-toggle, .theme-toggle, .rail-profile, #ca-progress,
+  .snd-toggle, .theme-toggle, .motion-toggle, .rail-profile, #ca-progress,
   .metro-legend, .birth-viz-wrap, .fx-tilt-wrap, .fx-glare,
   .ca-confetti, .sr-timer, .skip-link {
     display: none !important;
