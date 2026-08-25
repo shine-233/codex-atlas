@@ -41,7 +41,21 @@ def fetch(url):
 def get_lines(path, sha):
     key = path
     if key not in _cache:
-        _cache[key] = fetch(f"{RAW}/{sha}/codex-rs/{path}").splitlines()
+        clean = re.sub(r"^(?:\./)?codex-rs/", "", path)   # 站点标注自带 codex-rs/ 前缀
+        url = f"{RAW}/{sha}/codex-rs/{clean}"
+        try:
+            _cache[key] = fetch(url).splitlines()
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="replace")[:120]
+            except Exception:
+                pass
+            print(f"   !! GET {url} -> HTTP {e.code}")
+            raise RuntimeError(f"[{path}] under {sha[:12]} -> HTTP {e.code} body={body!r}") from e
+        except Exception as e:
+            raise RuntimeError(f"[{path}] under {sha[:12]} -> {e}") from e
+    return _cache[key]
     return _cache[key]
 
 
@@ -50,10 +64,9 @@ def norm(s):
 
 
 def anchors(code_html):
-    """src-code 片段 → (首锚点, 尾锚点)，均已反转义+压平。"""
     text = htmllib.unescape(code_html)
     rows = [norm(r) for r in text.split("\n")]
-    rows = [r for r in rows if r]
+    rows = [r for r in rows if len(r) >= 14]
     if not rows:
         return None, None
     first = rows[0][:50]
@@ -74,6 +87,23 @@ def find_line(lines_norm, needle, hint_start, hint_end):
             continue
         if needle in lines_norm[i - 1]:
             return i
+    return None
+
+
+def find_all(lines_norm, needle):
+    out = []
+    for i, l in enumerate(lines_norm, 1):
+        if needle in l:
+            out.append(i)
+    return out
+
+
+def near_any(hits, targets, win=WIN_A):
+    """hits 里是否有行落在任一 target ±win 内；返回该行或 None。"""
+    for h in hits:
+        for t in targets:
+            if t is not None and abs(h - t) <= win:
+                return h
     return None
 
 
@@ -117,15 +147,24 @@ def check_slice(page, loc_text, code_html, sha, results):
                         "status": "NO-PATH"})
         return
     first_a, last_a = anchors(code_html)
+    prev_path = ""
     for path, start, end in ranges:
+        full = path
+        if full.startswith("src/") and prev_path:
+            # 相对引用（如 rmcp-client 的 elicitation_client_service.rs）：
+            # 继承上一条路径的 crate 目录前缀
+            mprev = re.match(r"(codex-rs/[^/]+/)", prev_path)
+            if mprev:
+                full = mprev.group(1) + full
+        prev_path = full if not full.startswith("src/") else prev_path
         try:
-            lines = get_lines(path, sha)
+            lines = get_lines(full, sha)
         except Exception as e:
-            results.append({"page": page, "path": path, "start": start,
-                            "status": "FETCH-FAIL", "detail": str(e)[:60]})
+            results.append({"page": page, "path": full, "start": start,
+                            "status": "FETCH-FAIL", "detail": str(e)[:260]})
             continue
         ln = [norm(l) for l in lines]
-        rec = {"page": page, "path": path, "start": start,
+        rec = {"page": page, "path": full, "start": start,
                "end": end, "file_lines": len(lines)}
         status = "OK"
         detail = ""
@@ -134,22 +173,24 @@ def check_slice(page, loc_text, code_html, sha, results):
             results.append(rec)
             continue
         if first_a:
-            hit = find_line(ln, first_a, start - WIN_B, start + WIN_A)
-            if hit is None:
+            hits = find_all(ln, first_a)
+            if not hits:
                 status = "ANCHOR-MISS"
                 detail = "first anchor not found: " + first_a[:30]
-            elif abs(hit - start) > 0 and hit != start:
-                status = "DRIFT"
-                detail = f"first anchor at {hit}, labeled {start}"
+            elif start in hits:
+                detail = f"first anchor at {start}"
             else:
-                detail = f"first anchor at {hit}"
+                status = "DRIFT"
+                nearest = min(hits, key=lambda h: abs(h - start))
+                detail = f"first anchor hits {hits[:4]}, labeled {start}"
         else:
             status = "EMPTY-CODE"
         if status == "OK" and last_a and end:
-            hit2 = find_line(ln, last_a, end - WIN_A, end + WIN_B)
+            hits2 = find_all(ln, last_a)
+            hit2 = near_any(hits2, [end])
             if hit2 is None:
                 status = "DRIFT"
-                detail = f"last anchor not near {end}"
+                detail += f"; last anchor hits {hits2[:3]} not near {end}"
             else:
                 detail += f"; last anchor at {hit2}"
         rec["status"] = status
@@ -217,7 +258,7 @@ def main():
         st = r.get("status")
         mark = "OK " if st == "OK" else ("-- " if st in ("NO-LINES", "NO-PATH") else "!! ")
         print(f"{mark}[{st}] {r.get('page','')} {r.get('path', r.get('loc',''))}"
-              f" :{r.get('start')}-{r.get('end')} {r.get('detail','')[:70]}")
+              f" :{r.get('start')}-{r.get('end')} {r.get('detail','')}")
     if json_out:
         Path(json_out).write_text(json.dumps(results, ensure_ascii=False, indent=1),
                                   encoding="utf-8")

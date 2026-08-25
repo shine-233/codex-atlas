@@ -137,7 +137,10 @@
 
   size();
   if (reduced) { draw(900); return; }
-  window.addEventListener("resize", function () { size(); });
+  window.addEventListener("resize", function () {
+    size();
+    if (reduced) draw(900);   /* 减动效没有 rAF 循环，resize 后得手动补一帧，否则画布空白 */
+  });
   (function frame(ts) {
     draw(ts || 0);
     requestAnimationFrame(frame);

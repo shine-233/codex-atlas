@@ -36,7 +36,10 @@
       if (!h) return out;
       h.split("&").forEach(function (kv) {
         var p = kv.split("=");
-        if (p[0]) out[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || "");
+        if (!p[0]) return;
+        /* 畸形转义（截断分享链接等）不让它炸掉整页初始化 */
+        function dec(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+        out[dec(p[0])] = dec(p[1] || "");
       });
       return out;
     },
@@ -1222,6 +1225,7 @@
     pet.addEventListener("pointerdown", function (e) {
       if (mode === "fly") { catchMidair(e); return; }
       if (mode !== "idle" || (e.button !== undefined && e.button > 0)) return;
+      homeX = -1; homeY = -1;   /* 每次抓取都重测家：窗口 resize 后 right/bottom 锚点会移动 */
       rememberHome();
       mode = "press";
       px = homeX; py = homeY;
@@ -1585,7 +1589,7 @@
         vt.finished.finally(function () {
           document.documentElement.classList.remove("theme-vt");
           setTimeout(function () { location.reload(); }, 140);
-        });
+        }).catch(function () { /* 打断时 finally 已兜底，这里只吞掉拒绝 */ });
       } else {
         swap();
         setTimeout(function () { location.reload(); }, 60);
