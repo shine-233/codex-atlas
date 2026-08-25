@@ -1,0 +1,55 @@
+name: baseline-drift
+
+# 每周自动核对一次：站点数字 vs 钉住提交 vs 上游 main。
+# 数字对不上 → 本 job 红；上游漂移 → 开/更新 baseline-drift issue。
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # 每周一 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 核对基线（全量，含 135 份依赖爬取）
+        run: python tools/verify_baseline.py --json baseline-report.json --summary baseline-summary.md
+
+      - name: 写入 job 摘要
+        if: always()
+        run: cat baseline-summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-report
+          path: |
+            baseline-report.json
+            baseline-summary.md
+
+      - name: 漂移时开 issue（已有则跳过）
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MOVED=$(python -c "import json;print(json.load(open('baseline-report.json')).get('upstream_moved', False))")
+          if [ "$MOVED" != "True" ]; then echo "基线未漂移，不开 issue"; exit 0; fi
+          EXISTS=$(gh issue list --label baseline-drift --state open --json number --jq 'length')
+          if [ "$EXISTS" = "0" ]; then
+            gh issue create \
+              --title "上游基线已漂移——该挑新提交换基线了" \
+              --body-file baseline-summary.md \
+              --label baseline-drift
+          else
+            echo "已有开着的 baseline-drift issue，不重复开"
+          fi

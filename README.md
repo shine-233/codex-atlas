@@ -40,6 +40,17 @@
 - 代码片段一键复制：03 的 config.toml、02 的负载 JSON、07B 的 TOML 片段都挂 ⧉ 复制按钮。
 - Stripe 式双向悬停互亮（02）：悬停组装栈的层，负载预览里对应 JSON 段高亮；反过来悬停预览段，层亮边。
 
+## 核对基线
+
+站点的每个数字都对得上固定提交——这件事不用信口说，有脚本：
+
+```bash
+python tools/verify_baseline.py              # 全量：成员名单 + 814 条依赖边 + wire 方法名
+python tools/verify_baseline.py --skip-deps  # 快速：只对名单和方法名
+```
+
+脚本从站点文件里提取钉住的基线号和全部数据，实时抓取该提交下的上游文件逐项比对；顺带看上游 main 漂到哪了。退出码：`0` 全对上 · `1` 数字对不上（附差异清单）· `2` 上游已漂移该换基线。`.github/workflows/baseline.yml` 每周一自动跑一次，漂移时自动开 issue。
+
 ## 运行
 
 纯静态站点：零依赖、无构建步骤、无外部脚本（仅 Google Fonts 一条可失败的链接）。
