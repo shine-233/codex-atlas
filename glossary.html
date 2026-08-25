@@ -808,6 +808,11 @@ window.CATOUR_STEPS = [
       else if (size()) draw();
     }
   };
+
+  /* #md=match 直达时，初始模式恢复先于本块执行、当时 CAMatch 还不存在——这里补开局 */
+  if (window.PanelState && PanelState.read().md === "match" && !round) {
+    if (size()) redeal();
+  }
 })();
 </script>
 
