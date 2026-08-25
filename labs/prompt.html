@@ -295,6 +295,7 @@
         </div>
         <div class="cost-slider" style="margin-top:10px;">
           <input type="range" id="cd-slider" min="1" max="14" step="1" value="5" aria-label="模拟对话轮数">
+          <span class="cost-laps-readout">每轮新增 <span id="cd-step-scrub"></span> 单位（左右拖，看触顶节奏变化）</span>
           <span class="cost-laps-readout">拖我：模拟一轮轮聊下去</span>
         </div>
         <p class="small muted" id="cd-note" style="margin:8px 0 0;" aria-live="polite"></p>
@@ -961,6 +962,18 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
     }
     slider.addEventListener("input", render);
     render();
+
+    /* 每轮增量可拖（scrubbable）：拖大更快触顶、压缩更频繁；拖小则阈值形同虚设 */
+    if (window.CAScrub) {
+      var stepEl = document.getElementById("cd-step-scrub");
+      if (stepEl) {
+        CAScrub.make(stepEl, {
+          min: 4, max: 40, step: 2, value: STEP,
+          label: "每轮新增 token 单位",
+          onInput: function (v) { STEP = v; render(); }
+        });
+      }
+    }
   })();
 
   LoopScope.mount(document.getElementById("miniscope"), {

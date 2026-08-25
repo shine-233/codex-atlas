@@ -963,7 +963,7 @@
       { name: "深水区 E · 扩展挂点地图", sub: "skills/hooks/memories", href: P("labs/deep.html") + "#mod-e", kw: "skill hook memory 扩展 插件 技能 记忆 钩子" },
       { name: "↳ HOOKS 事件轴 · 8 个实测钩子", sub: "session_start…session_end", href: P("labs/deep.html") + "#mod-e", kw: "hooks events 事件 钩子 pre_tool_use post_tool_use" },
       { name: "深水区 F · Code Mode 实验位", sub: "V8 跑模型代码（推演）", href: P("labs/deep.html") + "#mod-f", kw: "code mode v8 实验 javascript host" },
-      { name: "深水区 G · 源码覆盖地图", sub: "36 文件 · 13 crate 切片台账", href: P("labs/deep.html") + "#mod-g", kw: "coverage 覆盖 台账 切片 清单 files sliced" },
+      { name: "深水区 G · 源码覆盖地图", sub: "38 文件 · 13 crate 切片台账", href: P("labs/deep.html") + "#mod-g", kw: "coverage 覆盖 台账 切片 清单 files sliced" },
       { name: "↳ ACT III · rollout 文件解剖", sub: "JSONL 落盘与恢复", href: P("labs/appserver.html") + "#act3-panel", kw: "rollout jsonl 落盘 恢复 文件名 解剖" },
       { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" },
       { act: "profile", no: "◆", name: "学习档案 · 成绩与重置", sub: "左栏底部也有入口", href: "", kw: "progress 档案 进度 重置 reset 导出 export 成绩 分数" }
@@ -1565,7 +1565,7 @@
   })();
 
   /* Web 字体就绪后重排一遍 SVG 文本：个别在回退字体下完成首排的节点，
-     字体交换后不重新量宽，拉丁词会以零宽度消失（Chromium 实测）。 */
+      字体交换后不重新量宽，拉丁词会以零宽度消失（Chromium 实测）。 */
   function resvgTexts() {
     document.querySelectorAll("svg text").forEach(function (t) {
       var s = t.textContent;
@@ -1579,4 +1579,57 @@
   } else {
     window.addEventListener("load", resvgTexts);
   }
+
+  /* ---------- 可拖数字（scrubbable number，Bret Victor Tangle 手法）----------
+     按住左右拖改值；指针捕获保证拖出元素仍持续生效；键盘可达；
+     touch-action:none 把横向手势留给数值、竖向滚动留给页面。 */
+  window.CAScrub = {
+    make: function (el, o) {
+      if (!el || !o || !o.onInput) return;
+      el.classList.add("ca-scrub");
+      if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "slider");
+      el.setAttribute("aria-label", o.label || "左右拖动调整数值");
+      var val = o.value;
+      function clamp(v) {
+        v = Math.max(o.min, Math.min(o.max, v));
+        if (o.step) v = Math.round(v / o.step) * o.step;
+        return Math.round(v * 100) / 100;
+      }
+      function paint() {
+        el.textContent = o.fmt ? o.fmt(val) : val;
+        el.setAttribute("aria-valuenow", val);
+        el.setAttribute("aria-valuemin", o.min);
+        el.setAttribute("aria-valuemax", o.max);
+        el.setAttribute("aria-valuetext", el.textContent);
+      }
+      function commit(nv) {
+        if (nv === val) return;
+        val = nv; paint(); o.onInput(val);
+        if (window.CASound) CASound.play("click");
+      }
+      var sx = 0, pid = null;
+      el.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        sx = e.clientX; pid = e.pointerId;
+        try { el.setPointerCapture(pid); } catch (err) { /* 忽略 */ }
+        e.preventDefault();
+      });
+      el.addEventListener("pointermove", function (e) {
+        if (pid === null || e.pointerId !== pid) return;
+        var per = o.dragStep || o.keyStep || o.step || 1;
+        commit(clamp(val + (e.clientX - sx) / 6 * per));   /* 每 6px 走一步 */
+        sx = e.clientX;
+      });
+      function up(e) { if (e.pointerId === pid) pid = null; }
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+      el.addEventListener("keydown", function (e) {
+        var st = o.keyStep || o.step || 1;
+        if (e.key === "ArrowLeft" || e.key === "ArrowDown") { commit(clamp(val - st)); e.preventDefault(); }
+        else if (e.key === "ArrowRight" || e.key === "ArrowUp") { commit(clamp(val + st)); e.preventDefault(); }
+      });
+      paint();
+    }
+  };
 })();

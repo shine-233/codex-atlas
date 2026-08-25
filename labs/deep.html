@@ -269,6 +269,17 @@
   .cov-note { font-size: 11.5px; color: var(--dim); }
   .cov-go { color: var(--amber); opacity: 0; transform: translateX(-4px); transition: all .15s ease; text-align: right; }
   .cov-row:hover .cov-go, .cov-row:focus-visible .cov-go { opacity: 1; transform: translateX(0); }
+  /* 悬停预览抽屉：展开完整源码路径与去向，键盘聚焦同样触发 */
+  .cov-more {
+    grid-column: 1 / -1;
+    max-height: 0; opacity: 0; overflow: hidden;
+    font-family: var(--mono); font-size: 10.5px; color: var(--steel);
+    padding-left: 12px;
+    transition: max-height .22s ease, opacity .18s ease;
+  }
+  .cov-more b { color: var(--amber); font-weight: 500; }
+  .cov-row:hover, .cov-row:focus-visible, .cov-row:focus-within { background: rgba(255,180,84,.06); border-left-color: var(--amber); }
+  .cov-row:hover .cov-more, .cov-row:focus-visible .cov-more, .cov-row:focus-within .cov-more { max-height: 44px; opacity: 1; }
   @media (max-width: 760px) {
     .cov-row { grid-template-columns: 1fr auto; }
     .cov-loc { justify-self: end; }
@@ -562,6 +573,40 @@ pub developer_instructions: Option&lt;String&gt;,                               
           </div>
 
           <div class="slash-demo" style="margin:0 24px 20px;">
+            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">输入框的暗礁 · 粘贴为什么不会被当成狂敲回车</div>
+            <p class="small muted" style="margin:0 0 10px;">
+              Windows 一类平台上，粘贴到达 TUI 的不是「一个粘贴事件」，而是一串飞快的按键事件。
+              输入框里跑着一个纯状态机区分「人在打字」和「爆发式粘贴」：判定为粘贴时，
+              回车一律当换行、绝不提交；窗口期内连 <span class="kbd">?</span> 这类快捷开关都被按住不动，防止界面闪一下。
+            </p>
+            <details class="src-details">
+              <summary>⌨ 看真实源码 · PasteBurst 状态机：时序启发式与字段语义</summary>
+              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/paste_burst.rs :1-18, 46-55 · @343074d4 实测</span>
+<span class="src-code">//! Paste-burst detection for terminals without bracketed paste.
+//!
+//! On some platforms (notably Windows), pastes often arrive as a rapid stream of
+//! `KeyCode::Char` and `KeyCode::Enter` key events rather than as a single "paste" event.
+//! In that mode, the composer needs to:
+//!
+//! - Prevent transient UI side effects (e.g. toggles bound to `?`) from triggering on pasted text.
+//! - Ensure Enter is treated as a newline *inside the paste*, not as "submit the message".
+//! ...
+//! - briefly hold a first ASCII char (flicker suppression),
+//! - buffer a burst as a single pasted string, or
+//! - let input flow through as normal typing.
+
+// State Variables（节选）
+// - `active`: true while we are still *actively* accepting characters into the current burst.
+// - `buffer`: accumulated burst text that will eventually flush as a single `Paste(String)`.
+// - `pending_first_char`: a single held ASCII char used for flicker suppression.
+// - `last_plain_char_time`/`consecutive_plain_char_burst`: the timing/count heuristic for
+//   "paste-like" streams.
+// - `burst_window_until`: the Enter suppression window ("Enter inserts newline") that outlives
+//   the buffer itself.</span></pre>
+            </details>
+          </div>
+
+          <div class="slash-demo" style="margin:0 24px 20px;">
             <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">斜杠命令面板 · 在输入框里敲一个 / 试试</div>
             <input type="text" class="slash-input" id="sl-in" placeholder="/"
                    aria-label="输入斜杠命令，自动过滤" autocomplete="off">
@@ -737,6 +782,33 @@ pub(crate) fn run_commit_tick(
     // Stream lifecycle controller for proposed plan output.
     plan_stream_controller: Option&lt;PlanStreamController&gt;,
     pending_stream_consolidations: usize,</span></pre>
+       </details>
+       <p class="small muted" style="margin:14px 0 0;">这些流排出来的行，最终落成屏上的一段段「cell」：你的消息、模型的回答、一条命令输出，各自是一个 HistoryCell。宽度是它的入参——cell 拿着当前宽度现算显示行；连占几行都按同一宽度重新量。源码特意注明：含 URL 的行比终端还宽时，逻辑行数会低估，所以量的必须是换行后的真实行数。</p>
+       <details class="src-details">
+         <summary>🔍 看真实源码 · HistoryCell trait：宽度进、行数出</summary>
+         <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :176-187, 215-232 · @343074d4 实测</span>
+<span class="src-code">/// A single renderable unit of conversation history.
+///
+/// Each cell produces logical `Line`s and reports how many viewport
+/// rows those lines occupy at a given terminal width.
+pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
+    /// Returns the logical lines for the main chat viewport.
+    fn display_lines(&amp;self, width: u16) -&gt; Vec&lt;Line&lt;'static&gt;&gt;;
+
+    /// Returns copy-friendly plain logical lines for raw scrollback mode.
+    fn raw_lines(&amp;self) -&gt; Vec&lt;Line&lt;'static&gt;&gt;;
+
+    /// Returns the number of viewport rows needed to render this cell.
+    ///
+    /// The default delegates to `Paragraph::line_count` with
+    /// `Wrap { trim: false }`, which measures the actual row count after
+    /// ratatui's viewport-level character wrapping. This is critical
+    /// for lines containing URL-like tokens that are wider than the
+    /// terminal — the logical line count would undercount.
+    fn desired_height(&amp;self, width: u16) -&gt; u16 {
+        self.desired_height_for_mode(width, HistoryRenderMode::Rich)
+    }
+}</span></pre>
        </details>
        <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
        <details class="src-details">
@@ -1009,7 +1081,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         </p>
         <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
           <div>
-            <div class="cov-num" data-gc="36">0</div>
+            <div class="cov-num" data-gc="38">0</div>
             <div class="small muted" style="margin-top:2px;">个源码文件有逐行切片</div>
           </div>
           <div>
@@ -1029,7 +1101,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">如实记下还没拆的</div>
           <p class="small muted" style="margin:0;">
             上面的名单之外，还有几块本站只给了图谱注解或格式描述、没有逐行切片：<code>codex-tui</code> 的
-            history_cell.rs（commit tick 返回的就是它的 HistoryCell）与 bottom_pane/ 一族（ChatWidget 的输入区）；
+            bottom_pane/chat_composer.rs（半兆字节的输入框巨物）、textarea.rs、approval_overlay.rs 与 footer.rs；
             <code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式）与 client.rs 的流式重连内部；
             以及 codex-exec、各类沙箱实现 crate 的执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
             属于「知道在哪、还没拆开」——下一批切片从这里出。上游持续漂移，以固定提交下的目录树为准。
@@ -1049,6 +1121,8 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/diff_render.rs", loc: ":400-408, 422-425", note: "(+N -N) 头部的逐行聚合", to: "#mod-d" },
         { p: "src/diff_render.rs", loc: ":591-598, 617-631", note: "大补丁弃高亮的性能闸门", to: "#mod-d" },
         { p: "src/insert_history.rs", loc: ":54-103", note: "四层入屏链与视口插入", to: "#mod-d" },
+        { p: "src/history_cell/mod.rs", loc: ":176-232", note: "HistoryCell trait：宽度进、行数出", to: "#mod-d" },
+        { p: "src/bottom_pane/paste_burst.rs", loc: ":1-55", note: "粘贴爆发状态机：Enter 何时只算换行", to: "#mod-d" },
         { p: "src/markdown_render.rs", loc: ":294-304", note: "宽度契约：表格降级键值对", to: "#mod-d" },
         { p: "src/markdown_stream.rs", loc: ":24-38, 76-78", note: "只管边界的收集器", to: "#mod-d" },
         { p: "src/slash_command.rs", loc: ":12-29", note: "斜杠命令枚举截取", to: "#mod-d" },
@@ -1129,10 +1203,13 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           row.className = "cov-row";
           row.href = f.to;
           row.setAttribute("aria-label", g.c + " " + f.p + " " + f.note);
+          var pageName = f.to.indexOf("#") === 0 ? "本页对应房" : f.to.replace("../labs/", "").replace(".html", "").replace(/#.*$/, "");
           row.innerHTML = '<code class="cov-path">' + f.p + "</code>" +
             '<span class="cov-loc">' + f.loc + "</span>" +
             '<span class="cov-note">' + f.note + "</span>" +
-            '<span class="cov-go" aria-hidden="true">→</span>';
+            '<span class="cov-go" aria-hidden="true">→</span>' +
+            '<span class="cov-more">codex-rs/' + g.c + "/" + f.p +
+            ' · 在 <b>' + (pageName || "对应仪器") + "</b> 展开 · 点行直达</span>";
           list.appendChild(row);
         });
       });
@@ -2122,7 +2199,7 @@ window.CATOUR_STEPS = [
   { sel: "#mod-d", title: "D · TUI 后台", text: "播放一段对话，点任意一格看驱动它的事件；下面还有斜杠命令面板。" },
   { sel: "#mod-e", title: "E · 扩展机制", text: "挂点卡与主干管线互相指。下方 hooks 事件轴有 8 个实测事件名，逐个点着看挂点。" },
   { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" },
-  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：36 个文件、13 个 crate 逐行拆过，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
+  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：38 个文件、13 个 crate 逐行拆过，悬停行看完整源码路径，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
 ];
 </script>
 

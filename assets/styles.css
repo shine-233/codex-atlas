@@ -846,6 +846,25 @@ button.ribbon-seg { appearance: none; border-width: 0 1px 0 0; padding: 0; }
   display: none;
 }
 .ca-tip.show { display: block; animation: ca-rise 0.18s ease-out both; }
+
+/* 可拖数字（scrubbable number）：光标即提示，虚线底是可拖记号 */
+.ca-scrub {
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: inline-block;
+  min-width: 2.6em;
+  text-align: center;
+  color: var(--amber);
+  font-weight: 600;
+  border-bottom: 1px dashed rgba(255, 180, 84, .65);
+  padding: 0 5px;
+  font-variant-numeric: tabular-nums;
+}
+.ca-scrub::before { content: "‹"; opacity: .45; margin-right: 3px; }
+.ca-scrub::after { content: "›"; opacity: .45; margin-left: 3px; }
+.ca-scrub:hover, .ca-scrub:focus-visible { background: rgba(255, 180, 84, .12); outline: none; }
 .ca-tip .tt-name {
   display: block;
   font-family: var(--mono);

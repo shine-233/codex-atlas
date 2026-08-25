@@ -476,7 +476,8 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       <div class="cost-slider">
         <input type="range" id="cost-laps" min="1" max="10" step="1" value="5"
                aria-label="采样次数（环转几圈）">
-        <span class="cost-laps-readout">采样 <b id="laps-n">5</b> 次 · 每次带一次工具调用</span>
+        <span class="cost-laps-readout">采样 <b id="laps-n">5</b> 次 · 每次带一次工具调用 · 缓存价按
+          <span id="cost-discount-scrub"></span> 示意（左右拖）</span>
       </div>
       <div class="cost-bars" id="cost-bars"></div>
       <div class="cost-x" id="cost-x"></div>
@@ -1159,12 +1160,13 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     if (!barsBox || !xBox || !cacheToggle || !lapsInput) return;
 
     var DELTA = 10;               /* 每圈新增历史，示意单位 */
+    var DISCOUNT = 0.1;           /* 缓存价折扣，示意值——下方可拖 */
 
     /* 第 i 次采样的发送量：完整历史 = 前 i-1 圈的累积 + 本圈新增。
-       无缓存：全部按全价计。缓存命中：旧前缀按一折，新增部分全价。 */
+       无缓存：全部按全价计。缓存命中：旧前缀按折扣计，新增部分全价。 */
     function sendOf(i) { return DELTA * i; }
     function costNoCache(i) { return sendOf(i); }
-    function costCache(i) { return DELTA + (i - 1) * DELTA * 0.1; }
+    function costCache(i) { return DELTA + (i - 1) * DELTA * DISCOUNT; }
 
     function cumulate(costFn, n) {
       var out = [], sum = 0;
@@ -1227,6 +1229,24 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
 
     lapsInput.addEventListener("input", function () { render(false); });
     cacheToggle.addEventListener("change", function () { render(false); });
+
+    /* 缓存折扣率可拖（scrubbable）：拖狠了缓存优势缩小，钢青柱当场长高 */
+    if (window.CAScrub) {
+      var discEl = document.getElementById("cost-discount-scrub");
+      if (discEl) {
+        CAScrub.make(discEl, {
+          min: 0.1, max: 1, step: 0.1, value: DISCOUNT,
+          label: "缓存命中价格折扣",
+          fmt: function (v) { return Math.round(v * 10 * 10) / 10 + " 折"; },
+          onInput: function (v) {
+            DISCOUNT = v;
+            var legend = document.getElementById("cost-disc-note");
+            if (legend) legend.textContent = v >= 1 ? "全价（拖回去看缓存的价值）" : "缓存价按 " + Math.round(v * 10 * 10) / 10 + " 折示意";
+            render(false);
+          }
+        });
+      }
+    }
 
     /* 进入视口时柱子从零长一次；之前先按终值渲染兜底 */
     render(false);
