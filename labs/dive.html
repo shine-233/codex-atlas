@@ -72,6 +72,47 @@
     .dive-stop, .trench { opacity: 1; transform: none; transition: none; }
     .scroll-cue { animation: none; }
   }
+
+  /* ---------- PINNED 剖面（The Pudding 手法：sticky 图 × 滚动分步）---------- */
+  /* 全站性能优化 content-visibility:auto 会把视口外的本章节压成 500px 占位，
+     直接毁掉 sticky 滚动进度计算——下潜页整段豁免 */
+  body.dive main section { content-visibility: visible !important; }
+  .pin-sec {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 30px; max-width: 1020px; margin: 34vh auto;
+    padding: 0 20px;
+  }
+  .pin-sticky { position: sticky; top: calc(50vh - 165px); }
+  .pin-sticky svg { width: 100%; display: block; background: rgba(10, 14, 19, .85); border: 1px solid var(--line-strong); }
+  .pq-lane { fill: rgba(255,255,255,.03); stroke: var(--line-strong); transition: all .4s ease; }
+  .pq-lane.lit-in { stroke: rgba(255,180,84,.75); fill: rgba(255,180,84,.07); }
+  .pq-lane.lit-out { stroke: rgba(143,199,232,.7); fill: rgba(143,199,232,.06); }
+  .pq-txt { font-family: var(--mono); font-size: 10.5px; fill: var(--faint); letter-spacing: .04em; }
+  .pq-arrow { font-family: var(--mono); font-size: 13px; fill: rgba(160,175,190,.3); transition: fill .4s ease, letter-spacing .4s ease; }
+  .pq-arrow.lit-a { fill: rgba(255,180,84,.9); }
+  .pq-arrow.lit-b { fill: rgba(143,199,232,.85); }
+  .pq-core { fill: url(#pg-core); stroke: var(--line-strong); transition: stroke .4s ease; }
+  .pq-core.lit-c { stroke: var(--amber); }
+  .pq-core-t { font-family: var(--mono); font-size: 15px; fill: var(--dim); letter-spacing: .2em; }
+  #pq-pkt { fill: var(--amber); filter: drop-shadow(0 0 5px rgba(255,180,84,.8)); transition: transform .55s cubic-bezier(.45,.05,.35,1), opacity .4s ease; }
+  .pin-step-label {
+    margin-top: 12px; text-align: center;
+    font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .08em;
+  }
+  .pin-right { display: flex; flex-direction: column; }
+  .pin-step {
+    min-height: 82vh; display: flex; flex-direction: column; justify-content: center;
+    opacity: .22; transform: translateX(14px);
+    transition: opacity .45s ease, transform .45s ease;
+  }
+  .pin-step.on { opacity: 1; transform: none; }
+  .pin-step h3 { margin: 8px 0 10px; color: var(--ink); font-size: 18px; }
+  .pin-step p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.9; }
+  @media (max-width: 860px) {
+    .pin-sec { grid-template-columns: 1fr; gap: 12px; margin: 18vh auto; }
+    .pin-sticky { top: 12px; }
+    .pin-step { min-height: auto; padding: 22px 4px; }
+  }
 </style>
 </head>
 <body class="dive">
@@ -157,6 +198,56 @@
     <div class="ds-head"><span class="ds-depth">L9 · 深渊坡</span><span class="ds-title">MCP 与网络出站</span></div>
     <p>要出网了：MCP 服务器经三种传输配方握手连接，HTTP 客户端带上令牌出发。05 图谱里 rmcp-client 的注解在这层有了纵深感。</p>
     <div class="src-mini">codex-rs/rmcp-client/src/rmcp_client.rs :142-175（传输配方 + 握手 RAII）</div>
+  </section>
+
+  <!-- ====== PINNED 剖面：队列对（The Pudding 手法：sticky 图 × 滚动分步）====== -->
+  <section class="pin-sec" aria-label="队列对剖面：分步讲解">
+    <div class="pin-left">
+      <div class="pin-sticky">
+        <svg viewBox="0 0 420 250" role="img" aria-label="队列对剖面图：提交队列下行、事件队列上行，core 在中间">
+          <defs>
+            <linearGradient id="pg-core" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1a2230"/><stop offset="1" stop-color="#10161d"/>
+            </linearGradient>
+          </defs>
+          <!-- 泳道 -->
+          <rect x="16" y="34" width="388" height="44" rx="6" class="pq-lane pq-in"/>
+          <text x="24" y="26" class="pq-txt">submission 队列 · 你的指令往下走</text>
+          <text x="210" y="62" text-anchor="middle" class="pq-arrow pq-in-a">→→→</text>
+          <rect x="150" y="96" width="120" height="58" rx="8" class="pq-core" id="pq-core-box"/>
+          <text x="210" y="130" text-anchor="middle" class="pq-core-t">CORE</text>
+          <rect x="16" y="176" width="388" height="44" rx="6" class="pq-lane pq-out"/>
+          <text x="396" y="168" text-anchor="end" class="pq-txt">events 队列 · 事件往上冒</text>
+          <text x="210" y="204" text-anchor="middle" class="pq-arrow pq-out-a">←←←</text>
+          <!-- 包 -->
+          <circle id="pq-pkt" cx="40" cy="56" r="7"/>
+        </svg>
+        <div class="pin-step-label" id="pq-label">你的输入进入提交队列</div>
+      </div>
+    </div>
+    <div class="pin-right">
+      <div class="pin-step on" data-s="0">
+        <span class="ds-depth">STEP 1 / 3</span>
+        <h3>指令下沉</h3>
+        <p>你在输入框敲下的每一句话，都会变成一条 Op 指令落进 <b style="color:var(--ink);">submission 队列</b>。
+           容量上限 512 条——排满就等，不插队。</p>
+        <div class="src-mini">codex-rs/core/src/session/turn_input.rs :282, :477-486</div>
+      </div>
+      <div class="pin-step" data-s="1">
+        <span class="ds-depth">STEP 2 / 3</span>
+        <h3>core 在中间处理</h3>
+        <p>CORE 是两条队列之间唯一的处理器：从 submission 头部取指令，跑任务、调模型、执行工具。
+           它<b style="color:var(--ink);">从不读另一条队列</b>——写入与产出严格分离。</p>
+        <div class="src-mini">codex-rs/core/src/tasks/regular.rs :50 · session/mod.rs :533</div>
+      </div>
+      <div class="pin-step" data-s="2">
+        <span class="ds-depth">STEP 3 / 3</span>
+        <h3>事件上浮</h3>
+        <p>产出的每一条 Event 落进 <b style="color:var(--ink);">events 队列</b>往上冒：流式正文、命令输出、审批请求……
+           TUI 只是这些事件的订阅者。你看到的整个界面，都是这条队列的下游。</p>
+        <div class="src-mini">codex-rs/core/src/session/turn.rs :1312（采样循环喂事件）· 04 时间线即其可视化</div>
+      </div>
+    </div>
   </section>
 
   <div class="trench vis" data-l="10">
@@ -305,6 +396,47 @@
     Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { io.observe(s); });
   } else {
     Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { s.classList.add("vis"); });
+  }
+
+  /* ---------- PINNED 剖面：滚动进度 → 步进状态（图钉住，文字流过）---------- */
+  var pinSec = document.querySelector(".pin-sec");
+  if (pinSec) {
+    var steps = Array.prototype.slice.call(pinSec.querySelectorAll(".pin-step"));
+    var pkt = document.getElementById("pq-pkt");
+    var coreBox = document.getElementById("pq-core-box");
+    var laneIn = pinSec.querySelector(".pq-in");
+    var laneOut = pinSec.querySelector(".pq-out");
+    var arrIn = pinSec.querySelector(".pq-in-a");
+    var arrOut = pinSec.querySelector(".pq-out-a");
+    var label = document.getElementById("pq-label");
+    var LABELS = [
+      "你的输入进入提交队列",
+      "core 从队列头取指令处理",
+      "产出的事件沿 events 队列上浮"
+    ];
+    function setStep(idx) {
+      steps.forEach(function (s, i) { s.classList.toggle("on", i === idx); });
+      if (laneIn) laneIn.classList.toggle("lit-in", idx === 0);
+      if (arrIn) arrIn.classList.toggle("lit-a", idx === 0);
+      if (coreBox) coreBox.classList.toggle("lit-c", idx === 1);
+      if (laneOut) laneOut.classList.toggle("lit-out", idx === 2);
+      if (arrOut) arrOut.classList.toggle("lit-b", idx === 2);
+      /* 包的位置：三态位移（上泳道 → core 内 → 下泳道） */
+      var spots = ["translate(0,0)", "translate(140px,52px)", "translate(330px,120px)"];
+      pkt.style.transform = spots[idx] || "";
+      if (label) label.textContent = LABELS[idx] || "";
+    }
+    var curIdx = -1;
+    function onScrollPin() {
+      var r = pinSec.getBoundingClientRect();
+      var total = r.height - innerHeight;
+      var prog = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;
+      var idx = Math.min(steps.length - 1, Math.floor(prog * steps.length));
+      if (idx !== curIdx) { curIdx = idx; setStep(idx); }
+    }
+    window.addEventListener("scroll", onScrollPin, { passive: true });
+    window.addEventListener("resize", onScrollPin);
+    onScrollPin();
   }
 })();
 </script>

@@ -78,7 +78,12 @@
       });
       noise(t + 0.52, 0.25, 0.09, 2000);
     },
-    whoosh:    function (t) { noise(t, 0.28, 0.09, 600); }
+    whoosh:    function (t) { noise(t, 0.28, 0.09, 600); },
+    /* ---------- 协议节奏器（04 可听版）：方向与语义各占一种声形 ---------- */
+    tx:        function (t) { tone(920, "square", t, 0.045, 0.12); },                 /* c2s 上行请求 */
+    rx:        function (t) { tone(660, "sine", t, 0.09, 0.16, 430); },               /* s2c 下行通知 */
+    pgate:     function (t) { tone(196, "triangle", t, 0.22, 0.16); tone(392, "sine", t + 0.05, 0.18, 0.10); }, /* 审批挂起 */
+    verdict:   function (t) { tone(587, "triangle", t, 0.07, 0.2); tone(880, "triangle", t + 0.08, 0.14, 0.22); }
   };
 
   function play(name) {
@@ -91,7 +96,17 @@
     try { CUES[name](ctx.currentTime + 0.01); } catch (e) { /* 出声失败不影响交互 */ }
   }
 
-  window.CASound = { play: play };
+  window.CASound = {
+    play: play,
+    /* 旁路通道：独立开关的仪器（如 04 可听版）用 force 发声——
+       仍受页面隐藏与 AudioContext 门控，但不依赖全局 ♪ 偏好。 */
+    force: function (name) {
+      if (!CUES[name]) return;
+      if (document.hidden) return;
+      if (!ensure()) return;
+      try { CUES[name](ctx.currentTime + 0.01); } catch (e) { /* 出声失败不影响交互 */ }
+    }
+  };
 
   /* ---------- 全局开关按钮（右下角，站宠旁边） ---------- */
   function paint(btn) {

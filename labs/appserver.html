@@ -454,6 +454,7 @@ ExecCommandApproval {
 <script src="../assets/panel-pet.js"></script>
 <script src="../assets/panel-theme.js"></script>
 <script src="../assets/sound.js"></script>
+<script src="../assets/proto-audio.js"></script>
 <script src="../assets/loop-hero.js"></script>
 <script>
 (function () {
@@ -1182,11 +1183,19 @@ ExecCommandApproval {
   var host = document.getElementById("ts-canvas");
   var logEl = document.getElementById("ts-log");
   if (!host || !logEl || !window.CanvasRenderingContext2D) return;
-  var canvas = document.createElement("canvas");
-  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
-  host.appendChild(canvas);
-  var ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  var cc = window.CACanvas ? CACanvas.create(host, {
+    draw: function () { draw(); },
+    onInView: function (v) {
+      if (v) { if (state === RUNNING) kick(); }
+      else { running2 = false; cancelAnimationFrame(raf2); }
+    },
+    onVisibility: function (v) {
+      if (v && inView && state === RUNNING) kick();
+      else { running2 = false; cancelAnimationFrame(raf2); }
+    }
+  }) : null;
+  if (!cc) return;
+  var canvas = cc.canvas, ctx = cc.ctx;
 
   var REDUCED = window.PrefersReducedMotion === true;
   var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
@@ -1195,14 +1204,10 @@ ExecCommandApproval {
   var DENY = (window.CATheme ? CATheme.rgb("--deny", "240,121,106") : "240,121,106");
   var INKRGB = (window.CATheme ? CATheme.rgb("--ink", "231,237,243") : "231,237,243");
 
-  var W = 1, H = 1, dpr = 1;
+  var W = 1, H = 1;
   function size() {
-    var r = host.getBoundingClientRect();
-    if (r.width < 4) return false;
-    W = Math.round(r.width); H = Math.round(r.height);
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!cc.size()) return false;
+    W = cc.W(); H = cc.H();
     return true;
   }
 
@@ -1434,35 +1439,17 @@ ExecCommandApproval {
     ctx.fillText("实线 = 在线 · 虚线 = 离线/未建 · 钢青呼吸环 = turn 进行中", 12, H - 12);
   }
 
-  var running = false, raf = 0, inView = true;
+  var running2 = false, raf2 = 0, inView = true;
   function loop() {
-    if (!running) return;
+    if (!running2) return;
     if (state === RUNNING) draw();
-    else if (!pulseT0 && !denyT0) { running = false; return; }
-    raf = requestAnimationFrame(loop);
+    else if (!pulseT0 && !denyT0) { running2 = false; return; }
+    raf2 = requestAnimationFrame(loop);
   }
   function kick() {
     if (REDUCED) { draw(); return; }
-    if (!running && inView) { running = true; raf = requestAnimationFrame(loop); }
+    if (!running2 && inView) { running2 = true; raf2 = requestAnimationFrame(loop); }
   }
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (ents) {
-      ents.forEach(function (en) {
-        inView = en.isIntersecting;
-        if (inView) { size(); draw(); if (state === RUNNING) kick(); }
-        else { running = false; cancelAnimationFrame(raf); }
-      });
-    }, { rootMargin: "80px" }).observe(host);
-  }
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden) { running = false; cancelAnimationFrame(raf); }
-    else if (inView && state === RUNNING) kick();
-  });
-  var rzT = null;
-  window.addEventListener("resize", function () {
-    clearTimeout(rzT);
-    rzT = setTimeout(function () { if (size()) draw(); }, 140);
-  });
 
   if (size()) draw();
 })();
