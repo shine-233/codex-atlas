@@ -35,7 +35,7 @@ PORT = 8935
 BASE = f"http://localhost:{PORT}"
 
 PAGES = ["/", "/labs/loop.html", "/labs/prompt.html", "/labs/sandbox.html",
-         "/labs/appserver.html", "/labs/atlas.html", "/labs/deep.html",
+         "/labs/appserver.html", "/labs/atlas.html", "/labs/deep.html", "/labs/dive.html",
          "/glossary.html", "/404.html"]
 
 FAILS = []

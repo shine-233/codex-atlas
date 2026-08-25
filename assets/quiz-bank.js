@@ -45,7 +45,7 @@
     { page: "05 Crate 图谱", q: "想读 Agent 循环的实现本体，先去哪条带？",
       opts: ["B2 核心引擎（core）", "B9 基础设施", "B8 云协作"], a: 0,
       why: "队列对、RegularTask、run_turn 都在 core。" },
-    { page: "05 Crate 图谱", q: "「135 个成员」这个数字是怎么来的？",
+    { page: "05 Crate 图谱", q: "「136 个成员」这个数字是怎么来的？",
       opts: ["OpenAI 官方文档宣称", "固定提交下 Cargo.toml workspace members 实测", "GitHub 搜索结果计数"], a: 1,
       why: "名单逐项来自 codex-rs/Cargo.toml 的 members 字段，可复核。" },
     { page: "05 Crate 图谱", q: "九条功能带是上游的官方分类吗？",

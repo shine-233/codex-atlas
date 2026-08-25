@@ -75,7 +75,7 @@
       d: "会话轨迹落盘机制：事件历史写成磁盘文件，断线恢复的数据基础。",
       w: "05 B2", href: "labs/atlas.html" },
     { v: ["crate"], name: "crate",
-      d: "Rust 的编译单元，约等于一个包。135 个工作区成员就是 135 个 crate。",
+      d: "Rust 的编译单元，约等于一个包。136 个工作区成员就是 136 个 crate。",
       w: "05", href: "labs/atlas.html" },
     { v: ["codex exec"], name: "codex exec",
       d: "非交互一次性执行入口：codex exec \"任务\"。不进终端界面，CI 与脚本场景的主力形态。",

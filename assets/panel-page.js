@@ -57,7 +57,7 @@
     try {
       var seen = JSON.parse(localStorage.getItem("ca-seen") || "{}");
       var seenCount = 0;
-      ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html"]
+      ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html", "dive.html"]
         .forEach(function (p) { if (seen[p]) seenCount++; });
       xp += seenCount * 5;
       var quiz = window.CAProgress ? CAProgress.read() : {};
@@ -102,7 +102,7 @@
 
     var seen = {};
     try { seen = JSON.parse(localStorage.getItem("ca-seen") || "{}"); } catch (e) { /* 忽略 */ }
-    var ALLPAGES = ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html"];
+    var ALLPAGES = ["index.html", "loop.html", "prompt.html", "sandbox.html", "appserver.html", "atlas.html", "deep.html", "glossary.html", "dive.html"];
     var PNAME = {
       "loop.html": "01 循环回路", "prompt.html": "02 输入组装", "sandbox.html": "03 权限沙箱",
       "appserver.html": "04 协议线路", "atlas.html": "05 Crate 图谱", "deep.html": "07 深水区",
@@ -330,7 +330,7 @@ window.CAProfileOpen = openProfile;
       var here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
       var isLab = location.pathname.indexOf("/labs/") !== -1;
       var pages = ["index.html", "labs/loop.html", "labs/prompt.html", "labs/sandbox.html",
-        "labs/appserver.html", "labs/atlas.html", "labs/deep.html", "glossary.html"];
+        "labs/appserver.html", "labs/atlas.html", "labs/deep.html", "labs/dive.html", "glossary.html"];
       var conn = navigator.connection || {};
       if (conn.saveData || /2g$/i.test(conn.effectiveType || "")) return;
       pages.forEach(function (p) {
@@ -364,7 +364,7 @@ window.CAProfileOpen = openProfile;
       { name: "↳ SANDBOX YARD · 空间沙盘", sub: "围墙在哪，包往哪走", href: P("labs/sandbox.html") + "#yard-panel", kw: "yard 沙盘 围墙 空间 可视化 fence" },
       { name: "↳ MCP DETOUR · 双路径对比", sub: "内置穿墙 / MCP 绕墙", href: P("labs/sandbox.html") + "#mcp-lane-panel", kw: "mcp detour 双路径 rmcp 绕墙 外部服务器" },
       { no: "04", name: "协议线路 · 报文时间线", sub: "审批分支 · 双向通道", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
-      { no: "05", name: "Crate 图谱", sub: "135 成员 · 列表/树图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
+      { no: "05", name: "Crate 图谱", sub: "136 成员 · 列表/树图/力图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
       { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
       { name: "↳ 自测模式 · 翻卡回忆", sub: "记得/忘了存档", href: P("glossary.html") + "#md=drill", kw: "flashcard drill 自测 记忆 翻卡 背题" },
       { no: "07", name: "深水区 A · 凭据流", sub: "ChatGPT vs API key", href: P("labs/deep.html") + "#mod-a", kw: "auth login 登录 凭据 token oauth auth.json api key" },

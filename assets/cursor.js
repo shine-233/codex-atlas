@@ -22,9 +22,11 @@
   var scale = 1, tScale = 1;
   var visible = false, running = false, raf = 0;
   var hot = null;                                  // 当前吸附的目标元素
+  var lastMove = 0;                                // 指针最后活动时间（省电渐隐用）
 
   function onMove(e) {
     mx = e.clientX; my = e.clientY;
+    lastMove = performance.now();
     if (!visible) {
       visible = true;
       ring.style.opacity = "1"; dot.style.opacity = "1";
@@ -53,8 +55,13 @@
     scale += (tScale - scale) * 0.18;
     ring.style.transform = "translate(" + (rx - 16) + "px," + (ry - 16) + "px) scale(" + scale.toFixed(3) + ")";
     dot.style.transform = "translate(" + (mx - 2.5) + "px," + (my - 2.5) + "px)";
-    /* 指针静止且无吸附 → 渐隐省电 */
-    if (!hot && Math.abs(tx - mx) < 0.5 && Math.abs(ty - my) < 0.5 && !visible) { stop(); return; }
+    /* 指针静止超 1.8s 且无吸附 → 渐隐停帧省电（原条件里 !visible 恒假，分支从未生效） */
+    if (!hot && performance.now() - lastMove > 1800) {
+      visible = false;
+      ring.style.opacity = "0"; dot.style.opacity = "0";
+      stop();
+      return;
+    }
     raf = requestAnimationFrame(frame);
   }
   function start() {

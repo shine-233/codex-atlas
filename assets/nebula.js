@@ -154,6 +154,7 @@
 
     var REDUCED = window.PrefersReducedMotion === true;
     var running = false, raf = 0;
+    var FPS_CAP = 30, lastPaint = 0;   /* 慢漂移背景 30fps 与 60fps 视觉等价，GPU 减半 */
 
     function paint(timeSec) {
       gl.uniform1f(uT, timeSec);
@@ -162,7 +163,13 @@
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     function frame(now) {
+      raf = 0;
       if (t0 === null) t0 = now;
+      if (now - lastPaint < 1000 / FPS_CAP - 2) {
+        raf = requestAnimationFrame(frame);      /* 未到节拍：跳帧不重绘 */
+        return;
+      }
+      lastPaint = now;
       mx += (tx - mx) * 0.06;
       my += (ty - my) * 0.06;
       grainT *= 0.92;
@@ -184,14 +191,19 @@
     /* 静止时也要有第一帧（reduced-motion / 唤醒前） */
     paint(tOff);
 
-    document.addEventListener("visibilitychange", function () {
-      document.hidden ? stop() : start();
-    });
+    /* 离屏与页签隐藏共用一个闸门：任一不满足就停，别让星云在看不见时烧 GPU */
+    var ioOn = true;
+    function gate() {
+      if (ioOn && !document.hidden) start();
+      else stop();
+    }
+
+    document.addEventListener("visibilitychange", gate);
 
     /* 与页面其他仪器共用可见性节流：离开视口就睡 */
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(function (es) {
-        es.forEach(function (en) { en.isIntersecting ? start() : stop(); });
+        es.forEach(function (en) { ioOn = en.isIntersecting; gate(); });
       }, { rootMargin: "10% 0px" }).observe(host);
     } else start();
 
