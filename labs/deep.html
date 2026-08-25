@@ -152,6 +152,13 @@
     font-family: var(--mono); font-size: 12.5px; color: var(--ink);
     background: var(--bg2); border-left: 2px solid var(--steel); padding: 7px 11px;
   }
+  /* 斜杠命令的本地回放：TUI 自己画的响应，不出站 */
+  .tc-sys .tc-body {
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    background: var(--bg0); border: 1px dashed var(--line-strong);
+    padding: 8px 11px; white-space: pre-wrap;
+    animation: ca-rise .25s ease-out both;
+  }
   .tc-reason .tc-body { font-size: 12.5px; color: var(--faint); font-style: italic; }
   .tc-agent .tc-body { font-size: 13.5px; color: var(--ink); line-height: 1.7; }
   .tc-exec .tc-body {
@@ -1364,7 +1371,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
     var CELLS = [
       { kind: "user", tag: "你输入", stream: false,
         text: "把重试次数改成可配置的，然后跑一遍测试",
-        why: "<b>输入框（composer）</b>：多行文本区，粘贴多行会被识别成代码块而不是一堆回车。回车后走 TurnStart 报文——04 时间线第 5 条就是它。" },
+        why: "<b>输入框（composer）</b>：多行文本区，粘贴多行会被识别成代码块而不是一堆回车。回车后走 TurnStart 报文——<a href=\"appserver.html?msg=turn%2Fstart\">04 时间线的 turn/start</a>就是它。" },
       { kind: "reason", tag: "reasoning · 流式灰字", stream: true,
         text: "用户要的是把硬编码的重试上限挪出去。先找 retry 的实现位置，加一个配置读取，再跑测试验证……",
         why: "<b>AgentReasoning 流</b>：核心把模型的 reasoning delta 逐字转发过来，TUI 用暗色斜体渲染。嫌吵可以在 config 里关显示，但它一直在跑。" },
@@ -1495,6 +1502,34 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       { c: "/status", d: "当前会话信息一览：模型、审批、沙箱、cwd、凭据形态。" },
       { c: "/new", d: "开新线程，旧时间线归档。对应 04 里 Thread 原语的生命周期。" }
     ];
+    /* 选中命令 → 拟态终端里的本地回放（不出站，模型看不见——这正是教学点） */
+    var SLASH_FX = {
+      "/init": "已扫描 37 个文件 · 写入 AGENTS.md 骨架（12 行）",
+      "/model": "┌ 模型选择器 ───────┐\n│ ● gpt-5-codex      │\n│ ○ gpt-5            │\n└────────────────────┘",
+      "/permissions": "审批档：on-request → 可切 read-only / full-access\n沙箱档：workspace-write（03 那条轴的 TUI 入口）",
+      "/compact": "历史已压缩：48,211 → 3,102 tokens · 摘要携带 encrypted_content",
+      "/diff": " git diff --stat\n src/loop.rs   | 12 +++++---\n 1 file changed",
+      "/status": "model gpt-5-codex · approvals on-request\nsandbox workspace-write · auth ChatGPT · cwd ~/proj/api",
+      "/new": "旧线程已归档（thread/archive）· 新线程 t_x2 就绪"
+    };
+    var cellsBox2 = document.getElementById("tui-cells");
+    function injectSlash(cmd) {
+      if (!cellsBox2) return;
+      var d1 = document.createElement("div");
+      d1.className = "tcell tc-user";
+      d1.innerHTML = '<span class="tc-tag">输入 · 客户端本地</span><div class="tc-body"><span class="cmd">&gt; ' + cmd.c + "</span></div>";
+      var d2 = document.createElement("div");
+      d2.className = "tcell tc-sys";
+      d2.innerHTML = '<span class="tc-tag">TUI 本地响应</span><div class="tc-body">' +
+        esc(SLASH_FX[cmd.c] || "已在 TUI 本地执行——没有出站，模型根本不知道。") + "</div>";
+      cellsBox2.appendChild(d1);
+      cellsBox2.appendChild(d2);
+      cellsBox2.scrollTop = cellsBox2.scrollHeight;
+      while (cellsBox2.children.length > 14) cellsBox2.removeChild(cellsBox2.firstChild);
+      whyBox.innerHTML = "<b>" + cmd.c + "</b> 在客户端本地处理，不发给模型——上面这两行是 TUI 自己画出来的。" +
+        "对照左边的会话格：模型产生的内容走事件流，本地命令只改界面。";
+      if (window.CASound) CASound.play("pop");
+    }
     var slIn = document.getElementById("sl-in");
     var slList = document.getElementById("sl-list");
     var slOut = document.getElementById("sl-out");
@@ -1513,6 +1548,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           slOut.innerHTML = "<b>" + c.c + "</b> — " + c.d;
           slIn.value = "";
           slList.classList.remove("open");
+          injectSlash(c);
         });
         slList.appendChild(b);
       });

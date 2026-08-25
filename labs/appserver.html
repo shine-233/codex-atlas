@@ -719,7 +719,15 @@ ExecCommandApproval {
     seqScroll.scrollTop = Math.max(0, cur * ROW_H - seqScroll.clientHeight + ROW_H * 3);
   }
 
+  /* 报文深链：search 参数归 ?msg= 管，hash 归 PanelState 管（进度/裁决），写回互不覆盖 */
+  function syncMsgUrl(msg) {
+    try {
+      history.replaceState(null, "", location.pathname + "?msg=" + encodeURIComponent(msg.m) + location.hash);
+    } catch (e) { /* file:// 等环境失败就忽略 */ }
+  }
+
   function showDetail(msg) {
+    syncMsgUrl(msg);
     djMethod.textContent = msg.m + " · " + msg.k;
     if (msg.j) {
       djPre.style.display = "";
@@ -836,6 +844,33 @@ ExecCommandApproval {
   else cur = 0;
 
   render();
+
+  /* ---------- 报文深链：appserver.html?msg=方法名 直达并展开该报文 ---------- */
+  (function () {
+    var m = /[?&]msg=([^&]+)/.exec(location.search);
+    if (!m) return;
+    var name = m[1];
+    try { name = decodeURIComponent(name); } catch (e) { /* 保留原样 */ }
+    var hit = -1, i;
+    for (i = 0; i < MSGS.length; i++) { if (MSGS[i].m === name) { hit = i; break; } }
+    if (hit === -1) {
+      for (i = 0; i < MSGS.length; i++) {
+        if (MSGS[i].m.indexOf(name) === 0) { hit = i; break; }
+      }
+    }
+    if (hit === -1) return;
+    /* 分支专属报文：深链顺手把裁决带上，行才可见 */
+    if (MSGS[hit].branch) branch = MSGS[hit].branch;
+    var list = visible();
+    var pos = list.indexOf(MSGS[hit]);
+    if (pos === -1) return;
+    stop();
+    cur = pos + 1;
+    render();
+    showDetail(MSGS[hit]);
+    var wrap = document.querySelector(".seqwrap");
+    if (wrap) wrap.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
+  })();
 
   window.addEventListener("hashchange", function () { location.reload(); });
 

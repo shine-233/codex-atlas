@@ -1664,7 +1664,21 @@ body::after {
 .ca-copybtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 /* ---------- 首页全站线路图（metro） ---------- */
+.metro-wrap { position: relative; }
 .metro-wrap svg { width: 100%; height: auto; display: block; }
+/* 站点悬停提示：进度细节跟着指针走 */
+.metro-tip {
+  position: absolute; z-index: 6; pointer-events: none;
+  font-family: var(--mono); font-size: 11px; line-height: 1.6;
+  color: var(--ink); background: var(--bg2);
+  border: 1px solid var(--line-strong);
+  padding: 5px 9px; white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(0,0,0,.35);
+  opacity: 0; transform: translateY(4px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.metro-tip.show { opacity: 1; transform: none; }
+.metro-tip b { color: var(--amber); font-weight: 500; }
 .metro-line { stroke: rgba(143, 199, 232, .5); stroke-width: 5; fill: none; stroke-linecap: round; }
 .metro-branch { stroke: rgba(255, 180, 84, .55); stroke-width: 3.5; fill: none; stroke-dasharray: 1 8; stroke-linecap: round; }
 .metro-station { cursor: pointer; }

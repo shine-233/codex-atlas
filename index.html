@@ -569,9 +569,42 @@ if (window.CATilt) CATilt(Array.prototype.filter.call(
     g.addEventListener("keydown", function (e) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
     });
+    /* 悬停/聚焦：进度细节浮出来，不用猜环的颜色 */
+    g.addEventListener("pointerenter", function () { showTip(s); });
+    g.addEventListener("pointerleave", hideTip);
+    g.addEventListener("focus", function () { showTip(s); });
+    g.addEventListener("blur", hideTip);
     svg.appendChild(g);
     return g;
   }
+
+  /* 站点提示：SVG 坐标换算成容器像素，位置贴站名上方 */
+  var metroTip = null;
+  function tipText(s) {
+    if (s.hub) return "<b>00 总览</b> · 你在这里" + (grand ? " · ★ 五条全通" : "");
+    if (s.qp && quiz[s.qp] && quiz[s.qp].t) {
+      var q = quiz[s.qp];
+      return "<b>" + s.no + " " + s.name + "</b> · 自检 " + q.c + "/" + q.t +
+        (q.c >= q.t ? " · 已通关" : " · 还差 " + (q.t - q.c) + " 题");
+    }
+    if (s.flash) return "<b>06 术语速查</b> · 翻卡已记 " + flash + "/" + FLASH_TOTAL;
+    if (s.qp) return "<b>" + s.no + " " + s.name + "</b> · 还没做过自检";
+    return seen[s.href.split("/").pop()] ? "<b>" + s.no + " " + s.name + "</b> · 读过" : "<b>" + s.no + " " + s.name + "</b> · 还没去过";
+  }
+  function showTip(s) {
+    if (!metroTip) {
+      metroTip = E("div", { class: "metro-tip" });
+      metroTip.setAttribute("aria-hidden", "true");
+      host.appendChild(metroTip);
+    }
+    metroTip.innerHTML = tipText(s);
+    var px = s.x / 760 * host.clientWidth;
+    var py = s.y / 300 * host.clientHeight;
+    metroTip.style.left = Math.max(6, Math.min(host.clientWidth - 190, px - 80)) + "px";
+    metroTip.style.top = Math.max(4, py - 52) + "px";
+    metroTip.classList.add("show");
+  }
+  function hideTip() { if (metroTip) metroTip.classList.remove("show"); }
   STATIONS.forEach(stationSt);
   host.appendChild(svg);
 

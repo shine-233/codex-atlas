@@ -91,11 +91,11 @@
   .detail-card h4 { margin: 0 0 8px; font-size: 15px; }
   .detail-card p { color: var(--dim); font-size: 13.5px; max-width: 44em; }
 
-  /* 立方视图：#stack 变成可环视的 3D 层叠（--srx/--sry 由拖拽写入） */
+  /* 立方视图：#stack 变成可环视的 3D 层叠（--srx/--sry 拖拽写入，--srz 滚轮/捏合写入） */
   .stack-wrap.s3d #stack {
     perspective: 1200px;
     transform-style: preserve-3d;
-    transform: rotateX(var(--srx, 14deg)) rotateY(var(--sry, 0deg));
+    transform: rotateX(var(--srx, 14deg)) rotateY(var(--sry, 0deg)) scale3d(var(--srz, 1), var(--srz, 1), var(--srz, 1));
     transition: transform .5s var(--ease);
     padding: 26px 10px 12px;
   }
@@ -993,8 +993,9 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
     if (window.PrefersReducedMotion === true) return;
 
     btn.hidden = false;
-    var on = false, rx = 14, ry = 0;
+    var on = false, rx = 14, ry = 0, rz = 1;
     var dragging = false, moved = 0, sx = 0, sy = 0, baseRx = 14, baseRy = 0, raf = 0;
+    var pointers = {}, pinch0 = null, lastInteract = 0, idleRaf = 0;
 
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -1012,8 +1013,23 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       raf = 0;
       stack.style.setProperty("--srx", rx.toFixed(2) + "deg");
       stack.style.setProperty("--sry", ry.toFixed(2) + "deg");
+      stack.style.setProperty("--srz", rz.toFixed(3));
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(paint); }
+    function markInteract() { lastInteract = performance.now(); }
+
+    /* 闲置自转：三秒没动就轻轻摇（幅度小、不抢戏），一碰就停 */
+    function idleDrift() {
+      idleRaf = 0;
+      if (!on || dragging || Object.keys(pointers).length) { idleRaf = requestAnimationFrame(idleDrift); return; }
+      var idle = performance.now() - lastInteract;
+      if (idle > 3000) {
+        ry = Math.sin(performance.now() / 2400) * 9;
+        rx = 14 + Math.sin(performance.now() / 3100) * 3;
+        schedule();
+      }
+      idleRaf = requestAnimationFrame(idleDrift);
+    }
 
     function setMode(v) {
       on = v;
@@ -1021,20 +1037,70 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       btn.textContent = on ? "平面视图" : "立方视图";
       btn.setAttribute("aria-pressed", on ? "true" : "false");
       btn.classList.toggle("on", on);
-      if (on) { rx = 14; ry = 0; assignZ(); paint(); stack.style.touchAction = "none"; }
-      else {
+      if (on) {
+        rx = 14; ry = 0; rz = 1; markInteract();
+        assignZ(); paint();
+        stack.style.touchAction = "none";
+        if (!idleRaf) idleRaf = requestAnimationFrame(idleDrift);
+      } else {
         Array.prototype.forEach.call(stack.querySelectorAll(".lyr"), function (d) { d.style.transform = ""; });
         stack.style.removeProperty("--srx");
         stack.style.removeProperty("--sry");
+        stack.style.removeProperty("--srz");
         stack.style.touchAction = "";
+        if (idleRaf) { cancelAnimationFrame(idleRaf); idleRaf = 0; }
       }
     }
     btn.addEventListener("click", function () { setMode(!on); });
 
+    /* 滚轮缩放：0.7×–1.6×，锚点就是整体中心（层叠小，不必锚光标） */
+    stack.addEventListener("wheel", function (e) {
+      if (!on) return;
+      e.preventDefault();
+      markInteract();
+      rz = clamp(rz * (e.deltaY < 0 ? 1.09 : 0.92), 0.7, 1.6);
+      schedule();
+    }, { passive: false });
+
+    /* 双指捏合：与力学/星系视图同一套手势词汇 */
+    stack.addEventListener("pointerdown", function (e) {
+      if (!on) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      markInteract();
+      var ids = Object.keys(pointers);
+      if (ids.length === 2) {
+        dragging = false;
+        stack.classList.remove("dragging");
+        var p0 = pointers[ids[0]], p1 = pointers[ids[1]];
+        pinch0 = { d: Math.max(20, Math.hypot(p0.x - p1.x, p0.y - p1.y)), rz: rz };
+      }
+    });
+    stack.addEventListener("pointermove", function (e) {
+      if (!on || !pointers[e.pointerId]) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (pinch0 && Object.keys(pointers).length >= 2) {
+        var ids = Object.keys(pointers);
+        var p0 = pointers[ids[0]], p1 = pointers[ids[1]];
+        var d = Math.max(20, Math.hypot(p0.x - p1.x, p0.y - p1.y));
+        rz = clamp(pinch0.rz * d / pinch0.d, 0.7, 1.6);
+        markInteract();
+        schedule();
+      }
+    });
+    function pinchEnd(e) {
+      if (pointers[e.pointerId]) delete pointers[e.pointerId];
+      if (Object.keys(pointers).length < 2) pinch0 = null;
+      markInteract();
+    }
+    stack.addEventListener("pointerup", pinchEnd);
+    stack.addEventListener("pointercancel", pinchEnd);
+
     stack.addEventListener("pointerdown", function (e) {
       if (!on || e.button !== 0) return;
+      if (Object.keys(pointers).length >= 2) return;   /* 双指时让位给捏合 */
       dragging = true; moved = 0; sx = e.clientX; sy = e.clientY;
       baseRx = rx; baseRy = ry;
+      markInteract();
       stack.classList.add("dragging");
       try { stack.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器跳过 */ }
     });
@@ -1044,11 +1110,13 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
       ry = clamp(baseRy + dx * 0.12, -22, 22);
       rx = clamp(baseRx + dy * 0.10, 4, 30);
+      markInteract();
       schedule();
     });
     function endDrag() {
       if (!dragging) return;
       dragging = false;
+      markInteract();
       stack.classList.remove("dragging");
     }
     stack.addEventListener("pointerup", endDrag);
@@ -1071,7 +1139,7 @@ window.CATOUR_STEPS = [
   { sel: ".layer-controls", title: "七层开关", text: "按真实请求字段顺序排列。每层都能单独关掉——instructions 和 tools 在真实请求里关不掉，这里允许关闭只是为了看清结构。" },
   { sel: ".stack-wrap", title: "组装栈", text: "右边按当前开关实时拼装。点任意一层看它的来源、路径与证据类别；悬停一层，下方负载预览里对应段会亮。" },
   { sel: ".payload-view", title: "负载形状预览", text: "JSON 形状随开关实时变化，可一键复制。悬停预览里的段，上面的层也会亮——双向互亮。" },
-  { sel: "#s3d-toggle", title: "立方视图", text: "把组装栈变成 3D 层叠：按住拖动环视，关掉的层塌回底面。触屏也能用。" },
+  { sel: "#s3d-toggle", title: "立方视图", text: "把组装栈变成 3D 层叠：按住拖动环视，滚轮 / 双指缩放，闲置三秒轻轻摇；关掉的层塌回底面。触屏也能用。" },
   { sel: ".compact-demo", title: "COMPACT 演示", text: "拖滑杆模拟一轮轮聊下去：token 摸到阈值，自动压缩成一段加密摘要，上下文掉头向下。" },
   { sel: "#order-game", title: "手拼请求挑战", text: "七层被打乱了——拖拽把它们排成真实请求顺序，校验看你对请求结构的理解。" }
 ];
