@@ -73,6 +73,11 @@
       <div id="hero-field" aria-hidden="true"></div>
       <div class="nebula-console" id="nebula-console" aria-label="星云参数调音台（左右拖动数字）">
         <span class="nc-title">星云调音台</span>
+        <span class="nc-presets" role="group" aria-label="星云配方预设">
+          <button data-np="aurora" type="button">极光</button>
+          <button data-np="soot" type="button">煤烟</button>
+          <button data-np="deep" class="on" type="button">深空</button>
+        </span>
         <label>云量 <span class="scrub-slot" id="nb-cloud" tabindex="0"></span></label>
         <label>色相 <span class="scrub-slot" id="nb-hue" tabindex="0"></span></label>
         <label>流速 <span class="scrub-slot" id="nb-speed" tabindex="0"></span></label>
@@ -377,6 +382,9 @@
 </div>
 
 <script src="assets/panel.js"></script>
+<script src="assets/panel-page.js"></script>
+<script src="assets/panel-pet.js"></script>
+<script src="assets/panel-theme.js"></script>
 <script src="assets/sound.js"></script>
 <script src="assets/quiz-bank.js"></script>
 <script src="assets/nebula.js"></script>
@@ -404,28 +412,88 @@
       patch[name] = v;
       PanelState.write(patch);
     }
+    /* 预设切换时 scrub 元素整体重挂载（CAScrub 无 destroy，旧元素连同监听器一起丢弃） */
+    function rebuild(id, opts) {
+      var old = document.getElementById(id);
+      if (!old) return;
+      var el = document.createElement("span");
+      el.className = "scrub-slot";
+      el.id = id;
+      el.tabIndex = 0;
+      old.parentNode.replaceChild(el, old);
+      CAScrub.make(el, opts);
+    }
+    var PRESETS = {
+      aurora: { cloud: 0.78, hue: 1.9, speed: 0.8 },   /* 极光：绿青域、云厚、慢 */
+      soot: { cloud: 0.22, hue: -0.35, speed: 0.5 },   /* 煤烟：稀云暗底 */
+      deep: { cloud: 0.55, hue: 0, speed: 1 }          /* 深空：站点默认配方 */
+    };
+    function applyPreset(key) {
+      var cfg = PRESETS[key];
+      if (!cfg) return;
+      CANebula.setParam("cloud", cfg.cloud);
+      CANebula.setParam("hue", cfg.hue);
+      CANebula.setParam("speed", cfg.speed);
+      save("nc", cfg.cloud); save("nh", cfg.hue); save("ns2", cfg.speed);
+      buildAll(cfg.cloud, cfg.hue, cfg.speed);
+      Array.prototype.forEach.call(document.querySelectorAll(".nc-presets button"), function (b) {
+        b.classList.toggle("on", b.getAttribute("data-np") === key);
+      });
+    }
+    function buildAll(c, h, sp) {
+      rebuild("nb-cloud", {
+        min: 0, max: 1, step: 0.05, value: c,
+        label: "星云云量",
+        fmt: function (v) { return Math.round(v * 100) + "%"; },
+        onInput: function (v) { CANebula.setParam("cloud", v); save("nc", v); markCustom(); }
+      });
+      rebuild("nb-hue", {
+        min: -3.14, max: 3.14, step: 0.05, value: h,
+        label: "星云色相偏移",
+        fmt: function (v) { var d = Math.round(v * 57.2958); return (d > 0 ? "+" : "") + d + "°"; },
+        onInput: function (v) { CANebula.setParam("hue", v); save("nh", Math.round(v * 100) / 100); markCustom(); }
+      });
+      rebuild("nb-speed", {
+        min: 0, max: 3, step: 0.25, value: sp,
+        label: "星云流动速度",
+        fmt: function (v) { return "×" + v; },
+        onInput: function (v) { CANebula.setParam("speed", v); save("ns2", v); markCustom(); }
+      });
+    }
+    /* 手拖任一参数即离开预设——按钮高亮让位 */
+    function markCustom() {
+      Array.prototype.forEach.call(document.querySelectorAll(".nc-presets button"), function (b) {
+        b.classList.remove("on");
+      });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".nc-presets button"), function (b) {
+      b.addEventListener("click", function () { applyPreset(b.getAttribute("data-np")); });
+    });
     CAScrub.make(document.getElementById("nb-cloud"), {
       min: 0, max: 1, step: 0.05, value: cloud,
       label: "星云云量",
       fmt: function (v) { return Math.round(v * 100) + "%"; },
-      onInput: function (v) { CANebula.setParam("cloud", v); save("nc", v); }
+      onInput: function (v) { CANebula.setParam("cloud", v); save("nc", v); markCustom(); }
     });
     CAScrub.make(document.getElementById("nb-hue"), {
       min: -3.14, max: 3.14, step: 0.05, value: hue,
       label: "星云色相偏移",
       fmt: function (v) { var d = Math.round(v * 57.2958); return (d > 0 ? "+" : "") + d + "°"; },
-      onInput: function (v) { CANebula.setParam("hue", v); save("nh", Math.round(v * 100) / 100); }
+      onInput: function (v) { CANebula.setParam("hue", v); save("nh", Math.round(v * 100) / 100); markCustom(); }
     });
     CAScrub.make(document.getElementById("nb-speed"), {
       min: 0, max: 3, step: 0.25, value: speed,
       label: "星云流动速度",
       fmt: function (v) { return "×" + v; },
-      onInput: function (v) { CANebula.setParam("speed", v); save("ns2", v); }
+      onInput: function (v) { CANebula.setParam("speed", v); save("ns2", v); markCustom(); }
     });
-    /* 初始值从 hash 恢复（CAScrub.paint 只显示，不触发 onInput——手动推一遍） */
+    /* 初始值从 hash 恢复（CAScrub.paint 只显示，不触发 onInput——手动推一遍）；
+       与默认配方不同时预设按钮全部让位（自定义态） */
     CANebula.setParam("cloud", cloud);
     CANebula.setParam("hue", hue);
     CANebula.setParam("speed", speed);
+    var isDeep = Math.abs(cloud - 0.55) < 0.001 && Math.abs(hue) < 0.001 && Math.abs(speed - 1) < 0.001;
+    if (!isDeep) markCustom();
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", wire);

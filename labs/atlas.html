@@ -164,6 +164,12 @@
   .edge-chips button:hover { color: var(--ink); }
   .edge-chips button.on { color: var(--amber); border-color: rgba(255, 180, 84, .7); background: rgba(255, 180, 84, .08); }
   .edge-chips button:focus-visible { outline: none; border-color: var(--amber); }
+  .edge-tune {
+    display: inline-flex; gap: 5px; align-items: baseline;
+    font-family: var(--mono); font-size: 10px; color: var(--dim);
+    background: rgba(16, 20, 24, .82); padding: 2px 9px; border-radius: 999px;
+    border: 1px solid var(--line-strong);
+  }
   .galaxy-cap { font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .05em; margin: 8px 0 0; line-height: 1.7; }
   /* 力学视图：力导向依赖图 */
   #force { height: 480px; }
@@ -314,10 +320,12 @@
       <div id="treemap" class="tm-wrap" hidden></div>
 
       <div id="galaxy" class="tm-wrap" hidden>
-        <div class="edge-chips" id="edge-chips" role="group" aria-label="依赖边过滤">
+        <div class="edge-chips" id="edge-chips" role="group" aria-label="依赖边过滤与线框调音台">
           <button data-ef="all" class="on" type="button">全部边</button>
           <button data-ef="out" type="button">出边 · 它依赖的</button>
           <button data-ef="in" type="button">入边 · 依赖它的</button>
+          <label class="edge-tune">边透明 <span class="scrub-slot" id="gx-ea" tabindex="0"></span></label>
+          <label class="edge-tune">点大小 <span class="scrub-slot" id="gx-ps" tabindex="0"></span></label>
         </div>
       </div>
       <p class="galaxy-cap" id="galaxy-cap" hidden>136 个成员按九条带聚成星团（球面金螺旋布局，固定种子生成——同基线下星图可复现）。拖拽旋转，松手带惯性；滚轮缩放锚定光标，右键拖拽平移，双击复位；闲置时自转；<b style="color:var(--dim);">点带名镜头会转过去、只亮那条带，再点一次解除。点选任意成员后，它的实测依赖会连成线框——琥珀是它依赖的，钢青是依赖它的（CA_DEPS 全量边表）。</b></p>
@@ -1098,6 +1106,37 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       }
     }
 
+    /* 线框调音台：边透明倍率 / 点大小倍率（CAScrub 可拖，持久化 ea/ps） */
+    var eaMul = 1, psMul = 1;
+    (function () {
+      if (!window.CAScrub) return;
+      var st = PanelState.read();
+      function num(v, d, lo, hi) {
+        v = parseFloat(v);
+        return isNaN(v) ? d : Math.min(hi, Math.max(lo, v));
+      }
+      eaMul = num(st.ea, 1, 0.2, 2.5);
+      psMul = num(st.ps2, 1, 0.5, 3);
+      function wireOne(id, get, set) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        CAScrub.make(el, {
+          min: id === "gx-ea" ? 0.2 : 0.5,
+          max: id === "gx-ea" ? 2.5 : 3,
+          step: 0.05, value: get(),
+          label: id === "gx-ea" ? "依赖线框边透明度" : "星系成员点大小",
+          fmt: function (v) { return "×" + v; },
+          onInput: function (v) { set(v); sync(); }
+        });
+      }
+      wireOne("gx-ea", function () { return eaMul; }, function (v) {
+        eaMul = v; PanelState.write({ ea: v });
+      });
+      wireOne("gx-ps", function () { return psMul; }, function (v) {
+        psMul = v; PanelState.write({ ps2: v });
+      });
+    })();
+
     var REDUCED = window.PrefersReducedMotion === true;
     var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
     var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
@@ -1279,13 +1318,13 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         for (i = 0; showOut && i < selDeps.out.length; i++) {
           var qo = PTS[PTS_BY[selDeps.out[i]]];
           if (!qo || qo._sx == null) continue;
-          ctx.strokeStyle = "rgba(" + AMBER + "," + edgeAlpha(qo, 0.5).toFixed(3) + ")";
+          ctx.strokeStyle = "rgba(" + AMBER + "," + Math.min(1, edgeAlpha(qo, 0.5) * eaMul).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qo._sx, qo._sy); ctx.stroke();
         }
         for (i = 0; showIn && i < selDeps.ins.length; i++) {
           var qi = PTS[PTS_BY[selDeps.ins[i]]];
           if (!qi || qi._sx == null) continue;
-          ctx.strokeStyle = "rgba(" + STEEL + "," + edgeAlpha(qi, 0.42).toFixed(3) + ")";
+          ctx.strokeStyle = "rgba(" + STEEL + "," + Math.min(1, edgeAlpha(qi, 0.42) * eaMul).toFixed(3) + ")";
           ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(qi._sx, qi._sy); ctx.stroke();
         }
         /* 悬停选边：只在指针静止于画布上时生效；只扫过滤后仍显示的边 */
@@ -1362,7 +1401,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         var hayHit = !FILTER_Q || (SEARCH_TEXT[p.name] || p.name.toLowerCase()).indexOf(FILTER_Q) !== -1;
         var dimF = focusBi !== null && p.bi !== focusBi;
         var a = (0.22 + 0.6 * depth) * (hayHit ? 1 : 0.1) * (dimF ? 0.12 : 1);
-        var r = 2.1 * p._per * (isSel ? 1.5 : 1);
+        var r = Math.min(9, 2.1 * p._per * (isSel ? 1.5 : 1) * psMul);
         if (isSel) {
           /* additive 光晕：三层径向渐变叠出体积感 */
           ctx.save();
