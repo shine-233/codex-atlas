@@ -249,6 +249,52 @@ def hist_curve(ctx):
     pg.close()
 
 
+def helix_sync(ctx):
+    """01 重采样螺旋仪：圈数/阶段与单步仪同源、拖拽转视角、回放轨迹、残影环绘制。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/labs/loop.html")
+    pg.wait_for_load_state("networkidle")
+    check("helix exposed", pg.evaluate("() => !!window.CAHelix"))
+    pg.evaluate("() => CAHistJump(4)")   # 定到第 4 圈第 9 站
+    pg.wait_for_timeout(350)
+    st = pg.evaluate("() => CAHelix.state()")
+    check("helix tracks laps and stage", st.get("laps") == 4 and st.get("stage") == 9, st)
+    painted = pg.evaluate("""() => {
+        const c = document.querySelector('#helix-host canvas');
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 400) if (d[i] > 0) return true;
+        return false;
+    }""")
+    check("helix paints trace rings", painted)
+    ax0 = pg.evaluate("() => CAHelix.state().ax")
+    pg.locator("#helix-host").scroll_into_view_if_needed()
+    pg.wait_for_timeout(400)
+    box = pg.locator("#helix-host").bounding_box()
+    cx, cy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    pg.mouse.move(cx, cy)
+    pg.mouse.down()
+    pg.mouse.move(cx + 90, cy - 26, steps=6)
+    pg.mouse.up()
+    pg.wait_for_timeout(180)
+    ax1 = pg.evaluate("() => CAHelix.state().ax")
+    check("helix drag rotates view", abs(ax1 - ax0) > 0.2, [ax0, ax1])
+    pg.evaluate("() => CAHelix.replay()")
+    pg.wait_for_timeout(140)
+    check("helix replay engages", "重放中" in pg.evaluate(
+        "() => document.getElementById('helix-replay').textContent"))
+    pg.evaluate("""() => {
+        const n = document.querySelectorAll('#loopmap .lm-node')[1];
+        n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    }""")
+    pg.wait_for_timeout(420)
+    check("helix follows stage clicks", pg.evaluate("() => CAHelix.state().stage") == 10,
+          pg.evaluate("() => CAHelix.state()"))
+    check("helix no errors", not errs, errs[:3])
+    pg.close()
+
+
 def dive_keyframes(ctx):
     """08 滚动叙事关键帧：pin 剖面随滚动三分步 + 站点浮现。"""
     pg = ctx.new_page()
@@ -784,6 +830,7 @@ def main():
             sse_waterfall(ctx)
             ci_view(ctx)
             hist_curve(ctx)
+            helix_sync(ctx)
             yard_grab(ctx)
             match_game(ctx)
             memory_curve(ctx)

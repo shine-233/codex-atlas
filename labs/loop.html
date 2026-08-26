@@ -142,6 +142,13 @@
     border: 1px solid var(--line); background: var(--bg0);
   }
   #hist-curve canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+  /* 重采样螺旋仪：同一份圈数数据立起来看 */
+  #helix-host {
+    position: relative; height: 280px; margin-top: 12px;
+    border: 1px solid var(--line); background: var(--bg0);
+    cursor: grab; touch-action: none; overflow: hidden;
+  }
+  #helix-host.dragging { cursor: grabbing; }
   /* 第 11 站现场：SSE 事件瀑布 */
   .sse-grid {
     display: grid; grid-template-columns: 1.15fr .85fr;
@@ -216,7 +223,7 @@
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -342,6 +349,17 @@
           <b style="color:var(--dim);">点任意数据点，单步仪直接跳到那一圈的第 9 站。</b>
           钢青虚线是线性外推——真实历史长不到那里：触顶会被 compact 压回去，02 的 COMPACT 演示有现场。
         </p>
+        <div class="lap-head" style="margin-top:18px;">
+          <span class="lap-tag">RESAMPLING HELIX · 历史的形状——同一份圈数，立起来看</span>
+          <span class="match-readout" id="helix-read">拖动旋转 · 滚轮缩放 · 双击复位</span>
+          <button class="btn" id="helix-replay" type="button" style="margin-left:auto;">▶ 重放轨迹</button>
+        </div>
+        <div id="helix-host" aria-hidden="true"></div>
+        <p class="small muted" style="margin:8px 0 0;">
+          平面图上看不出「转了很多圈」有多重——把它立起来：每重采样一次，螺线抬升一层，
+          走过的圈留成残影环。琥珀光点是当前采样在环上的位置；第 11 站没有工具调用时，
+          信号从切线方向溜出环，落到 TurnComplete。悬停任意残影环，看那一圈携带了多少历史。
+        </p>
       </div>
     </section>
 
@@ -417,7 +435,7 @@
       </div>
       <details class="src-details" style="margin:0 24px 20px;">
         <summary>⌨ 看真实源码 · steer_input：把新输入并进正在跑的轮</summary>
-        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :477-486（签名）+ :545-563（入队核心）· @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :477-486（签名）+ :545-563（入队核心）· @3ba7b69 实测</span>
 <span class="src-code">async fn steer_input(
     &amp;self,
     input: &amp;mut Vec&lt;UserInput&gt;,
@@ -450,7 +468,7 @@ Ok(active_turn_id.clone())</span></pre>
       <p class="small muted" style="margin:14px 0 0;">上面演的是 steer 成功并入。源码里还要处理 steer <b>输掉竞态</b>的两种情况：轮次已经结束（没有 active turn 可插话），或者缓存里的 turn id 过期——后者会带着服务器当前的真实 id 重试一次。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · steer 竞态的两种败局与恢复</summary>
-        <pre><span class="src-loc">codex-rs/tui/src/app.rs :660-689 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/tui/src/app.rs :660-689 · @3ba7b69 实测</span>
 <span class="src-code">#[derive(Debug, Clone, PartialEq, Eq)]
 enum ActiveTurnSteerRace {
     Missing,
@@ -522,7 +540,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       </div>
       <details class="src-details" style="margin:14px 24px 20px;">
         <summary>⌨ 看真实源码 · --json 旗标与 ThreadEvent 全家福</summary>
-        <pre><span class="src-loc">codex-rs/exec/src/cli.rs :58-65 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/exec/src/cli.rs :58-65 · @3ba7b69 实测</span>
 <span class="src-code">    /// Print events to stdout as JSONL.
     #[arg(
         long = "json",
@@ -531,7 +549,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         global = true
     )]
     pub json: bool,</span></pre>
-        <pre><span class="src-loc">codex-rs/exec/src/exec_events.rs :8-37 · @cbfd999 实测（doc 注释截取）</span>
+        <pre><span class="src-loc">codex-rs/exec/src/exec_events.rs :8-37 · @3ba7b69 实测（doc 注释截取）</span>
 <span class="src-code">/// Top-level JSONL events emitted by codex exec
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
 #[serde(tag = "type")]
@@ -625,7 +643,7 @@ pub enum ThreadEvent {
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@cbfd999 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；CI VIEW 的 JSONL 事件类型与字段名按 <code>exec/src/exec_events.rs</code> 实测，报文数值为示意，退出码语义未实测；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@3ba7b69 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；CI VIEW 的 JSONL 事件类型与字段名按 <code>exec/src/exec_events.rs</code> 实测，报文数值为示意，退出码语义未实测；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
     </aside>
 
   </main>
@@ -683,7 +701,7 @@ pub enum ThreadEvent {
       next:"收束后这一轮就结束了。转了几圈、每圈重发了多少，下面成本对照里都有。" }
   ];
 
-  /* 每站的真实源码切片：片段与行号实测自固定提交 @cbfd999（raw 文件逐个核对）。 */
+  /* 每站的真实源码切片：片段与行号实测自固定提交 @3ba7b69（raw 文件逐个核对）。 */
   var SRC = {
     1: { loc: "codex-cli/bin/codex.js :195（JS 启动器）",
          code: 'const child = spawn(binaryPath, process.argv.slice(2), {\n  stdio: "inherit",\n  env,\n});' },
@@ -737,6 +755,9 @@ pub enum ThreadEvent {
   var lapN = document.getElementById("lap-n");
   var histN = document.getElementById("hist-n");
   var lapFill = document.getElementById("lap-fill");
+
+  /* 螺旋仪等外部仪器读取当前圈数的唯一入口（laps 只在本作用域内变化） */
+  window.CALoops = function () { return laps; };
 
   function renderLaps(flash) {
     if (!lapN) return;
@@ -1040,7 +1061,7 @@ pub enum ThreadEvent {
       srcBox.hidden = false;
       srcBox.innerHTML =
         '<button type="button" class="btn src-toggle" aria-expanded="false">⌨ 看真实源码 · ' + escHtml(src.loc) + "</button>" +
-        '<pre class="src-pre" hidden><span class="src-loc">' + escHtml(src.loc) + " · @cbfd999 实测</span>\n" +
+        '<pre class="src-pre" hidden><span class="src-loc">' + escHtml(src.loc) + " · @3ba7b69 实测</span>\n" +
         '<span class="src-code">' + escHtml(src.code) + "</span></pre>";
       var tg = srcBox.querySelector(".src-toggle");
       var pre = srcBox.querySelector(".src-pre");
@@ -1285,6 +1306,256 @@ pub enum ThreadEvent {
     }
     document.addEventListener("ca:stage", syncMap);
     syncMap({ detail: { stage: cur } });   /* 补齐首次渲染前的状态 */
+  })();
+
+  /* ---------- RESAMPLING HELIX · 历史的形状（canvas 手写 3D 投影，零依赖）。
+     把「转了一圈又一圈」立起来：每重采样一次螺线抬升一层，走过的圈留成残影环
+     （ciechanowski 式 trace）；琥珀光点 = 当前采样在环上的位置，随 ca:stage 缓动。
+     拖拽旋转 / 滚轮缩放 / 双击复位；▶ 重放轨迹从第 0 圈把整条路径演一遍。
+     纪律与流沙仪相同：没有交互就没有 rAF——缓动/回放结束即熄火。 ---------- */
+  (function () {
+    var host = document.getElementById("helix-host");
+    if (!host || !window.CanvasRenderingContext2D) return;
+    var read = document.getElementById("helix-read");
+    var replayBtn = document.getElementById("helix-replay");
+    var cc = window.CACanvas ? CACanvas.create(host, { draw: function () { scheduleDraw(); } }) : null;
+    if (!cc) return;
+    var canvas = cc.canvas, ctx = cc.canvas.getContext("2d");
+
+    var AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+    var STEEL = (window.CATheme ? CATheme.rgb("--steel", "143,199,232") : "143,199,232");
+    var FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+    var REDUCED = window.PrefersReducedMotion === true;
+
+    var AX0 = -0.5, PITCH0 = 0.46;
+    var ax = AX0, pitch = PITCH0, zoomv = 1;
+    var dotA = 0;                 /* 光点当前角 */
+    var dotTarget = null;         /* 目标进度（null=停驻） */
+    var dotRaf = 0, drawRaf = 0;
+    var replayT = -1;             /* >=0 表示回放中的虚拟时间（圈为单位） */
+    var replayRaf = 0;
+    var ringYs = [];              /* 各残影环的屏幕 y，供悬停命中 */
+
+    function PROG(s) { return { 9: 0, 10: 0.25, 11: 0.5, 12: 0.75 }[s]; }
+
+    function sizeNow() { return cc.size(); }
+    function W() { return cc.W(); }
+    function H() { return cc.H(); }
+
+    function project(theta, hLap) {
+      var R = Math.min(W(), H()) * 0.30 * zoomv;
+      var LAP_H = R * 0.5;
+      var x1 = R * Math.cos(theta), z1 = R * Math.sin(theta);
+      var ca = Math.cos(ax), sa = Math.sin(ax);
+      var x2 = x1 * ca - z1 * sa;
+      var z2 = x1 * sa + z1 * ca;
+      var hh = hLap * LAP_H - laps * LAP_H * 0.5;   /* 螺线塔居中 */
+      var cp = Math.cos(pitch), sp = Math.sin(pitch);
+      var y2 = hh * cp - z2 * sp;
+      var z3 = hh * sp + z2 * cp;
+      return { x: W() / 2 + x2, y: H() * 0.62 + y2, z: z3, r: R };
+    }
+
+    function strokeRing(hLap, frac, baseAlpha) {
+      var SEG = 60, iN = SEG;
+      if (frac != null) iN = Math.max(1, Math.round(SEG * frac));
+      var prev = null;
+      for (var i = 0; i <= iN; i++) {
+        var th = -Math.PI / 2 + (i / SEG) * Math.PI * 2;
+        var p = project(th, hLap);
+        if (prev) {
+          var dep = Math.min(1, Math.max(0, 0.5 - p.z / (p.r * 2.4)));
+          ctx.strokeStyle = "rgba(" + STEEL + "," + (baseAlpha * (0.45 + 0.55 * (1 - dep))).toFixed(3) + ")";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+        }
+        prev = p;
+      }
+    }
+
+    function drawExit(fromLap, alpha) {
+      /* 第 11 站无工具调用：信号从 p=0.5 处切向溜出环，落到 TurnComplete 小旗 */
+      var a0 = -Math.PI / 2 + 0.5 * Math.PI * 2;
+      var s0 = project(a0, fromLap);
+      var s1 = project(a0 + 0.55, fromLap);
+      var endX = s1.x + 34 * zoomv, endY = s1.y + 30 * zoomv;
+      ctx.strokeStyle = "rgba(" + AMBER + "," + (alpha * 0.8).toFixed(3) + ")";
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.quadraticCurveTo((s0.x + endX) / 2 + 14, s0.y + 6, endX, endY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(" + AMBER + "," + alpha.toFixed(3) + ")";
+      ctx.font = "10.5px ui-monospace,monospace";
+      ctx.fillText("13 · TurnComplete", endX + 4, endY + 3);
+      return { x: endX, y: endY };
+    }
+
+    function draw() {
+      if (!sizeNow()) return;
+      ctx.clearRect(0, 0, W(), H());
+      ringYs = [];
+      var lapsN = laps, frac = null;
+      if (replayT >= 0) {
+        lapsN = Math.floor(replayT + 1e-6);
+        frac = replayT % 1;
+      }
+      /* 残影环：越老的圈越淡 */
+      for (var i = 0; i < lapsN; i++) {
+        strokeRing(i, null, Math.max(0.14, 0.5 - (lapsN - 1 - i) * 0.07));
+        ringYs.push({ y: project(-Math.PI / 2, i).y, lap: i });
+      }
+      /* 当前圈：完整或部分 */
+      var curFrac = (replayT >= 0) ? frac : (PROG(cur) != null ? PROG(cur) : (cur >= 13 ? 1 : null));
+      if (replayT >= 0 || cur >= 9) {
+        var activeLap = (replayT >= 0) ? lapsN : laps;
+        strokeRing(activeLap, curFrac == null ? 1 : Math.max(0.02, curFrac), 0.85);
+        ringYs.push({ y: project(-Math.PI / 2, activeLap).y, lap: activeLap });
+      }
+      /* 出口滑道：第 13 站收束（回放途中弱化显示） */
+      var exitDot = null;
+      if (replayT < 0 && cur >= 13) {
+        exitDot = drawExit(Math.max(0, laps), 0.9);
+      } else if (replayT >= 0 && frac != null && frac > 0.5) {
+        exitDot = drawExit(lapsN, 0.35);
+      }
+      /* 当前光点 */
+      if (replayT >= 0) {
+        var gp = project(-Math.PI / 2 + (replayT % 1) * Math.PI * 2, Math.floor(replayT + 1e-6));
+        ctx.fillStyle = "rgba(" + AMBER + ",.95)";
+        ctx.beginPath(); ctx.arc(gp.x, gp.y, 4.2, 0, 6.2832); ctx.fill();
+      } else {
+        var pr = PROG(cur);
+        if (pr != null) {
+          var dp = project(dotA, laps);
+          var depthScale = Math.max(0.7, Math.min(1.25, 1 - dp.z / (dp.r * 3)));
+          ctx.fillStyle = "rgba(" + AMBER + ",.95)";
+          ctx.beginPath(); ctx.arc(dp.x, dp.y, 4.6 * depthScale, 0, 6.2832); ctx.fill();
+          ctx.strokeStyle = "rgba(" + AMBER + ",.35)";
+          ctx.beginPath(); ctx.arc(dp.x, dp.y, 9 * depthScale, 0, 6.2832); ctx.stroke();
+        } else if (cur >= 13) {
+          if (!exitDot) exitDot = drawExit(Math.max(0, laps), 0.9);
+          ctx.fillStyle = "rgba(" + AMBER + ",.95)";
+          ctx.beginPath(); ctx.arc(exitDot.x, exitDot.y, 4.6, 0, 6.2832); ctx.fill();
+        }
+      }
+      /* 圈数角标 */
+      ctx.fillStyle = "rgba(" + FAINT + ",.9)";
+      ctx.font = "10px ui-monospace,monospace";
+      ctx.fillText("laps " + laps + (cur >= 13 ? " · 收束" : ""), 10, H() - 10);
+    }
+
+    function scheduleDraw() {
+      if (drawRaf) return;
+      drawRaf = requestAnimationFrame(function () { drawRaf = 0; draw(); });
+    }
+
+    /* 光点朝目标角缓动（最短方向），到位即熄火 */
+    function easeDot() {
+      if (dotRaf) cancelAnimationFrame(dotRaf);
+      if (REDUCED || dotTarget == null) {
+        var p0 = PROG(cur);
+        if (p0 != null) dotA = -Math.PI / 2 + p0 * Math.PI * 2;
+        dotTarget = null;
+        scheduleDraw();
+        return;
+      }
+      var target = -Math.PI / 2 + dotTarget * Math.PI * 2;
+      function step() {
+        var diff = target - dotA;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        if (Math.abs(diff) < 0.01) {
+          dotA = target; dotRaf = 0; scheduleDraw();
+          return;
+        }
+        dotA += diff * 0.16;
+        scheduleDraw();
+        dotRaf = requestAnimationFrame(step);
+      }
+      dotRaf = requestAnimationFrame(step);
+    }
+
+    document.addEventListener("ca:stage", function (ev) {
+      var pr = PROG(ev.detail.stage);
+      dotTarget = (pr == null) ? null : pr;
+      easeDot();
+    });
+
+    /* ▶ 重放轨迹：虚拟时间 0 → laps+prog，走完自动熄火 */
+    function startReplay() {
+      if (replayBtn) replayBtn.textContent = "❚❚ 重放中…";
+      if (REDUCED) { replayT = -1; if (replayBtn) replayBtn.textContent = "▶ 重放轨迹"; scheduleDraw(); return; }
+      var end = laps + (PROG(cur) != null ? PROG(cur) : (cur >= 13 ? 1 : 0)) + 0.001;
+      var t0 = performance.now(), DUR = Math.min(2600, 500 + end * 320);
+      if (replayRaf) cancelAnimationFrame(replayRaf);
+      function step(now) {
+        var p = Math.min(1, (now - t0) / DUR);
+        replayT = (1 - Math.pow(1 - p, 3)) * end;
+        scheduleDraw();
+        if (p < 1) { replayRaf = requestAnimationFrame(step); }
+        else { replayRaf = 0; replayT = -1; if (replayBtn) replayBtn.textContent = "▶ 重放轨迹"; scheduleDraw(); }
+      }
+      replayRaf = requestAnimationFrame(step);
+    }
+    if (replayBtn) replayBtn.addEventListener("click", startReplay);
+
+    /* 手势：拖拽旋转 / 滚轮缩放 / 双击复位（galaxy 同款语法） */
+    var drag = null;
+    host.addEventListener("pointerdown", function (e) {
+      drag = { x: e.clientX, y: e.clientY };
+      host.classList.add("dragging");
+      try { host.setPointerCapture(e.pointerId); } catch (err) { }
+    });
+    host.addEventListener("pointermove", function (e) {
+      if (!drag) { hover(e); return; }
+      ax += (e.clientX - drag.x) * 0.008;
+      pitch = Math.max(-0.15, Math.min(0.95, pitch + (e.clientY - drag.y) * 0.005));
+      drag = { x: e.clientX, y: e.clientY };
+      hint("拖动旋转中 · 松手即停");
+      scheduleDraw();
+    });
+    function up() { drag = null; host.classList.remove("dragging"); hint(""); }
+    host.addEventListener("pointerup", up);
+    host.addEventListener("pointercancel", up);
+    host.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      zoomv = Math.max(0.55, Math.min(2.2, zoomv * (e.deltaY < 0 ? 1.08 : 0.92)));
+      scheduleDraw();
+    }, { passive: false });
+    host.addEventListener("dblclick", function () {
+      ax = AX0; pitch = PITCH0; zoomv = 1;
+      hint("视角已复位");
+      scheduleDraw();
+    });
+
+    /* 悬停残影环 → 读那一圈的历史 */
+    function hover(e) {
+      if (!ringYs.length) return;
+      var r = canvas.getBoundingClientRect();
+      var my = e.clientY - r.top;
+      var best = null, bd = 1e9;
+      for (var i = 0; i < ringYs.length; i++) {
+        var d = Math.abs(ringYs[i].y - my);
+        if (d < bd) { bd = d; best = ringYs[i]; }
+      }
+      if (best && bd < 9) hint("第 " + best.lap + " 圈 · ≈ " + 10 * (best.lap + 1) + " 单位历史");
+    }
+    var hintT = 0;
+    function hint(txt) {
+      if (!read) return;
+      clearTimeout(hintT); hintT = 0;
+      if (txt) { read.textContent = txt; }
+      else { hintT = setTimeout(function () { read.textContent = "拖动旋转 · 滚轮缩放 · 双击复位"; }, 1200); }
+    }
+
+    sizeNow();
+    var ip = PROG(cur); if (ip != null) dotA = -Math.PI / 2 + ip * Math.PI * 2;
+    draw();
+
+    window.CAHelix = {
+      state: function () { return { laps: laps, stage: cur, ax: +ax.toFixed(4), zoom: zoomv }; },
+      replay: startReplay
+    };
   })();
 
   /* ---------- 会话建立段：01–08 单向链，随阶段联动 ---------- */

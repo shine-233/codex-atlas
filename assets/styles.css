@@ -1627,15 +1627,9 @@ body::after {
 /* Kandinsky 手势实验室（04） */
 .gl-host { border: 1px dashed var(--line-strong); }
 
-/* Excalidraw 手感标注层（07C PATCH LAB） */
+/* Excalidraw 手感标注层（07C PATCH LAB）——单一实现在 deep.html 主 IIFE（CAInk） */
 #pl-grid { position: relative; }
-.pl-mark-cv {
-  position: absolute; inset: 0; z-index: 5;
-  pointer-events: none;
-  touch-action: none;
-}
 body.pl-mark-on #pl-grid { outline: 1.5px dashed rgba(255, 180, 84, .55); }
-body.pl-mark-on .pl-mark-cv { pointer-events: auto; cursor: crosshair; }
 .gl-wrap { position: relative; }
 .gl-canvas {
   display: block; width: 100%; height: 190px;

@@ -331,7 +331,7 @@
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -410,7 +410,7 @@
           </div>
           <details class="src-details">
             <summary>⌨ 看真实源码 · AuthDotJson 结构体（比示意多四个字段）</summary>
-            <pre><span class="src-loc">codex-rs/login/src/auth/storage.rs :39-61 · @cbfd999 实测</span>
+            <pre><span class="src-loc">codex-rs/login/src/auth/storage.rs :39-61 · @3ba7b69 实测</span>
 <span class="src-code">/// Expected structure for $CODEX_HOME/auth.json.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct AuthDotJson {
@@ -486,7 +486,7 @@ pub struct AuthDotJson {
 
           <details class="src-details">
             <summary>⌨ 看真实源码 · 这些键在 config_toml.rs 里的原始定义</summary>
-            <pre><span class="src-loc">codex-rs/config/src/config_toml.rs · @cbfd999 实测（各行真实行号，原文拼接）</span>
+            <pre><span class="src-loc">codex-rs/config/src/config_toml.rs · @3ba7b69 实测（各行真实行号，原文拼接）</span>
 <span class="src-code">/// Token usage threshold triggering auto-compaction of conversation history.   // L167
 pub model_auto_compact_token_limit: Option&lt;i64&gt;,                              // L168
 
@@ -617,7 +617,7 @@ pub developer_instructions: Option&lt;String&gt;,                               
             </p>
             <details class="src-details">
               <summary>⌨ 看真实源码 · PasteBurst 状态机：时序启发式与字段语义</summary>
-              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/paste_burst.rs :1-18, 46-55 · @cbfd999 实测</span>
+              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/paste_burst.rs :1-18, 46-55 · @3ba7b69 实测</span>
 <span class="src-code">//! Paste-burst detection for terminals without bracketed paste.
 //!
 //! On some platforms (notably Windows), pastes often arrive as a rapid stream of
@@ -647,7 +647,7 @@ pub developer_instructions: Option&lt;String&gt;,                               
             </p>
             <details class="src-details">
               <summary>⌨ 看真实源码 · 输入框的三档能力开关与粘贴处置枚举</summary>
-              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/chat_composer.rs :442-446, 452-483 · @cbfd999 实测</span>
+              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/chat_composer.rs :442-446, 452-483 · @3ba7b69 实测</span>
 <span class="src-code">enum PendingPasteHandling {
     Expand,
     Preserve,
@@ -685,7 +685,7 @@ impl ChatComposerConfig {
             </p>
             <details class="src-details">
               <summary>⌨ 看真实源码 · SlashCommand 枚举开头（顺序即弹窗展示顺序）</summary>
-              <pre><span class="src-loc">codex-rs/tui/src/slash_command.rs :12-29 · @cbfd999 实测（截取）</span>
+              <pre><span class="src-loc">codex-rs/tui/src/slash_command.rs :12-29 · @3ba7b69 实测（截取）</span>
 <span class="src-code">pub enum SlashCommand {
     // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
     // more frequently used commands should be listed first.
@@ -720,7 +720,7 @@ impl ChatComposerConfig {
        <p class="small muted" style="margin:18px 0 0;">屏幕上你看到的历史行，不是整屏重绘——是插进视口上方。插入动作本身有一条四层入口的管线，每层管一件事：换行策略、全屏/标准模式、超链接扁平化。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 历史行插入管线的四层入口</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/insert_history.rs :54-103 · @cbfd999 实测（原文拼接，签名省略泛型约束）</span>
+         <pre><span class="src-loc">codex-rs/tui/src/insert_history.rs :54-103 · @3ba7b69 实测（原文拼接，签名省略泛型约束）</span>
 <span class="src-code">pub(crate) enum InsertHistoryMode {
     Standard,
     FullScreen,
@@ -752,7 +752,7 @@ pub(crate) fn insert_history_lines_with_mode_and_wrap_policy&lt;B&gt;(...)
         <p class="small muted" style="margin:14px 0 0;">正在流式输出的那段回答走另一条路：边收 delta 边找「稳定边界」，生产环境不做增量解析——宽度一变，就从累积的源串整体重渲染，所以答案长到一半格式也不会错乱。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 流式 Markdown 收集器：只管边界，不管解析</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/markdown_stream.rs :24-38, 76-78 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/markdown_stream.rs :24-38, 76-78 · @3ba7b69 实测</span>
 <span class="src-code">/// completed portion. This design lets the stream controller re-render the entire accumulated
 /// source while only appending new content.
 ///
@@ -772,7 +772,7 @@ pub fn push_delta(&amp;mut self, delta: &amp;str) { ... }</span></pre>
        <p class="small muted" style="margin:14px 0 0;">「整体重渲染」只是收集侧。渲染好的行在上屏之前还要排队：一条 FIFO 队列，每行带自己的入队时刻。排空策略只许看队龄和积压深度，不许偷看内容——这条被写成模块的第一不变式。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · StreamState：带时间戳的 FIFO 渲染行队列</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/streaming/mod.rs :9-10, 26-36 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/mod.rs :9-10, 26-36 · @3ba7b69 实测</span>
 <span class="src-code">//! The key invariant is queue ordering. All drains pop from the front, and enqueue records an
 //! arrival timestamp so policy code can reason about oldest queued age without peeking into text.
 
@@ -791,7 +791,7 @@ pub(crate) struct StreamState {
        <p class="small muted" style="margin:14px 0 0;">表格在流里有特权：表头行一出现先扣住，等下一行像不像分隔符再决定发不发。确认之前整段是「可变尾巴」——新来一行数据，前面几行可以跟着重新对齐；确认之后才准流进稳定队列。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 表格扣留扫描器的三态判定</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/streaming/table_holdback.rs :21-32 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/table_holdback.rs :21-32 · @3ba7b69 实测</span>
 <span class="src-code">/// Result of scanning accumulated raw source for pipe-table patterns.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum TableHoldbackState {
@@ -808,7 +808,7 @@ pub(super) enum TableHoldbackState {
        <p class="small muted" style="margin:14px 0 0;">队列自己不会动，得有人敲钟。每个 commit tick 先拍快照：两条流控制器一共积压几行、最老一行等了多久；再拿快照问自适应分块策略要一个决定——跟得上就单行细水长流，跟不上切入追赶模式成批放行。调用方还能给钟划范围：标了 CatchUpOnly 的 tick，只有策略确实处在追赶模式时才真的排空。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · run_commit_tick：拍快照 → 问策略 → 执行排空</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/streaming/commit_tick.rs :29-36, 62-91 · @cbfd999 实测（streaming/ 目录归属由 use super::chunking 推断，行号为原文实测）</span>
+         <pre><span class="src-loc">codex-rs/tui/src/streaming/commit_tick.rs :29-36, 62-91 · @3ba7b69 实测（streaming/ 目录归属由 use super::chunking 推断，行号为原文实测）</span>
 <span class="src-code">/// Describes whether a commit tick may run in all modes or only in catch-up mode.
 pub(crate) enum CommitTickScope {
     /// Always run the tick, regardless of current chunking mode.
@@ -844,7 +844,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这台节拍器不悬空：分块策略与两条流控制器就住在 ChatWidget 的字段上——正文一条流，计划输出另一条流，共享同一个策略实例。谁积压了、队龄多老了，钟一敲全部如实上报。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 流式三件套在 ChatWidget 上的落位</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :596-601 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :596-601 · @3ba7b69 实测</span>
 <span class="src-code">    adaptive_chunking: AdaptiveChunkingPolicy,
     // Stream lifecycle controller
     stream_controller: Option&lt;StreamController&gt;,
@@ -855,7 +855,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这些流排出来的行，最终落成屏上的一段段「cell」：你的消息、模型的回答、一条命令输出，各自是一个 HistoryCell。宽度是它的入参——cell 拿着当前宽度现算显示行；连占几行都按同一宽度重新量。源码特意注明：含 URL 的行比终端还宽时，逻辑行数会低估，所以量的必须是换行后的真实行数。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · HistoryCell trait：宽度进、行数出</summary>
-          <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :175-187, 214-232 · @cbfd999 实测</span>
+          <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :175-187, 214-232 · @3ba7b69 实测</span>
 <span class="src-code">/// A single renderable unit of conversation history.
 ///
 /// Each cell produces logical `Line`s and reports how many viewport
@@ -882,7 +882,7 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
        <p class="small muted" style="margin:14px 0 0;">宽度是渲染的一等公民：终端多窄，表格就多谦逊——列排不下时整表降级成键值对记录，保证可读性优先于版式。而 diff 头部那个经典的 <b>(+12 -3)</b>，就是逐行统计聚合出来的一对彩色 span。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 宽度契约：表格放不下就降级成键值对</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/markdown_render.rs :288-298 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/markdown_render.rs :288-298 · @3ba7b69 实测</span>
 <span class="src-code">/// Render markdown constrained to a known terminal width.
 ///
 /// The renderer preserves columnar table structure while values remain
@@ -898,7 +898,7 @@ pub(crate) fn render_markdown_text_with_width(input: &amp;str, width: Option&lt;
        <p class="small muted" style="margin:14px 0 0;">宽度契约之下是换行原语本身。纯散文按词边界折行就好；麻烦的是 URL——被 <b>/</b> 或 <b>-</b> 从中间切断的链接，在终端里就点不动了。所以折行前先扫一遍 token：行里有没有链接样式的词、有没有普通词，决定走哪条折行路径。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · adaptive_wrap_line：一次 token 扫描定三条路径</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/wrapping.rs :703-727 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/wrapping.rs :703-727 · @3ba7b69 实测</span>
 <span class="src-code">pub(crate) fn adaptive_wrap_line&lt;'a&gt;(line: &amp;'a Line&lt;'a&gt;, base: RtOptions&lt;'a&gt;) -&gt; Vec&lt;Line&lt;'a&gt;&gt; {
     let (flat, span_bounds) = flatten_line(line);
     let mut saw_url = false;
@@ -927,7 +927,7 @@ pub(crate) fn render_markdown_text_with_width(input: &amp;str, width: Option&lt;
        </details>
        <details class="src-details">
          <summary>🔍 看真实源码 · diff 头部的 (+N -N) 是怎么来的</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :400-408, 422-425 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :400-408, 422-425 · @3ba7b69 实测</span>
 <span class="src-code">fn render_line_count_summary(added: usize, removed: usize) -&gt; Vec&lt;RtSpan&lt;'static&gt;&gt; {
     let mut spans = Vec::new();
     spans.push("(".into());
@@ -946,7 +946,7 @@ let file_count = rows.len();</span></pre>
        <p class="small muted" style="margin:14px 0 0;">头部数字之后是逐行着色，入口叫 render_change。它带一道性能闸门：补丁大到一定程度就整体放弃逐行语法高亮——否则几千次解析器初始化能把渲染卡死。小补丁则按 hunk 整块送进高亮器，语法状态得以跨行延续。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · render_change 的两道取舍：大补丁弃高亮，小补丁按块高亮</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :591-598, 617-631 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/diff_render.rs :591-598, 617-631 · @3ba7b69 实测</span>
 <span class="src-code">                // Skip per-line syntax highlighting when the patch is too
                 // large — avoids thousands of parser initializations that
                 // would stall rendering on big diffs.
@@ -975,7 +975,7 @@ let file_count = rows.len();</span></pre>
        <p class="small muted" style="margin:14px 0 0;">按 Esc 不只是打断——在主视图里它先「预演回溯」：←→ 在历史用户消息间移动，Enter 确认回到那条重新开分支。选中状态是一份小心维护的快照：线程一切换，全部作废。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · BacktrackState：Esc 预演模式的四件套</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/app_backtrack.rs :57-82 · @cbfd999 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/app_backtrack.rs :57-82 · @3ba7b69 实测</span>
 <span class="src-code">/// Aggregates all backtrack-related state used by the App.
 pub(crate) struct BacktrackState {
     /// True when Esc has primed backtrack mode in the main view.
@@ -1026,7 +1026,7 @@ pub(crate) struct BacktrackState {
           <p class="gap" id="xd-gap"></p>
         </div>
 
-        <!-- hooks 实测事件轴：8 个事件模块，文件名即事件名（@cbfd999 实测） -->
+        <!-- hooks 实测事件轴：8 个事件模块，文件名即事件名（@3ba7b69 实测） -->
         <div style="margin-top:18px;border-top:1px dashed var(--line-strong);padding-top:14px;">
           <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:8px;">HOOKS 事件轴 · events/ 目录实测的 8 个钩子（按会话生命周期排序 · 点一个看挂点）</div>
           <div id="hook-events" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
@@ -1037,7 +1037,7 @@ pub(crate) struct BacktrackState {
           <p class="small muted" style="margin:8px 0 0;">
             同 crate 还有：engine/（执行引擎）、registry.rs（注册表）、schema.rs（44 KiB 的配置 schema，最大的那个文件）、
             config_rules.rs（配置规则）、declarations.rs、mcp.rs、legacy_notify.rs（旧 notify 兼容）、output_spill.rs（输出落盘）。
-            结构为 @cbfd999 实测；各事件的确切触发语义以源码为准。
+            结构为 @3ba7b69 实测；各事件的确切触发语义以源码为准。
           </p>
           <p class="small muted" style="margin:10px 0 0;">
             注册表是上面事件轴的源码侧对照：轴上的每个事件名在这里都有对应的 run_* 方法（另有 preview_* 干跑版本）。
@@ -1047,7 +1047,7 @@ pub(crate) struct BacktrackState {
           </p>
           <details class="src-details">
             <summary>🔍 看真实源码 · 钩子注册表：dispatch 中止规则与事件专属入口</summary>
-            <pre><span class="src-loc">codex-rs/hooks/src/registry.rs :154-167, 212-225 · @cbfd999 实测</span>
+            <pre><span class="src-loc">codex-rs/hooks/src/registry.rs :154-167, 212-225 · @3ba7b69 实测</span>
 <span class="src-code">pub async fn dispatch(&amp;self, hook_payload: HookPayload) -&gt; Vec&lt;HookResponse&gt; {
     let hooks = self.hooks_for_event(&amp;hook_payload.hook_event);
     let mut outcomes = Vec::with_capacity(hooks.len());
@@ -1108,7 +1108,7 @@ pub async fn run_post_tool_use(&amp;self, request: PostToolUseRequest) -&gt; Pos
           <p class="cm-empty">// 同一个任务「读两个配置文件并汇总」，两种跑法。</p>
         </div>
         <div style="margin-top:14px;border-top:1px dashed var(--line-strong);padding-top:12px;">
-          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">crate 家族（@cbfd999 实测）</div>
+          <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">crate 家族（@3ba7b69 实测）</div>
           <p class="small" style="color:var(--dim);margin:0;">
             <code>code-mode</code>（主 crate）· <code>code-mode-host</code>（宿主侧 V8 环境）·
             <code>code-mode-protocol</code>（内部协议）· <code>code-mode-runtime</code>（运行时实现）·
@@ -1122,7 +1122,7 @@ pub async fn run_post_tool_use(&amp;self, request: PostToolUseRequest) -&gt; Pos
           </p>
           <details class="src-details">
             <summary>🔍 看真实源码 · code-mode 主 crate 全部九行 lib.rs</summary>
-            <pre><span class="src-loc">codex-rs/code-mode/src/lib.rs :1-9 · @cbfd999 实测（全文）</span>
+            <pre><span class="src-loc">codex-rs/code-mode/src/lib.rs :1-9 · @3ba7b69 实测（全文）</span>
 <span class="src-code">mod grpc_session;
 mod remote_session;
 
@@ -1141,7 +1141,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
     <section class="panel" id="mod-g" style="margin-top:30px;">
       <div class="panel-title">
         <h3><span class="room-tag">G · COVERAGE MAP</span>　源码拆到哪了：全站切片台账</h3>
-        <span class="readout">全部 @cbfd999 实测 · 点任意一行直达展出它的仪器</span>
+        <span class="readout">全部 @3ba7b69 实测 · 点任意一行直达展出它的仪器</span>
       </div>
       <div style="padding:0 24px 20px;">
         <p class="muted small" style="margin:0 0 14px;">
@@ -1386,7 +1386,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         <li>F 房：Code Mode 双模式对比是<b>本站推演的形状示意</b>，上游只有 crate 名与依赖关系可实测（见家族列表），执行语义以 v8-poc 源码为准。</li>
         <li>G 房：台账逐行对应全站各页的 src-loc 标注，文件数与 crate 数由此清点；「还没拆的」名单来自已切片源码中的类型引用与目录树，不构成对上游结构的完整枚举。</li>
       </ul>
-      基线 openai/codex@cbfd999。
+      基线 openai/codex@3ba7b69。
     </aside>
 
   </main>
@@ -1897,6 +1897,8 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       function setMode(v) {
         on = v;
         markBtn.setAttribute("aria-pressed", String(on));
+        markBtn.classList.toggle("on", on);
+        document.body.classList.toggle("pl-mark-on", on);
         markBtn.textContent = on ? "✏️ 标注中…" : "✏️ 标注模式";
         cv.style.pointerEvents = on ? "auto" : "none";
       }
@@ -1929,7 +1931,10 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         strokes = []; redraw();
         if (window.CAToast) CAToast("标注已清空");
       });
-      markBtn.addEventListener("click", function () { setMode(!on); });
+      markBtn.addEventListener("click", function () {
+        setMode(!on);
+        if (window.CASound) CASound.play(on ? "toggleOn" : "toggleOff");
+      });
       document.addEventListener("keydown", function (e) {
         if (!on) return;
         if (e.key === "Escape") { setMode(false); return; }
@@ -2975,122 +2980,7 @@ if (REDUCED) { winner = 3; draw(); } else { burst(3); startLoop(); }
 })();
 </script>
 
-<script>
-/* ---------- C 房标注层：Excalidraw 手感自由笔（tldraw/Excalidraw 技法）
-   · 平滑折线 + 轻微手绘抖动（roughness）
-   · 笔迹保存在 strokes 数组，resize 按相对坐标重绘不丢
-   · 标注只在本机显示——这是给「讲给同伴听」用的粉笔，不是数据 ---------- */
-(function () {
-  "use strict";
-  var grid = document.getElementById("pl-grid");
-  var markBtn = document.getElementById("pl-mark");
-  var clearBtn = document.getElementById("pl-mark-clear");
-  if (!grid || !markBtn) return;
-
-  var cv = document.createElement("canvas");
-  cv.className = "pl-mark-cv";
-  cv.setAttribute("aria-hidden", "true");
-  grid.appendChild(cv);
-  var ctx = cv.getContext("2d");
-  if (!ctx) return;
-
-  var strokes = [];        /* [{pts:[{x,y} 相对坐标0..1], w}] */
-  var cur = null;
-  var on = false;
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-
-  function resize() {
-    var r = grid.getBoundingClientRect();
-    cv.width = Math.max(1, r.width * dpr);
-    cv.height = Math.max(1, r.height * dpr);
-    repaint();
-  }
-  function repaint() {
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    strokes.forEach(function (s) {
-      strokePath(s.pts, s.w);
-    });
-    if (cur && cur.pts.length > 1) strokePath(cur.pts, cur.w);
-  }
-  function jitter() { return (Math.random() - 0.5) * 1.6 * dpr; }   // 手绘抖动
-  function strokePath(pts, w) {
-    if (pts.length < 2) {
-      if (pts.length === 1) {
-        ctx.fillStyle = "rgba(255,180,84,.9)";
-        ctx.beginPath();
-        ctx.arc(pts[0].x * cv.width, pts[0].y * cv.height, w, 0, 6.2832);
-        ctx.fill();
-      }
-      return;
-    }
-    ctx.strokeStyle = "rgba(255,180,84,.92)";
-    ctx.lineWidth = w;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    for (var i = 0; i < pts.length; i++) {
-      var x = pts[i].x * cv.width + jitter();
-      var y = pts[i].y * cv.height + jitter();
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
-  }
-
-  function pos(e) {
-    var r = cv.getBoundingClientRect();
-    return {
-      x: (e.clientX - r.left) / r.width,
-      y: (e.clientY - r.top) / r.height
-    };
-  }
-  cv.addEventListener("pointerdown", function (e) {
-    if (!on) return;
-    cur = { pts: [pos(e)], w: 2.4 * dpr };
-    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
-    repaint();
-    e.preventDefault();
-  });
-  cv.addEventListener("pointermove", function (e) {
-    if (!on || !cur) return;
-    var p = pos(e);
-    var lastP = cur.pts[cur.pts.length - 1];
-    if (Math.hypot((p.x - lastP.x) * cv.width, (p.y - lastP.y) * cv.height) < 3 * dpr) return;
-    cur.pts.push(p);
-    repaint();
-    e.preventDefault();
-  });
-  ["pointerup", "pointercancel"].forEach(function (ev) {
-    cv.addEventListener(ev, function () {
-      if (!cur) return;
-      if (cur.pts.length > 1) strokes.push(cur);
-      cur = null;
-      repaint();
-    });
-  });
-
-  markBtn.addEventListener("click", function () {
-    on = !on;
-    markBtn.setAttribute("aria-pressed", on ? "true" : "false");
-    document.body.classList.toggle("pl-mark-on", on);
-    markBtn.classList.toggle("on", on);
-    if (on) {
-      resize();
-      if (window.CASound) CASound.play("toggleOn");
-      markBtn.textContent = "✏️ 标注中…（再点退出）";
-    } else {
-      if (window.CASound) CASound.play("toggleOff");
-      markBtn.textContent = "✏️ 标注模式";
-    }
-  });
-  clearBtn.addEventListener("click", function () {
-    strokes = [];
-    repaint();
-    if (window.CASound) CASound.play("pop");
-  });
-  window.addEventListener("resize", resize);
-  resize();
-})();
-</script>
+<!-- 标注笔旧版重复实现（.pl-mark-cv，无撤销/抖动不稳定）已并入上方主 IIFE（CAInk），2026-08 清理 -->
 
 <script src="../assets/terms.js"></script>
 </body>
