@@ -357,6 +357,41 @@ def match_game(ctx):
     pg.close()
 
 
+def memory_curve(ctx):
+    """06 遗忘曲线：作答写进 ca-drill-hist（今天 k/u 各计一次），小图有宽度、汇总行报记得率；上限 28 天。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/glossary.html")
+    pg.wait_for_load_state("networkidle")
+    pg.evaluate("""() => {
+        localStorage.removeItem('ca-drill-hist');
+        const seed = [];
+        for (let i = 1; i <= 28; i++) seed.push({ d: '2000-1-' + i, k: 2, u: 1 });
+        localStorage.setItem('ca-drill-hist', JSON.stringify(seed));
+    }""")
+    pg.reload()
+    pg.wait_for_load_state("networkidle")
+    pg.click('[data-md="drill"]')
+    pg.wait_for_timeout(350)
+    pg.click('#d-known')
+    pg.wait_for_timeout(180)
+    pg.click('#d-unknown')
+    pg.wait_for_timeout(280)
+    t = datetime.now()
+    today = f"{t.year}-{t.month}-{t.day}"
+    hist = pg.evaluate("() => JSON.parse(localStorage.getItem('ca-drill-hist') || '[]')")
+    entry = next((e for e in hist if e.get("d") == today), None)
+    check("curve hist today k=1 u=1", bool(entry) and entry.get("k") == 1 and entry.get("u") == 1,
+          {"today": today, "hist": hist[-3:]})
+    check("curve capped at 28 days", len(hist) == 28, len(hist))
+    check("curve canvas has width", pg.evaluate(
+        "() => document.getElementById('curve').width") > 0)
+    sum_txt = pg.evaluate("() => document.getElementById('curve-sum').textContent")
+    check("curve sum reports rate", "记得率" in sum_txt and "次作答" in sum_txt, sum_txt)
+    check("memory curve no errors", not errs, errs[:3])
+    pg.close()
+
 
 def prompt_toggles(ctx):
     pg = ctx.new_page()
@@ -466,6 +501,41 @@ def galaxy_wireframe(ctx):
     _ = hash0
     pg.close()
 
+
+def galaxy_mobile_perf(browser):
+    """05 移动端星系性能：390 视口 + 6x CPU 节流，线框球跑 8s。
+       画布滚进可视区（IntersectionObserver 会睡掉离屏画布）并确认 rAF 在跑，
+       然后只硬断言降级机制存在（lite 是布尔量）——fps 打印留档不硬断流，
+       不同档次机器的绝对帧率没有可比性。"""
+    mctx = browser.new_context(viewport={"width": 390, "height": 844},
+                               device_scale_factor=2, is_mobile=True, has_touch=True)
+    pg = mctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    cdp = pg.context.new_cdp_session(pg)
+    cdp.send("Emulation.setCPUThrottlingRate", {"rate": 6})
+    pg.goto(BASE + "/labs/atlas.html")
+    pg.wait_for_load_state("networkidle")
+    pg.evaluate("""() => {
+        document.querySelector('[data-vw="galaxy"]').click();
+        const chips = Array.from(document.querySelectorAll('#bands .cr'));
+        const core = chips.find(c => c.textContent.trim() === 'core');
+        if (core) core.click();
+        document.getElementById('gx-wire').click();
+    }""")
+    pg.evaluate("() => document.querySelector('#galaxy').scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(600)
+    check("mobile perf: canvas running in view", pg.evaluate(
+        "() => CAGalaxy.state().running === true"),
+        pg.evaluate("() => CAGalaxy.state()"))
+    pg.wait_for_timeout(8000)
+    st = pg.evaluate("() => { const s = CAGalaxy.state(); return { lite: s.lite, fps: s.fps, wire: s.wire }; }")
+    check("mobile perf: degradation flag is boolean", isinstance(st.get("lite"), bool)
+          and st.get("wire") is True, st)
+    print("  INFO mobile wf @6x throttle: fps=%s lite=%s" % (st.get("fps"), st.get("lite")))
+    check("mobile perf no errors", not errs, errs[:3])
+    pg.close()
+    mctx.close()
 
 
 def patch_annotation_pen(ctx):
@@ -716,10 +786,12 @@ def main():
             hist_curve(ctx)
             yard_grab(ctx)
             match_game(ctx)
+            memory_curve(ctx)
             prompt_toggles(ctx)
             act1_race(ctx)
             neighbor_graph(ctx)
             galaxy_wireframe(ctx)
+            galaxy_mobile_perf(browser)
             patch_annotation_pen(ctx)
             patch_line_explainer(ctx)
             pull_out_lab(ctx)

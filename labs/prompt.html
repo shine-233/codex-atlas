@@ -1332,6 +1332,17 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
         if (window.CASound) CASound.play("stamp");
       }
       update(L2);
+      /* 镜像到上方主开关：抽掉=关、放回=开。走 change 事件，
+         复用主脚本现有的 render / 预算构成条 / 立方视图联动。 */
+      var idx2 = -1;
+      LAYERS.forEach(function (L, j) { if (L.id === id) idx2 = j; });
+      var rows = document.querySelectorAll("#toggles > label.switch-row > input");
+      var cb = rows[idx2];
+      if (cb && cb.checked !== !pulled[id]) {
+        cb.checked = !pulled[id];
+        cb.dispatchEvent(new Event("change"));
+      }
+    }
     function collapse(last) {
       toppled = true;
       tower.classList.add("toppled");
