@@ -693,6 +693,52 @@ def pull_out_lab(ctx):
     pg.close()
 
 
+def wire_registry(ctx):
+    """04 WIRE REGISTRY：全量行可展开——方向图示、报文形状、键盘可达、过滤后仍可开。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/labs/appserver.html")
+    pg.wait_for_load_state("networkidle")
+    total = pg.evaluate("() => document.querySelectorAll('#wr-body tr.wr-row').length")
+    check("wire registry renders all rows", total > 100, total)
+    first = pg.locator("#wr-body tr.wr-row").first
+    first.click()
+    pg.wait_for_timeout(150)
+    expanded = pg.evaluate("""() => {
+        const r = document.querySelector('#wr-body tr.wr-row');
+        const x = r.nextElementSibling;
+        return { open: r.classList.contains('open'), aria: r.getAttribute('aria-expanded'),
+                 vis: !x.hidden, txt: x.textContent };
+    }""")
+    check("wire row expands on click", expanded["open"] and expanded["aria"] == "true"
+          and expanded["vis"], expanded)
+    check("expanded shows flow diagram", "客户端" in expanded["txt"] and "服务端" in expanded["txt"])
+    check("expanded shows wire shape", '"method"' in expanded["txt"], expanded["txt"][:80])
+    first.click()
+    pg.wait_for_timeout(120)
+    check("wire row collapses", pg.evaluate(
+        "() => document.querySelector('#wr-body tr.wr-xrow').hidden") is True)
+    # 键盘可达
+    pg.evaluate("() => document.querySelector('#wr-body tr.wr-row').focus()")
+    pg.keyboard.press("Enter")
+    pg.wait_for_timeout(120)
+    check("wire row keyboard toggle", pg.evaluate(
+        "() => document.querySelector('#wr-body tr.wr-row').getAttribute('aria-expanded')") == "true")
+    # 过滤后展开照常工作
+    pg.fill("#wr-q", "approval")
+    pg.wait_for_timeout(200)
+    filtered = pg.evaluate("() => document.querySelectorAll('#wr-body tr.wr-row').length")
+    check("wire filter shrinks list", 0 < filtered < total, [filtered, total])
+    pg.locator("#wr-body tr.wr-row").first.click()
+    pg.wait_for_timeout(120)
+    check("filtered row still expands", pg.evaluate(
+        """() => { const r = document.querySelector('#wr-body tr.wr-row');
+                   return r.classList.contains('open') && !r.nextElementSibling.hidden; }"""))
+    check("wire registry no errors", not errs, errs[:3])
+    pg.close()
+
+
 def dive_dial(ctx):
     """08 深度转盘：11 刻度、goto 跳站、方向键逐站。"""
     pg = ctx.new_page()
@@ -836,6 +882,7 @@ def main():
             memory_curve(ctx)
             prompt_toggles(ctx)
             act1_race(ctx)
+            wire_registry(ctx)
             neighbor_graph(ctx)
             galaxy_wireframe(ctx)
             galaxy_mobile_perf(browser)

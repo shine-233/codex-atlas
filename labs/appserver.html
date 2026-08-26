@@ -132,6 +132,34 @@
     color: var(--steel); background: none;
     border: 1px solid var(--line-strong);
     padding: 1px 7px; cursor: pointer;
+  }
+  /* 可展开行：点任意方法看它在双箭头里的位置和报文形状 */
+  .wr-table tbody tr.wr-row { cursor: pointer; }
+  .wr-table tbody tr.wr-row:focus-visible td { outline: 1px solid var(--amber); outline-offset: -1px; }
+  .wr-caret {
+    display: inline-block; margin-right: 7px; font-size: 9px;
+    color: var(--faint); transition: transform .18s var(--ease);
+  }
+  .wr-table tr.open .wr-caret { transform: rotate(90deg); color: var(--amber); }
+  .wr-xrow > td { background: var(--bg0); padding: 12px 16px 14px 30px; border-bottom: 1px solid var(--line-strong); }
+  .wr-xin { animation: wr-xin .22s var(--ease) both; }
+  @keyframes wr-xin { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .wr-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 11.5px; margin-bottom: 8px; }
+  .wr-endpoint { border: 1px solid var(--line-strong); padding: 2px 10px; color: var(--ink); white-space: nowrap; }
+  .wr-arrow { color: var(--dim); white-space: nowrap; }
+  .wr-arrow b { font-weight: 500; }
+  .wr-arrow.c2s-req b { color: var(--steel); }
+  .wr-arrow.s2c-req b { color: var(--deny); }
+  .wr-arrow.notify b { color: var(--amber); }
+  .wr-shape {
+    margin: 8px 0 0; font-family: var(--mono); font-size: 11px;
+    color: var(--dim); white-space: pre-wrap; line-height: 1.7;
+  }
+  .wr-note { margin: 8px 0 0; font-size: 11.5px; color: var(--faint); }
+  /* 过滤后的进场：短促上浮，键入时也只闪一下 */
+  .wr-table tbody tr.wr-in { animation: wr-in .24s var(--ease) both; }
+  @keyframes wr-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .wr-xin, .wr-table tbody tr.wr-in { animation: none; } }
     transition: border-color .15s, color .15s;
   }
   .wr-ts:hover { border-color: var(--steel); color: var(--ink); }
@@ -186,7 +214,7 @@
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -327,7 +355,7 @@
     <section class="panel" id="act3-panel" style="margin-top:26px;">
       <div class="panel-title">
         <h3>ACT III · 落盘格式：rollout 文件解剖</h3>
-        <span class="readout">文件名规则与 crate 结构为 @cbfd999 实测 · 行内容为示意形状</span>
+        <span class="readout">文件名规则与 crate 结构为 @3ba7b69 实测 · 行内容为示意形状</span>
       </div>
       <div style="padding:6px 24px 20px;">
         <p class="small muted" style="margin:0 0 12px;">
@@ -343,7 +371,7 @@
               每一行都是一条独立记录：第一行是会话元数据，其后是逐条轮次上下文与响应条目。
               恢复时不一定整文件读入——<code>reverse_jsonl_scanner</code> 从文件尾部往回扫，找到需要的起点就开始重放。
             </p>
-            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">rollout crate 内部（@cbfd999 实测模块）</div>
+            <div class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-bottom:6px;">rollout crate 内部（@3ba7b69 实测模块）</div>
             <p class="small" style="color:var(--dim);line-height:1.9;margin:0;">
               <code>recorder.rs</code>（写入，71 KiB 全 crate 最大）· <code>reverse_jsonl_scanner.rs</code>（尾部回扫）·
               <code>compression.rs</code>（冷档 zstd 压缩，七天起步）· <code>state_db.rs</code> / <code>sqlite_metrics.rs</code>（SQLite 侧账）·
@@ -363,7 +391,7 @@
         </div>
         <details class="src-details" style="margin-top:14px;">
           <summary>⌨ 看真实源码 · 冷档压缩工：旧 rollout 七天后压成 .jsonl.zst（compression.rs）</summary>
-          <pre><span class="src-loc">codex-rs/rollout/src/compression.rs :255-261 · @cbfd999 实测</span>
+          <pre><span class="src-loc">codex-rs/rollout/src/compression.rs :255-261 · @3ba7b69 实测</span>
 <span class="src-code">    const COMPRESSION_LEVEL: i32 = 3;
     const MIN_ROLLOUT_AGE: Duration = Duration::from_secs(7 * 24 * 60 * 60);
     const RUN_MARKER_STALE_AFTER: Duration = Duration::from_secs(6 * 60 * 60);
@@ -376,7 +404,7 @@
             <code>.tmp/rollout-compression.lock</code> 跑马标防多进程重叠（6 小时算过期可抢），单轮最多跑 5 小时，并发压缩上限 2。
             注意：这压的是<b>磁盘上的会话档案</b>——和模型上下文的 /responses/compact 压缩完全是两回事，别混。
           </p>
-          <pre><span class="src-loc">codex-rs/rollout/src/compression.rs :709-733 · 冷判定：mtime 距今不足七天就不算冷 · @cbfd999 实测</span>
+          <pre><span class="src-loc">codex-rs/rollout/src/compression.rs :709-733 · 冷判定：mtime 距今不足七天就不算冷 · @3ba7b69 实测</span>
 <span class="src-code">    fn cold_file_state(path: &amp;Path) -&gt; io::Result&lt;ColdFileState&gt; {
         let metadata = match std::fs::metadata(path) {
             Ok(metadata) =&gt; metadata,
@@ -420,7 +448,7 @@
       <p class="small muted" id="dj-desc" style="margin:10px 0 0;">字段名与嵌套为<b>示意形状</b>：v2 协议以固定提交下的 protocol crate 与 <code>codex app-server generate-ts</code> 输出为准。</p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · ServerRequest 里的审批变体（注意 DEPRECATED 标注）</summary>
-        <pre><span class="src-loc">codex-rs/app-server-protocol/src/protocol/common.rs :1736-1748 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/app-server-protocol/src/protocol/common.rs :1739-1751 · @3ba7b69 实测</span>
 <span class="src-code">/// DEPRECATED APIs below
 /// Request to approve a patch.
 /// This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).
@@ -497,7 +525,7 @@ ExecCommandApproval {
       <div class="ev-h">证据边界</div>
       三原语定义、双向通道行为（一请求多通知、服务端反向请求、审批挂起）、断线恢复与 fork 能力、generate-ts 与多语言客户端，出自 OpenAI 官方博客《Unlocking the Codex harness》。
       全部 wire 方法名已对固定提交下 <code>app-server-protocol/src/protocol/common.rs</code> 的 wire 注册表逐条核对，三处与旧社区口径不同：thread/new 实为 thread/start；审批反向请求实为 item/commandExecution/requestApproval；agent 正文增量的真实通道是 item/agentMessage/delta。
-      报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@cbfd999 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
+      报文方法名与字段嵌套是<b>示意形状</b>，不是承诺的稳定 schema；核对请看固定提交 openai/codex@3ba7b69 下 <code>codex-rs/app-server-protocol/</code> 与 generate-ts 产物。核心入队一步对应该基线的 <code>Op::TurnInput</code>（协议层 UserInput 类型的承载者），出处 01 第 5–6 站。
     </aside>
 
   </main>
@@ -1166,6 +1194,38 @@ ExecCommandApproval {
       "thread/unarchive": "unarchive", "thread/resume": "resume", "thread/delete": "del"
     };
 
+    function xdetail(r) {
+      var flows = {
+        "c2s-req": {
+          arrows: '<span class="wr-arrow c2s-req"><b>──请求──▶</b></span>' +
+                  '<span class="wr-arrow">◀──应答──</span>',
+          note: "客户端发起、等服务端回来一个结果或错误——这一对构成一次完整的 RPC。"
+        },
+        "s2c-req": {
+          arrows: '<span class="wr-arrow s2c-req"><b>◀──请求──</b></span>' +
+                  '<span class="wr-arrow">──应答──▶</span>',
+          note: "方向反过来：服务端向客户端发请求（如审批挂起），客户端的应答决定剧情走向。"
+        },
+        "notify": {
+          arrows: '<span class="wr-arrow notify"><b>──单向推送──▶</b></span>',
+          note: "通知没有 id、不等应答，发完就完——事件流就是靠这类方法推回来的。"
+        }
+      }[r.d] || { arrows: "", note: "" };
+      var shape = r.d === "notify"
+        ? '{ "method": "' + r.w + '", "params": { … } }\n// 没有 id 字段：不等待任何应答'
+        : r.d === "s2c-req"
+          ? '{ "method": "' + r.w + '", "id": "s-12", "params": { … } }\n← { "id": "s-12", "result": … }   // id 由服务端分配'
+          : '{ "method": "' + r.w + '", "id": 7, "params": { … } }\n→ { "id": 7, "result": … }   // id 由客户端分配';
+      return '<div class="wr-xin">' +
+        '<div class="wr-flow">' +
+        '<span class="wr-endpoint">客户端</span>' + flows.arrows + '<span class="wr-endpoint">服务端</span>' +
+        '</div>' +
+        '<pre class="wr-shape">' + shape + '</pre>' +
+        '<p class="wr-note">' + flows.note +
+        (r.demo ? ' 本站演示：<b style="color:var(--amber);">' + r.demo + '</b>——点上方时间线对应条目可得真实报文。' : "") +
+        '</p></div>';
+    }
+
     function paint() {
       var kw = q.value.trim().toLowerCase();
       body.innerHTML = "";
@@ -1175,29 +1235,67 @@ ExecCommandApproval {
         if (kw && r.w.toLowerCase().indexOf(kw) === -1) return;
         n++;
         var tr = document.createElement("tr");
-        if (r.demo) tr.className = "demo";
+        tr.className = "wr-row" + (r.demo ? " demo" : "");
+        tr.tabIndex = 0;
+        tr.setAttribute("role", "button");
+        tr.setAttribute("aria-expanded", "false");
+        tr.setAttribute("aria-label", "查看 " + r.w + " 的报文形状");
         var dirName = { "c2s-req": "客户端请求", "s2c-req": "服务端反向", "notify": "通知" }[r.d] || r.d;
         var tsGo = TS_MAP[r.w]
           ? ' <button type="button" class="wr-ts" data-ts-go="' + TS_MAP[r.w] + '" title="跳到 THREAD SANDBOX 现场按一次">沙盒▶</button>'
           : "";
-        tr.innerHTML = '<td class="wr-wire">' + r.w + '</td>' +
+        tr.innerHTML = '<td class="wr-wire"><span class="wr-caret" aria-hidden="true">▶</span>' + r.w + '</td>' +
           '<td><span class="wr-dir ' + r.d + '">' + dirName + '</span></td>' +
           '<td class="wr-demo">' + (r.demo || "") + tsGo + '</td>';
+        tr.style.animationDelay = Math.min(n, 14) * 14 + "ms";
+        tr.classList.add("wr-in");
+        var xr = document.createElement("tr");
+        xr.className = "wr-xrow";
+        xr.hidden = true;
+        xr.innerHTML = '<td colspan="3">' + xdetail(r) + '</td>';
         body.appendChild(tr);
+        body.appendChild(xr);
       });
       countEl.textContent = n + " / " + ROWS.length + " 条";
     }
 
+    function toggleRow(tr) {
+      var xr = tr.nextElementSibling;
+      if (!xr || !xr.classList.contains("wr-xrow")) return;
+      var open = tr.classList.toggle("open");
+      tr.setAttribute("aria-expanded", String(open));
+      xr.hidden = !open;
+      if (open) {
+        /* 重触发进场动画 */
+        var box = xr.firstElementChild;
+        if (box) { box.classList.remove("wr-xin"); void box.offsetWidth; box.classList.add("wr-xin"); }
+        if (window.CASound) CASound.play("toggleOn");
+      } else if (window.CASound) CASound.play("toggleOff");
+    }
+
     body.addEventListener("click", function (e) {
       var t = e.target;
-      if (!t.getAttribute || !t.getAttribute("data-ts-go")) return;
-      var act = t.getAttribute("data-ts-go");
-      var btn = document.querySelector('[data-ts="' + act + '"]');
-      if (!btn) return;
-      var panel = document.getElementById("thread-sb");
-      if (panel) panel.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
-      setTimeout(function () { btn.click(); }, window.PrefersReducedMotion ? 0 : 420);
-      if (window.CAFlash) CAFlash(panel);
+      if (!t.getAttribute) return;
+      if (t.getAttribute("data-ts-go")) {
+        var act = t.getAttribute("data-ts-go");
+        var btn = document.querySelector('[data-ts="' + act + '"]');
+        if (!btn) return;
+        var panel = document.getElementById("thread-sb");
+        if (panel) panel.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "start" });
+        setTimeout(function () { btn.click(); }, window.PrefersReducedMotion ? 0 : 420);
+        if (window.CAFlash) CAFlash(panel);
+        return;
+      }
+      var row = t.closest ? t.closest("tr.wr-row") : null;
+      if (row) toggleRow(row);
+    });
+
+    body.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var row = e.target.closest ? e.target.closest("tr.wr-row") : null;
+      if (!row) return;
+      e.preventDefault();
+      toggleRow(row);
     });
 
     q.addEventListener("input", paint);
