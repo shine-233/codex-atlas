@@ -502,13 +502,33 @@
   }
 
   /* ---------- 站点浮现 ---------- */
-  if ("IntersectionObserver" in window && !REDUCED) {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (en) {
-        if (en.isIntersecting) { en.target.classList.add("vis"); io.unobserve(en.target); }
-      });
-    }, { rootMargin: "0px 0px -12% 0px" });
-    Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { io.observe(s); });
+  /* rAF 节流的滚动扫描代替 IntersectionObserver：正常逐行滚动时观感相同（顶边过 88% 视口线即亮），
+     且锚点直跳 / End 键 / 快滚跳过的站点也会被补亮——内容不因「滚太快」永久隐藏 */
+  if (!REDUCED) {
+    var stops = Array.prototype.slice.call(document.querySelectorAll(".dive-stop"));
+    var sweepTick = false;
+    function revealSweep() {
+      sweepTick = false;
+      var line = innerHeight * 0.88;   /* 与原 rootMargin -12% 同一条线 */
+      for (var i = 0; i < stops.length; i++) {
+        if (!stops[i].__vis && stops[i].getBoundingClientRect().top < line) {
+          stops[i].__vis = true;
+          stops[i].classList.add("vis");
+        }
+      }
+      if (stops.__all) return;
+      stops.__all = stops.every ? stops.every(function (s) { return s.__vis; }) : false;
+      if (stops.__all) {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
+      }
+    }
+    function onScroll() {
+      if (!sweepTick && !stops.__all) { sweepTick = true; requestAnimationFrame(revealSweep); }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    revealSweep();
   } else {
     Array.prototype.forEach.call(document.querySelectorAll(".dive-stop"), function (s) { s.classList.add("vis"); });
   }
