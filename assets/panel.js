@@ -269,6 +269,7 @@
             });
             if (oi === item.a) correct++;
             updateScore();
+            if (oi !== item.a) retryWrong.style.display = "";
             try {
               localStorage.setItem(
                 "ca-quiz:" + (location.pathname.split("/").pop() || "index.html"),
@@ -316,8 +317,41 @@
           });
         });
         Array.prototype.forEach.call(host.querySelectorAll(".cq-allclear"), function (b2) { b2.remove(); });
+        retryWrong.style.display = "none";
       });
       host.appendChild(redo);
+
+      /* 只重做错题：答错的解锁重答（对的保持锁定），记分只数当前答对数。
+         会话级状态——刷新后作答区本来就回到空白，与「重做本节」口径一致。 */
+      var retryWrong = document.createElement("button");
+      retryWrong.type = "button";
+      retryWrong.className = "btn cq-retry";
+      retryWrong.textContent = "↯ 只重做错题";
+      retryWrong.title = "解锁答错的题重答；已答对的保持不变。答错才出现。";
+      retryWrong.style.display = "none";
+      retryWrong.style.marginTop = "14px";
+      retryWrong.style.marginLeft = "8px";
+      retryWrong.addEventListener("click", function () {
+        var hadWrong = false;
+        Array.prototype.forEach.call(list.querySelectorAll(".cq-item"), function (li) {
+          if (!li.querySelector(".cq-opt.wrong")) return;
+          hadWrong = true;
+          li.classList.remove("done");
+          var ex2 = li.querySelector(".cq-ex");
+          if (ex2) ex2.innerHTML = "";
+          Array.prototype.forEach.call(li.querySelectorAll(".cq-opt"), function (btn) {
+            btn.disabled = false;
+            btn.classList.remove("right", "wrong", "mute");
+          });
+        });
+        if (hadWrong) {
+          retryWrong.style.display = "none";
+          try {
+            document.dispatchEvent(new CustomEvent("ca:quizretry", { detail: { page: location.pathname.split("/").pop() } }));
+          } catch (e) { /* 老浏览器就跳过 */ }
+        }
+      });
+      host.appendChild(retryWrong);
     }
   };
 })();

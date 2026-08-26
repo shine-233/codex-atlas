@@ -155,9 +155,12 @@
       "</tbody></table>" +
       '<div class="prof-actions">' +
       '<button type="button" class="btn" id="prof-copy">复制档案 JSON</button>' +
+      '<button type="button" class="btn" id="prof-dl">下载进度文件</button>' +
+      '<button type="button" class="btn" id="prof-imp">导入进度文件</button>' +
+      '<input type="file" id="prof-file" accept=".json,application/json" style="display:none;">' +
       '<button type="button" class="btn" id="prof-reset">重置全部进度</button>' +
       "</div>" +
-      '<p class="small muted">「复制」把上面这些打成一段 JSON 存档留念（不含恢复导入——数据只在这台浏览器的 localStorage 里）。「重置」清空自检成绩、已读圆点和翻卡记录——音效开关保留。</p>';
+      '<p class="small muted">「复制」是给人看的摘要；「下载 / 导入」是机器可恢复的全量备份——换浏览器、换设备带走全部进度（含自检成绩、已读足迹、翻卡记录；音效开关保留在重置口径）。导入会覆盖同名进度，再点一次确认。</p>';
 
     /* 剪贴板 API 不可用时的兜底：隐藏 textarea + execCommand */
     function fallbackCopy(text) {
@@ -183,6 +186,87 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
       } else { fallbackCopy(text); done(); }
+    });
+
+    /* 全量导出 / 导入：ca-* 键值原样打包（version 1 口径），导入前校验 + 两击确认 */
+    function dumpProgress() {
+      var data = {};
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k.indexOf("ca-") === 0) data[k] = localStorage.getItem(k);
+        }
+      } catch (e) { /* 存储不可用就给空包 */ }
+      return { site: "codex-atlas", version: 1, exportedAt: new Date().toISOString(), data: data };
+    }
+
+    card.querySelector("#prof-dl").addEventListener("click", function () {
+      var payload = JSON.stringify(dumpProgress());
+      var blob = new Blob([payload], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "codex-atlas-progress-" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      CAToast("<b>小鳕</b> · 进度文件下载好了。换台设备从这里导回去。");
+    });
+
+    var profArmImport = false, profImportTimer = null;
+    var fileInput = card.querySelector("#prof-file");
+
+    function applyImport(obj) {
+      var data = obj.data, keys = Object.keys(data), n = 0;
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var v = data[k];
+        if (k.indexOf("ca-") !== 0 || k.length > 128 || typeof v !== "string" || v.length > 65536) continue;
+        try { localStorage.setItem(k, v); n++; } catch (e2) { /* 单键失败跳过 */ }
+      }
+      CAToast("<b>小鳕</b> · 导入完成，恢复了 " + n + " 项进度。刷新见分晓。");
+      setTimeout(function () { location.reload(); }, 1200);
+    }
+
+    fileInput.addEventListener("change", function () {
+      var f = fileInput.files && fileInput.files[0];
+      fileInput.value = "";
+      if (!f) return;
+      if (f.size > 1048576) { CAToast("文件太大——进度备份不该超过 1MB。"); return; }
+      var rd = new FileReader();
+      rd.onload = function () {
+        var obj;
+        try { obj = JSON.parse(rd.result); } catch (e) { CAToast("解析失败——这不是本站导出的进度文件。"); return; }
+        if (!obj || obj.site !== "codex-atlas" || obj.version !== 1 ||
+            typeof obj.data !== "object" || obj.data === null || Array.isArray(obj.data)) {
+          CAToast("口径对不上——需要本站「下载进度文件」产出的 JSON。");
+          return;
+        }
+        if (Object.keys(obj.data).length > 512) { CAToast("键数超出上限，拒绝导入。"); return; }
+        applyImport(obj);
+      };
+      rd.readAsText(f);
+    });
+
+    card.querySelector("#prof-imp").addEventListener("click", function () {
+      var btn3 = this;
+      if (!profArmImport) {
+        profArmImport = true;
+        btn3.textContent = "选文件并覆盖？再点一次";
+        btn3.classList.add("danger");
+        if (profImportTimer) clearTimeout(profImportTimer);
+        profImportTimer = setTimeout(function () {
+          profArmImport = false;
+          btn3.textContent = "导入进度文件";
+          btn3.classList.remove("danger");
+        }, 3200);
+        return;
+      }
+      profArmImport = false;
+      if (profImportTimer) clearTimeout(profImportTimer);
+      btn3.textContent = "导入进度文件";
+      btn3.classList.remove("danger");
+      fileInput.click();
     });
 
     var resetBtn = card.querySelector("#prof-reset");
