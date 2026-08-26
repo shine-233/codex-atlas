@@ -1434,6 +1434,7 @@ ExecCommandApproval {
   }
 
   function draw() {
+    if (!size()) return;   /* resize 后首帧也拿最新尺寸（force 模式，力图先例） */
     var light = window.CATheme && CATheme.isLight();
     ctx.clearRect(0, 0, W, H);
     var mx = W * 0.32, my = H * 0.48;
