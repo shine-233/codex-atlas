@@ -867,13 +867,14 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       if (read) read.innerHTML = '已记 <b>' + pts.length + '</b> 点 · 最新 ≈ <b>' + (10 * pts.length) + '</b> 单位';
     });
     canvas.addEventListener("pointerdown", function (e) {
-      if (window.__curveDbg) {
-        window.__curveDbg.downs = (window.__curveDbg.downs || 0) + 1;
-        window.__curveDbg.lastCX = e.clientX;
-        window.__curveDbg.lastCY = e.clientY;
-      }
       var r = host.getBoundingClientRect();
       var x = e.clientX - r.left, y = e.clientY - r.top;
+      if (window.__curveDbg) {
+        window.__curveDbg.downs = (window.__curveDbg.downs || 0) + 1;
+        window.__curveDbg.last = { x: x, y: y, cx: e.clientX, cy: e.clientY,
+          rl: r.left, rt: r.top, predX: predX(), predY: predY(),
+          near: nearPredHandle(x, y) };
+      }
       if (!nearPredHandle(x, y)) return;
       predDrag = true;
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { }

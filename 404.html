@@ -39,6 +39,22 @@
 
 <a class="skip-link" href="#main">跳到主内容</a>
 
+<div class="topbar">
+  <span class="sig">CODEX<b>//</b>ATLAS</span>
+  <button class="nav-toggle" aria-expanded="false" aria-controls="mnav">菜单</button>
+</div>
+<div class="mobile-nav" id="mnav">
+  <a href="index.html">00 · 总览</a>
+  <a href="labs/loop.html">01 · 循环回路</a>
+  <a href="labs/prompt.html">02 · 输入组装</a>
+  <a href="labs/sandbox.html">03 · 权限沙箱</a>
+  <a href="labs/appserver.html">04 · 协议线路</a>
+  <a href="labs/atlas.html">05 · Crate 图谱</a>
+  <a href="glossary.html">06 · 术语速查</a>
+  <a href="labs/deep.html">07 · 深水区</a>
+  <a href="labs/dive.html">08 · 调用栈下潜</a>
+</div>
+
 <div class="wrap">
   <main class="container" id="main">
     <div class="status-strip">
@@ -58,6 +74,7 @@
       </div>
       <p class="small muted" style="margin-top:8px;">
         波形每六秒塌回直线一次——就像你刚点开的这个地址。
+        不服气的话，<b style="color:var(--ink);">按住画面画一笔</b>：你画的信号也会塌回去。
       </p>
 
       <div class="nf-links">
@@ -69,6 +86,7 @@
         <a class="btn" href="labs/atlas.html">05 Crate 图谱</a>
         <a class="btn" href="glossary.html">06 术语速查</a>
         <a class="btn" href="labs/deep.html">07 深水区</a>
+        <a class="btn" href="labs/dive.html">08 调用栈下潜</a>
       </div>
       <p class="small muted" style="margin-top:30px;">
         如果你认为这是一个坏链接，欢迎到仓库提 issue，注明当时的地址。
@@ -145,6 +163,67 @@
     }
     ctx.stroke();
     ctx.shadowBlur = 0;
+
+    /* 手绘信号：松手后和自动脉冲一样指数塌回直线 */
+    if (userLive) {
+      var uEnv = drawing ? 1 : Math.exp(-(t - userT0) / 1100);
+      if (!drawing && uEnv < 0.03) { userLive = false; return; }
+      ctx.strokeStyle = C_AMBER404;
+      ctx.lineWidth = 2 * dpr;
+      ctx.shadowColor = "rgba(255,180,84,.9)";
+      ctx.shadowBlur = 10 * dpr;
+      ctx.globalAlpha = 0.5 + 0.5 * uEnv;
+      ctx.beginPath();
+      for (var ui = 0; ui < N; ui++) {
+        var ux = ui / (N - 1) * w;
+        var uy = mid - userWave[ui] * h * 0.36 * uEnv;
+        if (ui === 0) ctx.moveTo(ux, uy); else ctx.lineTo(ux, uy);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /* ---------- 手绘交互：按住画一笔（reduced-motion 下保持纯装饰） ---------- */
+  var N = 220;
+  var userWave = new Float32Array(N);
+  var userLive = false, userT0 = 0, drawing = false;
+  function setSample(clientX, clientY) {
+    var r = cv.getBoundingClientRect();
+    var fx = (clientX - r.left) / r.width;
+    var fy = Math.max(0, Math.min(1, (clientY - r.top) / r.height));
+    var i = Math.round(fx * (N - 1));
+    for (var k = -3; k <= 3; k++) {
+      var ii = i + k;
+      if (ii < 0 || ii >= N) continue;
+      var wgt = 1 - Math.abs(k) / 4;
+      userWave[ii] = userWave[ii] * (1 - wgt) + (0.5 - fy) * 2 * wgt;
+    }
+  }
+  if (!reduced) {
+    cv.style.touchAction = "none";
+    cv.style.cursor = "crosshair";
+    cv.addEventListener("pointerdown", function (e) {
+      drawing = true; userLive = true; userT0 = -1;
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+      setSample(e.clientX, e.clientY);
+      if (window.CASound) CASound.play("pop");
+      e.preventDefault();
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (drawing) setSample(e.clientX, e.clientY);
+    });
+    cv.addEventListener("pointerup", function () {
+      if (!drawing) return;
+      drawing = false;
+      userT0 = performance.now();
+    });
+    cv.addEventListener("pointercancel", function () {
+      if (!drawing) return;
+      drawing = false;
+      userT0 = performance.now();
+    });
   }
 
   size();

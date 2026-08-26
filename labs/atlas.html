@@ -150,6 +150,36 @@
   .dep-n { font-family: var(--mono); font-size: 11px; color: var(--ink); width: 26px; flex-shrink: 0; }
   .dep-row { cursor: pointer; }
   .dep-row:hover .dep-name { color: var(--amber); }
+  /* 依赖路径查找器（DEPENDENCY PATH） */
+  .dp-sel {
+    font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--bg2); border: 1px solid var(--line-strong);
+    padding: 7px 10px; max-width: 240px; cursor: pointer;
+  }
+  .dp-sel:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .dp-arrow { font-family: var(--mono); color: var(--faint); padding: 0 2px; }
+  .dp-chain {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    margin-top: 12px; padding: 12px 14px;
+    background: var(--bg1); border: 1px solid var(--line);
+  }
+  .dp-chip {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink);
+    background: var(--bg2); border: 1px solid var(--line-strong);
+    padding: 4px 10px; border-radius: 999px; cursor: pointer;
+    transition: border-color var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--ease);
+  }
+  .dp-chip:hover { border-color: var(--amber); color: var(--amber); transform: translateY(-1px); }
+  .dp-chip.start { border-color: rgba(255,180,84,.6); color: var(--amber); }
+  .dp-chip.end { border-color: rgba(143,199,232,.6); color: var(--steel); }
+  .dp-hop { font-family: var(--mono); color: var(--faint); font-style: normal; font-size: 12px; }
+  .dp-sum { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 8px; }
+  .dp-sum b { color: var(--amber); font-weight: 500; }
+  .dp-miss {
+    margin-top: 12px; padding: 12px 14px; font-size: 12.5px; color: var(--dim);
+    background: var(--deny-dim); border: 1px solid rgba(240,121,106,.35);
+  }
+  .dp-miss b { color: var(--deny); font-weight: 500; }
   /* 3D 星系视图 */
   #galaxy { height: 440px; }
   #galaxy canvas { display: block; }
@@ -518,6 +548,28 @@
       </p>
     </section>
 
+    <!-- 依赖路径查找器：任选两个 crate，819 条实测边里跑 BFS -->
+    <section class="panel" id="path-lab" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>DEPENDENCY PATH · 两点之间</h3>
+        <span class="readout">BFS 跑全量实测边 · 箭头方向 = 依赖方向</span>
+      </div>
+      <p class="small muted" style="margin:0 0 12px;">
+        挑两个 crate，找依赖方向上的最短链：A 依赖 B、B 依赖 C，一路指过去。
+        这是<b style="color:var(--ink);">有向图</b>——从 <code>protocol</code> 出发谁也到不了，
+        因为没人依赖它的依赖。查不通时当场明说，并告诉你反方向有没有路。
+        点链上任何一环，检索框帮你定位到那个 crate。
+      </p>
+      <div class="controls" style="border:none;padding:0 0 4px;margin-top:0;">
+        <select id="dp-from" class="dp-sel" aria-label="起点 crate（依赖方）"></select>
+        <span class="dp-arrow" aria-hidden="true">⇢ 依赖 →</span>
+        <select id="dp-to" class="dp-sel" aria-label="终点 crate（被依赖方）"></select>
+        <button class="btn" id="dp-go" type="button">找路径</button>
+        <button class="btn" id="dp-random" type="button">🎲 随机一对</button>
+      </div>
+      <div id="dp-out" aria-live="polite"></div>
+    </section>
+
     <!-- 9×9 带邻接矩阵：819 条边的完整矩阵化 -->
     <section class="panel" style="margin-top:26px;">
       <div class="panel-title">
@@ -737,11 +789,15 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         "feedback":"用户反馈收集通道。",
         "thread-manager-sample":"线程管理的示范实现，想抄作业从这开始。",
         "codex-backend-openapi-models":"ChatGPT backend OpenAPI 模型的生成代码。",
-        "response-debug-context":"响应调试上下文：排查模型返回问题时多留一点现场。"
-      } }
-  ];
+         "response-debug-context":"响应调试上下文：排查模型返回问题时多留一点现场。"
+       } }
+   ];
+   /* 暴露给后续独立 script 块（GUESS WHO 猜 crate 用） */
+   window.CA_DEPS = CA_DEPS;
+   window.CA_DEG = CA_DEG;
+   window.CA_BANDS = BANDS;
 
-  var bandsBox = document.getElementById("bands");
+   var bandsBox = document.getElementById("bands");
   var qInput = document.getElementById("q");
   var matchOut = document.getElementById("match-out");
   var dcBand = document.getElementById("dc-band");
@@ -2828,6 +2884,112 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
 </script>
 
 <script>
+/* ---------- DEPENDENCY PATH · 两点之间 ----------
+   在 CA_DEPS 的 819 条实测边上跑 BFS（有向：A → A 依赖的 crate）。
+   最短链渲染成一排可点芯片——点任何一环走 ?crate= 深链管线，四个视图同步聚焦。
+   查不通时顺手检查反向，把「依赖图有方向」这件事变成一次亲手撞墙。 */
+(function () {
+  "use strict";
+  var fromSel = document.getElementById("dp-from");
+  var toSel = document.getElementById("dp-to");
+  var out = document.getElementById("dp-out");
+  if (!fromSel || !toSel || !out || !window.CA_DEPS) return;
+
+  var names = Object.keys(CA_DEPS).sort();
+  names.forEach(function (n) {
+    fromSel.appendChild(new Option(n, n));
+    toSel.appendChild(new Option(n, n));
+  });
+
+  function bfs(a, b) {
+    if (a === b) return [a];
+    var prev = {};
+    prev[a] = null;
+    var queue = [a];
+    while (queue.length) {
+      var cur = queue.shift();
+      var deps = CA_DEPS[cur] || [];
+      for (var k = 0; k < deps.length; k++) {
+        var nxt = deps[k];
+        if (nxt in prev) continue;
+        prev[nxt] = cur;
+        if (nxt === b) {
+          var path = [b], node = b;
+          while (prev[node] != null) { node = prev[node]; path.unshift(node); }
+          return path;
+        }
+        queue.push(nxt);
+      }
+    }
+    return null;
+  }
+
+  function locate(name) {
+    var q = document.getElementById("q");
+    if (!q) return;
+    q.value = name;
+    q.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function run() {
+    var a = fromSel.value, b = toSel.value;
+    var path = bfs(a, b);
+    if (path) {
+      var html = '<div class="dp-chain">';
+      path.forEach(function (n, i) {
+        if (i) html += '<i class="dp-hop">─→</i>';
+        html += '<button type="button" class="dp-chip' + (i === 0 ? " start" : i === path.length - 1 ? " end" : "") +
+          '" data-c="' + esc(n) + '" title="检索定位到 ' + esc(n) + '">' + esc(n) + "</button>";
+      });
+      html += '</div><p class="dp-sum">' + esc(a) + " → " + esc(b) +
+        " · <b>" + (path.length - 1) + "</b> 跳 · 每一段都是实测依赖边（CA_DEPS）</p>";
+      out.innerHTML = html;
+      Array.prototype.forEach.call(out.querySelectorAll(".dp-chip"), function (chip) {
+        chip.addEventListener("click", function () { locate(chip.getAttribute("data-c")); });
+      });
+      if (window.CASound) CASound.play(path.length > 3 ? "clear" : "ok");
+    } else {
+      var back = bfs(b, a);
+      out.innerHTML = '<div class="dp-miss">' +
+        "<b>依赖方向上不连通</b>：从 <code>" + esc(a) + "</code> 出发，沿「依赖」箭头走不到 <code>" + esc(b) + "</code>。" +
+        (back ? "反方向倒是有路（" + esc(b) + " 一路依赖到 " + esc(a) + "，" + (back.length - 1) + " 跳）——把两个框换过来试试。"
+              : "两个方向都不通：它们在依赖图的不同山头。点「随机一对」换一对再碰碰。") +
+        "</div>";
+      if (window.CASound) CASound.play("miss");
+    }
+  }
+
+  document.getElementById("dp-go").addEventListener("click", run);
+  document.getElementById("dp-random").addEventListener("click", function () {
+    var a = names[Math.floor(Math.random() * names.length)];
+    var b = names[(Math.floor(Math.random() * (names.length - 1)) + names.indexOf(a) + 1) % names.length];
+    fromSel.value = a; toSel.value = b;
+    run();
+  });
+
+  /* 默认演示：起点 tui，终点在候选里挑第一条 ≥2 跳的真实链——
+     每一段都是 CA_DEPS 里的实测边，不预设任何不存在的依赖。 */
+  if (names.indexOf("tui") !== -1) {
+    fromSel.value = "tui";
+    var prefs = ["rollout", "secrets", "http-client", "state", "protocol"];
+    for (var pi = 0; pi < prefs.length; pi++) {
+      if (names.indexOf(prefs[pi]) === -1) continue;
+      toSel.value = prefs[pi];
+      var prefPath = bfs("tui", prefs[pi]);
+      if (prefPath && prefPath.length >= 3) break;   /* ≥2 跳即停 */
+    }
+  } else if (names.indexOf("protocol") !== -1) {
+    toSel.value = "protocol";
+  }
+  run();
+})();
+</script>
+
+<script>
 /* ---------- crate 深链：atlas.html?crate=xxx 直达并高亮 ----------
    复用检索管线：FILTER_Q 一处更新，列表/树图/星团/力导向四个视图同时暗化聚焦。
    反向同步：每次检索都 replaceState 进地址栏——任何一次搜索都是可分享的深链。 */
@@ -2867,20 +3029,17 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
   if (!inBox || !rowsBox || !outBox || typeof CA_DEPS !== "object") return;
 
   var NAMES = Object.keys(CA_DEPS).sort();
+  var BANDS = window.CA_BANDS || [];
   var BAND_OF = {};
-  if (typeof BANDS === "object" && BANDS.length) {
-    BANDS.forEach(function (B) {
-      (B.crates || []).forEach(function (c) { BAND_OF[c] = B; });
-    });
-  }
-  var IN_DEG = {};
-  NAMES.forEach(function (n) { IN_DEG[n] = 0; });
-  NAMES.forEach(function (n) {
-    CA_DEPS[n].forEach(function (d) { if (IN_DEG[d] !== undefined) IN_DEG[d]++; });
+  BANDS.forEach(function (B) {
+    (B.crates || []).forEach(function (c) { BAND_OF[c] = B; });
   });
+  /* 入度直接用主脚本预计算好的 CA_DEG——与「实测依赖排行」同一份数据 */
+  var IN_DEG = window.CA_DEG || {};
+  function inDeg(n) { return IN_DEG[n] || 0; }
   /* 谜底池：有出边也有入边的「社交成员」——纯叶子猜着没意思 */
   var POOL = NAMES.filter(function (n) {
-    return CA_DEPS[n].length >= 2 && IN_DEG[n] >= 1 && BAND_OF[n];
+    return CA_DEPS[n].length >= 2 && inDeg(n) >= 1 && BAND_OF[n];
   });
 
   /* 日期种子 LCG：同一天同一谜底，「换一个」只换本地状态不写地址栏 */
@@ -2939,7 +3098,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       row.innerHTML =
         '<span class="gw-name">' + g + "</span>" +
         '<span class="gw-band' + (BAND_OF[g] && BAND_OF[secret] === BAND_OF[g] ? " hit" : "") + '">' + bandLabel(g) + "</span>" +
-        '<span class="gw-num">' + IN_DEG[g] + arrow(IN_DEG[g], IN_DEG[secret]) + "</span>" +
+        '<span class="gw-num">' + inDeg(g) + arrow(inDeg(g), inDeg(secret)) + "</span>" +
         '<span class="gw-num">' + CA_DEPS[g].length + arrow(CA_DEPS[g].length, CA_DEPS[secret].length) + "</span>" +
         '<span class="gw-rel ' + r.cls + '">' + r.txt + "</span>";
       rowsBox.appendChild(row);
@@ -2971,13 +3130,13 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         : guesses.length <= 4 ? "漂亮，边表没白看。"
         : "第 " + guesses.length + " 次压哨命中——也算赢。";
       outBox.innerHTML = "<b style='color:var(--ok);'>谜底就是 " + secret + "（" + bandLabel(secret) +
-        "，被依赖 " + IN_DEG[secret] + " · 依赖 " + CA_DEPS[secret].length + "）。</b>" + msg;
+        "，被依赖 " + inDeg(secret) + " · 依赖 " + CA_DEPS[secret].length + "）。</b>" + msg;
       if (window.CASound) CASound.play("clear");
       if (window.CAConfetti) CAConfetti.fire(true);
     } else if (guesses.length >= 6) {
       done = true;
       outBox.innerHTML = "六次用完，谜底是 <b>" + secret + "</b>（" + bandLabel(secret) +
-        "，被依赖 " + IN_DEG[secret] + " · 依赖 " + CA_DEPS[secret].length +
+        "，被依赖 " + inDeg(secret) + " · 依赖 " + CA_DEPS[secret].length +
         "）。去上面的星系里点它一圈，明天再来。";
       if (window.CASound) CASound.play("deny");
     } else {

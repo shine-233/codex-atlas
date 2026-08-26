@@ -513,6 +513,37 @@ def dive_dial(ctx):
     pg.close()
 
 
+def guess_crate(ctx):
+    """05 GUESS WHO：四线索反馈、无效名拒绝、命中即赢。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/labs/atlas.html")
+    pg.wait_for_load_state("networkidle")
+    check("guess crate hook", pg.evaluate("() => !!window.GUESSCRATE"))
+    check("secret drawn from pool", pg.evaluate("() => !!GUESSCRATE.secret()"))
+    pg.evaluate("() => GUESSCRATE.guess('tui')")
+    pg.wait_for_timeout(120)
+    check("guess recorded as row", pg.evaluate("() => document.querySelectorAll('#gw-rows .gw-row').length") == 1)
+    check("row has rel cell", pg.evaluate(
+        "() => (document.querySelector('#gw-rows .gw-rel') || {}).textContent !== undefined"))
+    pg.evaluate("() => GUESSCRATE.guess('not-a-crate')")
+    pg.wait_for_timeout(100)
+    check("invalid name rejected", pg.evaluate(
+        "() => document.getElementById('gw-out').textContent.indexOf('不在') !== -1"))
+    check("invalid not counted", pg.evaluate("() => GUESSCRATE.guesses()") == 1)
+    pg.evaluate("() => GUESSCRATE.guess(GUESSCRATE.secret())")
+    pg.wait_for_timeout(150)
+    check("win ends game", pg.evaluate("() => GUESSCRATE.done()") is True)
+    check("win row highlighted", pg.evaluate(
+        "() => document.querySelector('#gw-rows .gw-row.win') !== null"))
+    pg.evaluate("() => document.getElementById('gw-new').click()")
+    pg.wait_for_timeout(120)
+    check("new round resets", pg.evaluate("() => GUESSCRATE.guesses()") == 0 and pg.evaluate("() => GUESSCRATE.done()") is False)
+    check("guess game no errors", not errs, errs[:3])
+    pg.close()
+
+
 def reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 960}, reduced_motion="reduce")
     pg = ctx.new_page()
