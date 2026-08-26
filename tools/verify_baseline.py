@@ -21,9 +21,17 @@
 import json
 import re
 import sys
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
+
+# GBK 控制台打不出 ⚠/✗ 会直接 UnicodeEncodeError 崩掉，先兜底
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 ROOT = Path(__file__).resolve().parent.parent
 ATLAS = ROOT / "labs" / "atlas.html"
@@ -59,11 +67,20 @@ def die(msg, code=3):
     sys.exit(code)
 
 
-def fetch(url, binary=False):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        data = r.read()
-    return data if binary else data.decode("utf-8")
+def fetch(url, binary=False, tries=3):
+    # 顺序抓上百个 Cargo.toml 时网络抽风一次就全盘报废，指数退避重试兜底
+    last = None
+    for i in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+            return data if binary else data.decode("utf-8")
+        except Exception as e:
+            last = e
+            if i < tries - 1:
+                time.sleep(1.5 * (i + 1))
+    raise last
 
 
 def fetch_json(url):
@@ -228,12 +245,14 @@ def main():
         print("⚠ 取上游 main 失败（不影响钉住提交的核对）")
 
     ok = True
+    members_ok = False
 
     # 成员名单
     try:
         cargo = fetch(f"{RAW}/{sha}/codex-rs/Cargo.toml")
         members = expand_globs(parse_cargo_members(cargo), sha)
         member_set = set(members)
+        members_ok = True
         report["members_upstream"] = len(member_set)
         added = sorted(member_set - site_members)
         removed = sorted(site_members - member_set)
@@ -252,8 +271,8 @@ def main():
         ok = False
         print("✗ 成员核对失败：" + str(e))
 
-    # 依赖边（可选，慢）
-    if not skip_deps:
+    # 依赖边（可选，慢；成员名单没取到就无从圈定内部依赖，直接跳过）
+    if not skip_deps and members_ok:
         try:
             up_edges = {}
             ext_targets = set()

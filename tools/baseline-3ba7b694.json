@@ -1,0 +1,2063 @@
+{
+ "sha": "3ba7b6941d3caf6eec5b3c4e564988ee57d3f083",
+ "members": [
+  "agent-graph-store",
+  "agent-identity",
+  "agent-roles",
+  "analytics",
+  "ansi-escape",
+  "app-server",
+  "app-server-client",
+  "app-server-daemon",
+  "app-server-protocol",
+  "app-server-protocol-noop-macros",
+  "app-server-test-client",
+  "app-server-transport",
+  "apply-patch",
+  "arg0",
+  "async-utils",
+  "aws-auth",
+  "backend-client",
+  "build-info",
+  "bwrap",
+  "cli",
+  "cloud-config",
+  "cloud-tasks",
+  "cloud-tasks-client",
+  "cloud-tasks-mock-client",
+  "code-mode",
+  "code-mode-host",
+  "code-mode-protocol",
+  "code-mode-runtime",
+  "codex-api",
+  "codex-backend-openapi-models",
+  "codex-client",
+  "codex-experimental-api-macros",
+  "codex-home",
+  "codex-mcp",
+  "collaboration-mode-templates",
+  "config",
+  "connectors",
+  "context-fragments",
+  "core",
+  "core-api",
+  "core-plugins",
+  "diagnostics",
+  "exec",
+  "exec-server",
+  "exec-server-protocol",
+  "exec-server/tests/support",
+  "execpolicy",
+  "ext/agent",
+  "ext/connectors",
+  "ext/extension-api",
+  "ext/git-attribution",
+  "ext/goal",
+  "ext/guardian-v2",
+  "ext/history-notes",
+  "ext/image-generation",
+  "ext/items",
+  "ext/mcp",
+  "ext/memories",
+  "ext/queue",
+  "ext/skills",
+  "ext/web-search",
+  "external-agent-migration",
+  "features",
+  "feedback",
+  "file-search",
+  "file-system",
+  "file-watcher",
+  "git-utils",
+  "history",
+  "hooks",
+  "http-client",
+  "install-context",
+  "keyring-store",
+  "linux-sandbox",
+  "lmstudio",
+  "login",
+  "mcp-server",
+  "memories/read",
+  "memories/write",
+  "model-provider",
+  "model-provider-info",
+  "models-manager",
+  "network-proxy",
+  "ollama",
+  "otel",
+  "plugin",
+  "process-hardening",
+  "prompts",
+  "protocol",
+  "response-debug-context",
+  "responses-api-proxy",
+  "rmcp-client",
+  "rollout",
+  "rollout-trace",
+  "sandboxing",
+  "secrets",
+  "shell-command",
+  "shell-escalation",
+  "skills",
+  "state",
+  "stdio-to-uds",
+  "terminal-detection",
+  "test-binary-support",
+  "thread-manager-sample",
+  "thread-store",
+  "tools",
+  "tui",
+  "uds",
+  "utils/absolute-path",
+  "utils/approval-presets",
+  "utils/audio",
+  "utils/cache",
+  "utils/cargo-bin",
+  "utils/cli",
+  "utils/elapsed",
+  "utils/fuzzy-match",
+  "utils/home-dir",
+  "utils/image",
+  "utils/json-to-toml",
+  "utils/oss",
+  "utils/output-truncation",
+  "utils/path-uri",
+  "utils/path-utils",
+  "utils/plugins",
+  "utils/pty",
+  "utils/readiness",
+  "utils/redacted-string",
+  "utils/rustls-provider",
+  "utils/sandbox-summary",
+  "utils/sleep-inhibitor",
+  "utils/stream-parser",
+  "utils/string",
+  "utils/template",
+  "v8-poc",
+  "websocket-client",
+  "workload-identity",
+  "worktree"
+ ],
+ "member_count": 137,
+ "internal_edges": 823,
+ "external_targets": {
+  "age": [
+   "secrets"
+  ],
+  "ansi-to-tui": [
+   "ansi-escape"
+  ],
+  "anyhow": [
+   "agent-identity",
+   "app-server",
+   "app-server-daemon",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "apply-patch",
+   "arg0",
+   "backend-client",
+   "cli",
+   "cloud-tasks",
+   "cloud-tasks-client",
+   "code-mode-host",
+   "codex-api",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "exec-server/tests/support",
+   "execpolicy",
+   "ext/agent",
+   "ext/goal",
+   "ext/guardian-v2",
+   "ext/queue",
+   "feedback",
+   "file-search",
+   "git-utils",
+   "history",
+   "hooks",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "network-proxy",
+   "prompts",
+   "protocol",
+   "responses-api-proxy",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "sandboxing",
+   "secrets",
+   "shell-command",
+   "shell-escalation",
+   "state",
+   "stdio-to-uds",
+   "thread-manager-sample",
+   "tui",
+   "utils/pty",
+   "worktree"
+  ],
+  "app-test-support": [
+   "app-server",
+   "cli",
+   "mcp-server",
+   "tui"
+  ],
+  "arboard": [
+   "tui"
+  ],
+  "arc-swap": [
+   "codex-mcp",
+   "connectors",
+   "core",
+   "exec-server"
+  ],
+  "assert-cmd": [
+   "apply-patch",
+   "cli",
+   "core",
+   "exec",
+   "utils/cargo-bin"
+  ],
+  "assert-matches": [
+   "apply-patch",
+   "cli",
+   "codex-api",
+   "codex-mcp",
+   "core",
+   "ext/skills",
+   "ollama",
+   "tui",
+   "utils/readiness"
+  ],
+  "async-channel": [
+   "codex-api",
+   "codex-mcp",
+   "core",
+   "hooks"
+  ],
+  "async-io": [
+   "uds"
+  ],
+  "async-stream": [
+   "ollama"
+  ],
+  "aws-config": [
+   "aws-auth"
+  ],
+  "aws-credential-types": [
+   "aws-auth"
+  ],
+  "aws-sigv4": [
+   "aws-auth"
+  ],
+  "aws-types": [
+   "aws-auth"
+  ],
+  "axum": [
+   "app-server",
+   "app-server-transport",
+   "code-mode-host",
+   "exec-server",
+   "rmcp-client",
+   "tui"
+  ],
+  "base64": [
+   "agent-identity",
+   "app-server",
+   "app-server-transport",
+   "cloud-config",
+   "codex-api",
+   "config",
+   "core",
+   "exec-server",
+   "exec-server-protocol",
+   "ext/image-generation",
+   "login",
+   "network-proxy",
+   "response-debug-context",
+   "rmcp-client",
+   "secrets",
+   "shell-command",
+   "tui",
+   "utils/audio",
+   "utils/image",
+   "utils/path-uri"
+  ],
+  "bitflags": [
+   "tools"
+  ],
+  "bm25": [
+   "core"
+  ],
+  "bytes": [
+   "aws-auth",
+   "codex-api",
+   "exec-server",
+   "file-system",
+   "http-client",
+   "ollama",
+   "rmcp-client"
+  ],
+  "cc": [
+   "bwrap"
+  ],
+  "chardetng": [
+   "protocol"
+  ],
+  "chrono": [
+   "agent-identity",
+   "app-server",
+   "app-server-transport",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "cloud-tasks-client",
+   "cloud-tasks-mock-client",
+   "codex-api",
+   "core",
+   "core-plugins",
+   "ext/goal",
+   "external-agent-migration",
+   "git-utils",
+   "hooks",
+   "login",
+   "memories/write",
+   "models-manager",
+   "network-proxy",
+   "otel",
+   "protocol",
+   "rollout",
+   "state",
+   "thread-store",
+   "tui"
+  ],
+  "clap": [
+   "app-server",
+   "app-server-test-client",
+   "app-server-transport",
+   "cli",
+   "cloud-tasks",
+   "code-mode-host",
+   "core",
+   "exec",
+   "execpolicy",
+   "file-search",
+   "linux-sandbox",
+   "network-proxy",
+   "responses-api-proxy",
+   "shell-escalation",
+   "thread-manager-sample",
+   "tui",
+   "utils/cli"
+  ],
+  "clap-complete": [
+   "cli"
+  ],
+  "clatter": [
+   "exec-server"
+  ],
+  "codex-chatgpt": [
+   "app-server",
+   "cli"
+  ],
+  "codex-message-history": [
+   "tui"
+  ],
+  "codex-windows-sandbox": [
+   "app-server",
+   "arg0",
+   "cli",
+   "core",
+   "network-proxy",
+   "sandboxing",
+   "tui"
+  ],
+  "color-eyre": [
+   "tui"
+  ],
+  "constant-time-eq": [
+   "app-server-transport"
+  ],
+  "core-foundation": [
+   "config",
+   "utils/sleep-inhibitor"
+  ],
+  "core-test-support": [
+   "app-server",
+   "core",
+   "exec",
+   "ext/agent",
+   "ext/guardian-v2",
+   "ext/queue",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "tui"
+  ],
+  "crossbeam-channel": [
+   "file-search"
+  ],
+  "crossterm": [
+   "cli",
+   "cloud-tasks",
+   "tui"
+  ],
+  "crypto-box": [
+   "agent-identity"
+  ],
+  "ctor": [
+   "core",
+   "exec-server",
+   "responses-api-proxy"
+  ],
+  "deno-core-icudata": [
+   "code-mode-runtime"
+  ],
+  "derive-more": [
+   "tui"
+  ],
+  "diffy": [
+   "cloud-tasks-mock-client",
+   "tui"
+  ],
+  "dirs": [
+   "core",
+   "core-plugins",
+   "exec-server",
+   "ext/skills",
+   "tui",
+   "utils/absolute-path",
+   "utils/home-dir"
+  ],
+  "divan": [
+   "utils/image"
+  ],
+  "dns-lookup": [
+   "config"
+  ],
+  "dotenvy": [
+   "arg0"
+  ],
+  "dunce": [
+   "config",
+   "core",
+   "ext/skills",
+   "sandboxing",
+   "tui",
+   "utils/absolute-path",
+   "utils/path-utils",
+   "worktree"
+  ],
+  "ed25519-dalek": [
+   "agent-identity"
+  ],
+  "encoding-rs": [
+   "protocol"
+  ],
+  "eventsource-stream": [
+   "codex-api",
+   "codex-client",
+   "core",
+   "otel"
+  ],
+  "filedescriptor": [
+   "utils/pty"
+  ],
+  "flate2": [
+   "app-server",
+   "core-plugins"
+  ],
+  "futures": [
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-transport",
+   "cli",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-client",
+   "codex-mcp",
+   "config",
+   "core",
+   "core-plugins",
+   "exec-server",
+   "exec-server/tests/support",
+   "ext/skills",
+   "file-system",
+   "git-utils",
+   "hooks",
+   "http-client",
+   "memories/write",
+   "ollama",
+   "rmcp-client",
+   "thread-store",
+   "tui",
+   "websocket-client"
+  ],
+  "gethostname": [
+   "app-server-transport",
+   "config",
+   "otel"
+  ],
+  "gix": [
+   "git-utils"
+  ],
+  "gix-url": [
+   "protocol"
+  ],
+  "glob": [
+   "code-mode-protocol"
+  ],
+  "globset": [
+   "linux-sandbox",
+   "network-proxy",
+   "protocol"
+  ],
+  "hmac": [
+   "app-server",
+   "app-server-transport",
+   "cloud-config"
+  ],
+  "http": [
+   "agent-identity",
+   "app-server",
+   "aws-auth",
+   "backend-client",
+   "cli",
+   "cloud-tasks",
+   "codex-api",
+   "codex-client",
+   "core",
+   "core-plugins",
+   "exec-server",
+   "ext/guardian-v2",
+   "ext/history-notes",
+   "ext/image-generation",
+   "ext/web-search",
+   "http-client",
+   "login",
+   "model-provider",
+   "model-provider-info",
+   "otel",
+   "protocol",
+   "response-debug-context",
+   "rmcp-client",
+   "rollout-trace",
+   "tui"
+  ],
+  "http-body-util": [
+   "code-mode"
+  ],
+  "httpdate": [
+   "app-server-transport"
+  ],
+  "iana-time-zone": [
+   "core"
+  ],
+  "icu-decimal": [
+   "protocol"
+  ],
+  "icu-locale-core": [
+   "protocol"
+  ],
+  "icu-provider": [
+   "protocol"
+  ],
+  "ignore": [
+   "file-search"
+  ],
+  "image": [
+   "core",
+   "tui",
+   "utils/image"
+  ],
+  "include-dir": [
+   "skills"
+  ],
+  "indexmap": [
+   "config",
+   "connectors",
+   "core"
+  ],
+  "insta": [
+   "cli",
+   "cloud-tasks",
+   "core",
+   "ext/skills",
+   "tui"
+  ],
+  "inventory": [
+   "app-server-protocol"
+  ],
+  "itertools": [
+   "tui"
+  ],
+  "jsonptr": [
+   "tools"
+  ],
+  "jsonwebtoken": [
+   "agent-identity",
+   "app-server-transport",
+   "login"
+  ],
+  "keyring": [
+   "keyring-store",
+   "login",
+   "rmcp-client",
+   "secrets"
+  ],
+  "landlock": [
+   "linux-sandbox",
+   "protocol"
+  ],
+  "lazy-static": [
+   "tui",
+   "utils/pty"
+  ],
+  "libc": [
+   "app-server-daemon",
+   "bwrap",
+   "cli",
+   "config",
+   "core",
+   "core-plugins",
+   "diagnostics",
+   "exec",
+   "exec-server",
+   "linux-sandbox",
+   "otel",
+   "process-hardening",
+   "responses-api-proxy",
+   "rmcp-client",
+   "sandboxing",
+   "shell-command",
+   "shell-escalation",
+   "tui",
+   "utils/pty",
+   "utils/sleep-inhibitor"
+  ],
+  "libsqlite3-sys": [
+   "state"
+  ],
+  "log": [
+   "feedback",
+   "state",
+   "utils/pty"
+  ],
+  "lru": [
+   "codex-mcp",
+   "utils/cache"
+  ],
+  "maplit": [
+   "core",
+   "model-provider-info"
+  ],
+  "mcp-test-support": [
+   "mcp-server"
+  ],
+  "memchr": [
+   "ollama",
+   "rmcp-client"
+  ],
+  "mime-guess": [
+   "feedback",
+   "utils/image"
+  ],
+  "multimap": [
+   "config",
+   "execpolicy"
+  ],
+  "native-tls": [
+   "http-client"
+  ],
+  "notify": [
+   "file-watcher"
+  ],
+  "nucleo": [
+   "file-search"
+  ],
+  "oauth2": [
+   "rmcp-client"
+  ],
+  "once-cell": [
+   "core",
+   "git-utils",
+   "login",
+   "shell-command"
+  ],
+  "openssl-sys": [
+   "core"
+  ],
+  "opentelemetry": [
+   "app-server",
+   "core",
+   "exec",
+   "exec-server",
+   "http-client",
+   "otel"
+  ],
+  "opentelemetry-appender-tracing": [
+   "otel"
+  ],
+  "opentelemetry-otlp": [
+   "otel"
+  ],
+  "opentelemetry-sdk": [
+   "app-server",
+   "core",
+   "exec",
+   "exec-server",
+   "ext/skills",
+   "http-client",
+   "otel"
+  ],
+  "opentelemetry-semantic-conventions": [
+   "otel"
+  ],
+  "os-info": [
+   "analytics",
+   "cli",
+   "login",
+   "mcp-server",
+   "otel"
+  ],
+  "owo-colors": [
+   "app-server-transport",
+   "cli",
+   "cloud-tasks",
+   "exec"
+  ],
+  "pathdiff": [
+   "arg0",
+   "tui"
+  ],
+  "pkg-config": [
+   "bwrap"
+  ],
+  "portable-pty": [
+   "utils/pty"
+  ],
+  "predicates": [
+   "cli",
+   "core",
+   "exec"
+  ],
+  "pretty-assertions": [
+   "agent-graph-store",
+   "agent-identity",
+   "analytics",
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "apply-patch",
+   "arg0",
+   "aws-auth",
+   "backend-client",
+   "build-info",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-home",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "diagnostics",
+   "exec",
+   "exec-server",
+   "exec-server-protocol",
+   "execpolicy",
+   "ext/agent",
+   "ext/extension-api",
+   "ext/goal",
+   "ext/guardian-v2",
+   "ext/history-notes",
+   "ext/image-generation",
+   "ext/items",
+   "ext/mcp",
+   "ext/memories",
+   "ext/queue",
+   "ext/skills",
+   "ext/web-search",
+   "external-agent-migration",
+   "features",
+   "feedback",
+   "file-search",
+   "file-watcher",
+   "git-utils",
+   "history",
+   "hooks",
+   "http-client",
+   "install-context",
+   "linux-sandbox",
+   "login",
+   "mcp-server",
+   "memories/read",
+   "memories/write",
+   "model-provider",
+   "model-provider-info",
+   "models-manager",
+   "network-proxy",
+   "ollama",
+   "otel",
+   "plugin",
+   "process-hardening",
+   "prompts",
+   "protocol",
+   "response-debug-context",
+   "responses-api-proxy",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "sandboxing",
+   "secrets",
+   "shell-command",
+   "shell-escalation",
+   "skills",
+   "state",
+   "stdio-to-uds",
+   "terminal-detection",
+   "thread-store",
+   "tools",
+   "tui",
+   "uds",
+   "utils/absolute-path",
+   "utils/audio",
+   "utils/cli",
+   "utils/home-dir",
+   "utils/json-to-toml",
+   "utils/output-truncation",
+   "utils/path-uri",
+   "utils/path-utils",
+   "utils/pty",
+   "utils/sandbox-summary",
+   "utils/stream-parser",
+   "utils/string",
+   "utils/template",
+   "v8-poc",
+   "websocket-client",
+   "workload-identity",
+   "worktree"
+  ],
+  "proc-macro2": [
+   "codex-experimental-api-macros"
+  ],
+  "prost": [
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "config",
+   "exec-server",
+   "exec-server/tests/support"
+  ],
+  "protoc-bin-vendored": [
+   "code-mode-protocol"
+  ],
+  "pulldown-cmark": [
+   "thread-store",
+   "tui"
+  ],
+  "quick-xml": [
+   "protocol"
+  ],
+  "quote": [
+   "codex-experimental-api-macros"
+  ],
+  "rama-core": [
+   "network-proxy"
+  ],
+  "rama-http": [
+   "network-proxy"
+  ],
+  "rama-http-backend": [
+   "network-proxy"
+  ],
+  "rama-net": [
+   "network-proxy"
+  ],
+  "rama-socks5": [
+   "network-proxy"
+  ],
+  "rama-tcp": [
+   "network-proxy"
+  ],
+  "rama-tls-rustls": [
+   "network-proxy"
+  ],
+  "rama-unix": [
+   "network-proxy"
+  ],
+  "rand": [
+   "agent-identity",
+   "app-server-transport",
+   "codex-client",
+   "core",
+   "login",
+   "network-proxy",
+   "secrets",
+   "tui"
+  ],
+  "ratatui": [
+   "ansi-escape",
+   "cloud-tasks",
+   "tui"
+  ],
+  "ratatui-macros": [
+   "tui"
+  ],
+  "rcgen": [
+   "exec-server",
+   "http-client",
+   "websocket-client"
+  ],
+  "regex": [
+   "core-plugins",
+   "git-utils",
+   "hooks",
+   "rollout",
+   "secrets",
+   "shell-command"
+  ],
+  "regex-lite": [
+   "cli",
+   "codex-api",
+   "codex-mcp",
+   "config",
+   "core",
+   "login",
+   "sandboxing",
+   "tui",
+   "utils/string"
+  ],
+  "reqwest": [
+   "code-mode",
+   "http-client",
+   "otel",
+   "responses-api-proxy"
+  ],
+  "rmcp": [
+   "app-server",
+   "app-server-protocol",
+   "codex-mcp",
+   "core",
+   "mcp-server",
+   "rmcp-client",
+   "tools",
+   "tui"
+  ],
+  "runfiles": [
+   "utils/cargo-bin"
+  ],
+  "rustix": [
+   "exec-server"
+  ],
+  "rustls": [
+   "exec-server",
+   "http-client",
+   "utils/rustls-provider",
+   "websocket-client"
+  ],
+  "rustls-native-certs": [
+   "http-client",
+   "network-proxy"
+  ],
+  "rustls-pki-types": [
+   "http-client"
+  ],
+  "schannel": [
+   "network-proxy"
+  ],
+  "schemars": [
+   "app-server-protocol",
+   "codex-api",
+   "config",
+   "ext/image-generation",
+   "ext/items",
+   "ext/memories",
+   "ext/skills",
+   "ext/web-search",
+   "features",
+   "git-utils",
+   "history",
+   "hooks",
+   "mcp-server",
+   "model-provider-info",
+   "protocol",
+   "secrets",
+   "utils/absolute-path",
+   "utils/path-uri",
+   "utils/redacted-string"
+  ],
+  "scopeguard": [
+   "state"
+  ],
+  "seccompiler": [
+   "linux-sandbox",
+   "otel",
+   "protocol"
+  ],
+  "security-framework": [
+   "network-proxy"
+  ],
+  "semver": [
+   "build-info",
+   "core-plugins",
+   "install-context",
+   "ollama"
+  ],
+  "sentry": [
+   "feedback"
+  ],
+  "serde": [
+   "agent-graph-store",
+   "agent-identity",
+   "agent-roles",
+   "analytics",
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "backend-client",
+   "build-info",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "cloud-tasks-client",
+   "code-mode-protocol",
+   "codex-api",
+   "codex-backend-openapi-models",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "exec-server-protocol",
+   "execpolicy",
+   "ext/goal",
+   "ext/image-generation",
+   "ext/items",
+   "ext/memories",
+   "ext/skills",
+   "external-agent-migration",
+   "features",
+   "file-search",
+   "file-system",
+   "git-utils",
+   "history",
+   "hooks",
+   "http-client",
+   "install-context",
+   "linux-sandbox",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider-info",
+   "models-manager",
+   "network-proxy",
+   "otel",
+   "protocol",
+   "responses-api-proxy",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "secrets",
+   "shell-command",
+   "shell-escalation",
+   "skills",
+   "state",
+   "thread-store",
+   "tools",
+   "tui",
+   "utils/absolute-path",
+   "utils/cli",
+   "utils/path-uri",
+   "utils/plugins",
+   "utils/redacted-string",
+   "utils/string",
+   "workload-identity",
+   "worktree"
+  ],
+  "serde-ignored": [
+   "config"
+  ],
+  "serde-json": [
+   "agent-graph-store",
+   "agent-identity",
+   "analytics",
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "backend-client",
+   "build-info",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "cloud-tasks-client",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-backend-openapi-models",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "exec-server-protocol",
+   "exec-server/tests/support",
+   "execpolicy",
+   "ext/connectors",
+   "ext/extension-api",
+   "ext/git-attribution",
+   "ext/goal",
+   "ext/guardian-v2",
+   "ext/history-notes",
+   "ext/image-generation",
+   "ext/items",
+   "ext/mcp",
+   "ext/memories",
+   "ext/queue",
+   "ext/skills",
+   "ext/web-search",
+   "external-agent-migration",
+   "file-search",
+   "history",
+   "hooks",
+   "http-client",
+   "install-context",
+   "linux-sandbox",
+   "lmstudio",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider",
+   "models-manager",
+   "network-proxy",
+   "ollama",
+   "otel",
+   "protocol",
+   "response-debug-context",
+   "responses-api-proxy",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "sandboxing",
+   "secrets",
+   "shell-command",
+   "shell-escalation",
+   "state",
+   "thread-manager-sample",
+   "thread-store",
+   "tools",
+   "tui",
+   "utils/absolute-path",
+   "utils/json-to-toml",
+   "utils/path-uri",
+   "utils/plugins",
+   "utils/string",
+   "workload-identity",
+   "worktree"
+  ],
+  "serde-path-to-error": [
+   "config"
+  ],
+  "serde-with": [
+   "app-server-protocol",
+   "codex-backend-openapi-models",
+   "core-plugins",
+   "protocol"
+  ],
+  "serde-yaml": [
+   "core-plugins",
+   "ext/skills",
+   "external-agent-migration",
+   "skills"
+  ],
+  "serial-test": [
+   "app-server",
+   "core",
+   "exec-server",
+   "login",
+   "rmcp-client",
+   "tui"
+  ],
+  "sha1": [
+   "analytics",
+   "codex-mcp",
+   "connectors",
+   "core",
+   "utils/cache"
+  ],
+  "sha2": [
+   "agent-identity",
+   "app-server",
+   "app-server-daemon",
+   "app-server-transport",
+   "cloud-config",
+   "config",
+   "core-plugins",
+   "external-agent-migration",
+   "http-client",
+   "linux-sandbox",
+   "login",
+   "network-proxy",
+   "rmcp-client",
+   "secrets",
+   "tui"
+  ],
+  "shared-library": [
+   "utils/pty"
+  ],
+  "shlex": [
+   "app-server",
+   "core",
+   "execpolicy",
+   "mcp-server",
+   "shell-command",
+   "skills",
+   "tui"
+  ],
+  "similar": [
+   "app-server-protocol",
+   "apply-patch",
+   "core",
+   "git-utils"
+  ],
+  "socket2": [
+   "shell-escalation"
+  ],
+  "sqlx": [
+   "cli",
+   "state",
+   "thread-store"
+  ],
+  "sse-stream": [
+   "rmcp-client"
+  ],
+  "starlark": [
+   "execpolicy"
+  ],
+  "strum": [
+   "protocol",
+   "state",
+   "tui"
+  ],
+  "strum-macros": [
+   "app-server-protocol",
+   "otel",
+   "protocol",
+   "tui"
+  ],
+  "supports-color": [
+   "cli",
+   "cloud-tasks",
+   "exec",
+   "tui"
+  ],
+  "symphonia": [
+   "utils/audio"
+  ],
+  "syn": [
+   "codex-experimental-api-macros"
+  ],
+  "syntect": [
+   "tui"
+  ],
+  "sys-locale": [
+   "cli",
+   "protocol"
+  ],
+  "system-configuration": [
+   "http-client"
+  ],
+  "tar": [
+   "app-server",
+   "core-plugins"
+  ],
+  "tempfile": [
+   "agent-graph-store",
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-protocol",
+   "app-server-transport",
+   "apply-patch",
+   "arg0",
+   "build-info",
+   "cli",
+   "cloud-config",
+   "code-mode-host",
+   "codex-home",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "execpolicy",
+   "ext/goal",
+   "ext/history-notes",
+   "ext/mcp",
+   "ext/memories",
+   "ext/queue",
+   "ext/skills",
+   "external-agent-migration",
+   "file-search",
+   "file-watcher",
+   "git-utils",
+   "hooks",
+   "http-client",
+   "install-context",
+   "linux-sandbox",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider-info",
+   "models-manager",
+   "network-proxy",
+   "protocol",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "sandboxing",
+   "secrets",
+   "shell-command",
+   "shell-escalation",
+   "stdio-to-uds",
+   "test-binary-support",
+   "thread-store",
+   "tui",
+   "uds",
+   "utils/absolute-path",
+   "utils/home-dir",
+   "utils/path-utils",
+   "utils/plugins",
+   "workload-identity",
+   "worktree"
+  ],
+  "test-case": [
+   "app-server",
+   "core",
+   "exec-server"
+  ],
+  "test-log": [
+   "core"
+  ],
+  "textwrap": [
+   "tui"
+  ],
+  "thiserror": [
+   "agent-graph-store",
+   "app-server",
+   "app-server-protocol",
+   "apply-patch",
+   "aws-auth",
+   "cloud-config",
+   "cloud-tasks-client",
+   "codex-api",
+   "codex-mcp",
+   "config",
+   "core",
+   "core-plugins",
+   "exec-server",
+   "execpolicy",
+   "ext/connectors",
+   "ext/guardian-v2",
+   "ext/mcp",
+   "ext/memories",
+   "ext/queue",
+   "git-utils",
+   "http-client",
+   "login",
+   "network-proxy",
+   "otel",
+   "plugin",
+   "protocol",
+   "rmcp-client",
+   "skills",
+   "thread-store",
+   "tools",
+   "tui",
+   "utils/audio",
+   "utils/cargo-bin",
+   "utils/image",
+   "utils/path-uri",
+   "utils/readiness",
+   "workload-identity"
+  ],
+  "time": [
+   "app-server",
+   "app-server-transport",
+   "network-proxy",
+   "rollout",
+   "utils/readiness"
+  ],
+  "tiny-http": [
+   "login",
+   "responses-api-proxy",
+   "rmcp-client"
+  ],
+  "tokio": [
+   "agent-graph-store",
+   "analytics",
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-test-client",
+   "app-server-transport",
+   "apply-patch",
+   "arg0",
+   "async-utils",
+   "aws-auth",
+   "backend-client",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-client",
+   "codex-home",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "exec-server/tests/support",
+   "execpolicy",
+   "ext/agent",
+   "ext/extension-api",
+   "ext/git-attribution",
+   "ext/goal",
+   "ext/guardian-v2",
+   "ext/history-notes",
+   "ext/image-generation",
+   "ext/mcp",
+   "ext/memories",
+   "ext/queue",
+   "ext/skills",
+   "external-agent-migration",
+   "feedback",
+   "file-search",
+   "file-watcher",
+   "git-utils",
+   "hooks",
+   "http-client",
+   "linux-sandbox",
+   "lmstudio",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider",
+   "models-manager",
+   "network-proxy",
+   "ollama",
+   "otel",
+   "protocol",
+   "rmcp-client",
+   "rollout",
+   "sandboxing",
+   "shell-escalation",
+   "state",
+   "stdio-to-uds",
+   "thread-store",
+   "tui",
+   "uds",
+   "utils/cache",
+   "utils/image",
+   "utils/plugins",
+   "utils/pty",
+   "utils/readiness",
+   "websocket-client",
+   "workload-identity"
+  ],
+  "tokio-rustls": [
+   "websocket-client"
+  ],
+  "tokio-stream": [
+   "cloud-tasks",
+   "code-mode-host",
+   "config",
+   "tui"
+  ],
+  "tokio-test": [
+   "codex-api"
+  ],
+  "tokio-tungstenite": [
+   "app-server",
+   "app-server-client",
+   "app-server-daemon",
+   "app-server-transport",
+   "cli",
+   "codex-api",
+   "core",
+   "exec-server",
+   "exec-server/tests/support",
+   "otel",
+   "tui",
+   "websocket-client"
+  ],
+  "tokio-util": [
+   "app-server",
+   "app-server-transport",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-mcp",
+   "core",
+   "exec-server",
+   "shell-escalation",
+   "tui",
+   "uds"
+  ],
+  "toml": [
+   "agent-roles",
+   "app-server",
+   "app-server-client",
+   "cli",
+   "config",
+   "core",
+   "core-plugins",
+   "exec-server",
+   "ext/skills",
+   "external-agent-migration",
+   "features",
+   "model-provider-info",
+   "tui",
+   "utils/cli",
+   "utils/json-to-toml"
+  ],
+  "toml-edit": [
+   "app-server",
+   "config",
+   "core"
+  ],
+  "tonic": [
+   "code-mode",
+   "code-mode-host",
+   "code-mode-protocol",
+   "config"
+  ],
+  "tonic-prost": [
+   "code-mode-protocol",
+   "config"
+  ],
+  "tonic-prost-build": [
+   "code-mode-protocol",
+   "config"
+  ],
+  "tower": [
+   "code-mode"
+  ],
+  "tracing": [
+   "agent-roles",
+   "analytics",
+   "ansi-escape",
+   "app-server",
+   "app-server-client",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "cli",
+   "cloud-config",
+   "cloud-tasks",
+   "code-mode",
+   "code-mode-host",
+   "code-mode-runtime",
+   "codex-api",
+   "codex-client",
+   "codex-mcp",
+   "config",
+   "connectors",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "ext/connectors",
+   "ext/goal",
+   "ext/guardian-v2",
+   "ext/image-generation",
+   "ext/mcp",
+   "ext/queue",
+   "ext/skills",
+   "external-agent-migration",
+   "features",
+   "feedback",
+   "file-watcher",
+   "hooks",
+   "http-client",
+   "keyring-store",
+   "lmstudio",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider",
+   "models-manager",
+   "network-proxy",
+   "ollama",
+   "otel",
+   "protocol",
+   "rmcp-client",
+   "rollout",
+   "rollout-trace",
+   "sandboxing",
+   "secrets",
+   "shell-escalation",
+   "skills",
+   "state",
+   "terminal-detection",
+   "thread-manager-sample",
+   "thread-store",
+   "tools",
+   "tui",
+   "utils/audio",
+   "utils/sleep-inhibitor"
+  ],
+  "tracing-appender": [
+   "cli",
+   "tui"
+  ],
+  "tracing-opentelemetry": [
+   "app-server",
+   "core",
+   "exec",
+   "exec-server",
+   "http-client",
+   "otel"
+  ],
+  "tracing-subscriber": [
+   "app-server",
+   "app-server-test-client",
+   "cli",
+   "cloud-tasks",
+   "code-mode-host",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "feedback",
+   "http-client",
+   "login",
+   "mcp-server",
+   "otel",
+   "shell-escalation",
+   "state",
+   "tui"
+  ],
+  "tracing-test": [
+   "core",
+   "core-plugins"
+  ],
+  "tree-sitter": [
+   "apply-patch",
+   "shell-command"
+  ],
+  "tree-sitter-bash": [
+   "apply-patch",
+   "shell-command"
+  ],
+  "tree-sitter-powershell": [
+   "shell-command"
+  ],
+  "ts-rs": [
+   "app-server-protocol",
+   "exec",
+   "ext/items",
+   "git-utils",
+   "protocol",
+   "utils/absolute-path",
+   "utils/path-uri"
+  ],
+  "tungstenite": [
+   "app-server-test-client",
+   "codex-api"
+  ],
+  "two-face": [
+   "tui"
+  ],
+  "uds-windows": [
+   "uds"
+  ],
+  "unicode-segmentation": [
+   "cli",
+   "cloud-tasks",
+   "tui"
+  ],
+  "unicode-width": [
+   "cloud-tasks",
+   "tui"
+  ],
+  "url": [
+   "app-server",
+   "app-server-client",
+   "app-server-test-client",
+   "app-server-transport",
+   "backend-client",
+   "cli",
+   "codex-api",
+   "codex-mcp",
+   "core",
+   "core-plugins",
+   "exec-server",
+   "ext/skills",
+   "ext/web-search",
+   "linux-sandbox",
+   "login",
+   "network-proxy",
+   "rmcp-client",
+   "sandboxing",
+   "shell-command",
+   "tui",
+   "utils/path-uri",
+   "websocket-client",
+   "workload-identity"
+  ],
+  "urlencoding": [
+   "connectors",
+   "login",
+   "rmcp-client",
+   "tools",
+   "tui",
+   "utils/path-uri"
+  ],
+  "uuid": [
+   "app-server",
+   "app-server-protocol",
+   "app-server-test-client",
+   "app-server-transport",
+   "code-mode",
+   "code-mode-host",
+   "codex-api",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "ext/queue",
+   "hooks",
+   "memories/write",
+   "protocol",
+   "rollout",
+   "rollout-trace",
+   "state",
+   "thread-store",
+   "tui"
+  ],
+  "v8": [
+   "code-mode-runtime",
+   "v8-poc"
+  ],
+  "vt100": [
+   "tui"
+  ],
+  "walkdir": [
+   "core",
+   "exec",
+   "git-utils"
+  ],
+  "webbrowser": [
+   "login",
+   "rmcp-client",
+   "tui"
+  ],
+  "which": [
+   "cli",
+   "core",
+   "core-plugins",
+   "lmstudio",
+   "rmcp-client",
+   "sandboxing",
+   "shell-command",
+   "tui"
+  ],
+  "whoami": [
+   "core"
+  ],
+  "wildmatch": [
+   "config",
+   "protocol"
+  ],
+  "winapi": [
+   "utils/pty"
+  ],
+  "winapi-util": [
+   "config"
+  ],
+  "windows-sys": [
+   "cli",
+   "config",
+   "exec-server",
+   "http-client",
+   "network-proxy",
+   "rmcp-client",
+   "tui",
+   "utils/sleep-inhibitor"
+  ],
+  "winsplit": [
+   "tui"
+  ],
+  "wiremock": [
+   "app-server",
+   "backend-client",
+   "cli",
+   "codex-api",
+   "core",
+   "core-plugins",
+   "exec",
+   "exec-server",
+   "exec-server/tests/support",
+   "ext/git-attribution",
+   "ext/history-notes",
+   "feedback",
+   "lmstudio",
+   "login",
+   "mcp-server",
+   "memories/write",
+   "model-provider",
+   "ollama",
+   "rmcp-client",
+   "tui",
+   "workload-identity"
+  ],
+  "zeroize": [
+   "responses-api-proxy"
+  ],
+  "zip": [
+   "core-plugins"
+  ],
+  "zstd": [
+   "app-server-protocol",
+   "cli",
+   "core",
+   "http-client",
+   "rollout",
+   "thread-store"
+  ]
+ },
+ "unmapped_in_bands": [
+  "worktree"
+ ],
+ "band_pairs": {
+  "B8->B9": 8,
+  "B8->B2": 10,
+  "B8->B5": 8,
+  "B2->B9": 51,
+  "B9->B1": 4,
+  "B9->B9": 21,
+  "B9->B7": 2,
+  "B9->B6": 1,
+  "B9->B5": 9,
+  "B9->B3": 5,
+  "B9->B2": 14,
+  "B1->B7": 25,
+  "B1->B9": 55,
+  "B1->B3": 18,
+  "B1->B8": 7,
+  "B1->B4": 10,
+  "B1->B5": 20,
+  "B1->B2": 23,
+  "B1->B1": 15,
+  "B1->B6": 18,
+  "B6->B9": 31,
+  "B6->B3": 7,
+  "B6->B2": 16,
+  "B6->B6": 8,
+  "B6->B1": 6,
+  "B6->B7": 6,
+  "B6->B4": 3,
+  "B6->B5": 8,
+  "B3->B9": 27,
+  "B3->B3": 12,
+  "B5->B9": 19,
+  "B5->B1": 4,
+  "B5->B5": 16,
+  "B5->B2": 10,
+  "B8->B1": 4,
+  "B8->B8": 4,
+  "B8->B3": 2,
+  "B3->B5": 8,
+  "B3->B1": 1,
+  "B3->B2": 11,
+  "B2->B5": 12,
+  "B9->B4": 1,
+  "B5->B7": 1,
+  "B2->B2": 30,
+  "B2->B7": 15,
+  "B2->B8": 1,
+  "B2->B3": 15,
+  "B2->B4": 4,
+  "B2->B1": 5,
+  "B2->B6": 5,
+  "B7->B1": 8,
+  "B7->B3": 19,
+  "B7->B5": 27,
+  "B7->B9": 57,
+  "B7->B6": 5,
+  "B7->B2": 39,
+  "B7->B7": 22,
+  "B3->B4": 1,
+  "B4->B9": 6,
+  "B8->B7": 4,
+  "B8->B6": 1,
+  "B4->B5": 3,
+  "B4->B2": 3,
+  "B4->B1": 1,
+  "B4->B4": 3,
+  "B7->B4": 1,
+  "B5->B4": 2,
+  "B5->B8": 1,
+  "B4->B3": 1,
+  "B3->B7": 1
+ },
+ "top_in": [
+  [
+   "protocol",
+   71
+  ],
+  [
+   "utils/absolute-path",
+   54
+  ],
+  [
+   "http-client",
+   28
+  ],
+  [
+   "utils/path-uri",
+   26
+  ],
+  [
+   "login",
+   26
+  ],
+  [
+   "core",
+   25
+  ],
+  [
+   "config",
+   25
+  ],
+  [
+   "otel",
+   24
+  ],
+  [
+   "git-utils",
+   17
+  ],
+  [
+   "exec-server",
+   17
+  ],
+  [
+   "model-provider-info",
+   16
+  ],
+  [
+   "ext/extension-api",
+   16
+  ],
+  [
+   "codex-api",
+   16
+  ],
+  [
+   "model-provider",
+   15
+  ]
+ ],
+ "top_out": [
+  [
+   "core",
+   69
+  ],
+  [
+   "app-server",
+   58
+  ],
+  [
+   "cli",
+   45
+  ],
+  [
+   "tui",
+   43
+  ],
+  [
+   "core-plugins",
+   22
+  ],
+  [
+   "memories/write",
+   19
+  ],
+  [
+   "exec",
+   19
+  ],
+  [
+   "exec-server",
+   18
+  ],
+  [
+   "mcp-server",
+   17
+  ],
+  [
+   "core-api",
+   17
+  ],
+  [
+   "ext/skills",
+   15
+  ],
+  [
+   "codex-mcp",
+   15
+  ],
+  [
+   "external-agent-migration",
+   14
+  ],
+  [
+   "ext/mcp",
+   14
+  ]
+ ],
+ "ca_deps_js": "var CA_DEPS = {\"agent-graph-store\": [\"protocol\", \"state\", \"utils/absolute-path\"], \"agent-identity\": [\"http-client\", \"protocol\"], \"agent-roles\": [\"config\", \"file-system\", \"utils/absolute-path\", \"utils/path-uri\"], \"analytics\": [\"app-server-protocol\", \"git-utils\", \"login\", \"model-provider\", \"plugin\", \"protocol\", \"state\", \"utils/absolute-path\"], \"app-server\": [\"analytics\", \"app-server-protocol\", \"app-server-transport\", \"arg0\", \"aws-auth\", \"backend-client\", \"cloud-config\", \"code-mode\", \"codex-home\", \"codex-mcp\", \"config\", \"connectors\", \"core\", \"core-plugins\", \"diagnostics\", \"exec-server\", \"ext/agent\", \"ext/extension-api\", \"ext/git-attribution\", \"ext/goal\", \"ext/guardian-v2\", \"ext/history-notes\", \"ext/image-generation\", \"ext/mcp\", \"ext/memories\", \"ext/queue\", \"ext/skills\", \"ext/web-search\", \"external-agent-migration\", \"features\", \"feedback\", \"file-search\", \"file-watcher\", \"git-utils\", \"hooks\", \"http-client\", \"login\", \"memories/write\", \"model-provider\", \"model-provider-info\", \"models-manager\", \"otel\", \"plugin\", \"protocol\", \"rmcp-client\", \"rollout\", \"sandboxing\", \"shell-command\", \"skills\", \"state\", \"thread-store\", \"tools\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/cli\", \"utils/json-to-toml\", \"utils/path-uri\", \"utils/pty\"], \"app-server-client\": [\"app-server\", \"app-server-protocol\", \"arg0\", \"config\", \"core\", \"exec-server\", \"feedback\", \"protocol\", \"uds\", \"utils/absolute-path\", \"utils/rustls-provider\"], \"app-server-daemon\": [\"app-server-protocol\", \"app-server-transport\", \"http-client\", \"uds\", \"utils/home-dir\"], \"app-server-protocol\": [\"app-server-protocol-noop-macros\", \"codex-experimental-api-macros\", \"ext/items\", \"history\", \"protocol\", \"rollout\", \"secrets\", \"shell-command\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/path-uri\", \"utils/redacted-string\"], \"app-server-test-client\": [\"app-server-protocol\", \"core\", \"otel\", \"protocol\", \"utils/cli\"], \"app-server-transport\": [\"app-server-protocol\", \"codex-api\", \"config\", \"core\", \"login\", \"model-provider\", \"protocol\", \"state\", \"uds\", \"utils/absolute-path\", \"utils/rustls-provider\"], \"apply-patch\": [\"exec-server\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/path-uri\"], \"arg0\": [\"apply-patch\", \"exec-server\", \"install-context\", \"linux-sandbox\", \"sandboxing\", \"shell-escalation\", \"utils/absolute-path\", \"utils/home-dir\"], \"backend-client\": [\"codex-api\", \"codex-backend-openapi-models\", \"http-client\", \"login\", \"model-provider\", \"protocol\"], \"build-info\": [\"install-context\"], \"cli\": [\"app-server\", \"app-server-daemon\", \"app-server-protocol\", \"app-server-test-client\", \"arg0\", \"cloud-config\", \"cloud-tasks\", \"codex-api\", \"codex-home\", \"codex-mcp\", \"config\", \"core\", \"core-plugins\", \"exec\", \"exec-server\", \"execpolicy\", \"ext/extension-api\", \"ext/git-attribution\", \"ext/skills\", \"features\", \"git-utils\", \"history\", \"http-client\", \"install-context\", \"login\", \"mcp-server\", \"memories/write\", \"model-provider\", \"models-manager\", \"plugin\", \"protocol\", \"responses-api-proxy\", \"rmcp-client\", \"rollout\", \"rollout-trace\", \"sandboxing\", \"state\", \"stdio-to-uds\", \"terminal-detection\", \"thread-store\", \"tui\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/cli\", \"utils/path-utils\"], \"cloud-config\": [\"agent-identity\", \"backend-client\", \"config\", \"core\", \"http-client\", \"login\", \"otel\", \"protocol\"], \"cloud-tasks\": [\"cloud-tasks-client\", \"cloud-tasks-mock-client\", \"core\", \"git-utils\", \"http-client\", \"login\", \"model-provider\", \"tui\", \"utils/cli\"], \"cloud-tasks-client\": [\"backend-client\", \"codex-api\", \"git-utils\", \"http-client\"], \"cloud-tasks-mock-client\": [\"cloud-tasks-client\"], \"code-mode\": [\"code-mode-protocol\", \"http-client\", \"install-context\", \"protocol\"], \"code-mode-host\": [\"code-mode\", \"code-mode-protocol\", \"code-mode-runtime\", \"otel\", \"protocol\", \"utils/cargo-bin\"], \"code-mode-protocol\": [\"protocol\"], \"code-mode-runtime\": [\"code-mode-protocol\", \"protocol\"], \"codex-api\": [\"codex-client\", \"http-client\", \"protocol\", \"utils/rustls-provider\", \"websocket-client\"], \"codex-client\": [\"http-client\"], \"codex-home\": [\"ext/extension-api\", \"utils/absolute-path\"], \"codex-mcp\": [\"async-utils\", \"codex-api\", \"config\", \"connectors\", \"diagnostics\", \"exec-server\", \"exec-server/tests/support\", \"login\", \"model-provider\", \"otel\", \"plugin\", \"protocol\", \"rmcp-client\", \"utils/path-uri\", \"utils/plugins\"], \"config\": [\"execpolicy\", \"features\", \"file-system\", \"git-utils\", \"model-provider-info\", \"network-proxy\", \"protocol\", \"utils/absolute-path\", \"utils/path-uri\", \"utils/path-utils\", \"utils/redacted-string\"], \"connectors\": [\"config\", \"login\", \"otel\", \"plugin\", \"protocol\"], \"context-fragments\": [\"protocol\", \"utils/string\"], \"core\": [\"agent-graph-store\", \"agent-roles\", \"analytics\", \"app-server-protocol\", \"apply-patch\", \"async-utils\", \"code-mode\", \"codex-api\", \"codex-client\", \"codex-home\", \"codex-mcp\", \"config\", \"connectors\", \"context-fragments\", \"core-plugins\", \"diagnostics\", \"exec-server\", \"exec-server/tests/support\", \"execpolicy\", \"ext/extension-api\", \"ext/image-generation\", \"ext/items\", \"ext/skills\", \"ext/web-search\", \"features\", \"feedback\", \"file-system\", \"git-utils\", \"history\", \"hooks\", \"http-client\", \"install-context\", \"login\", \"memories/read\", \"model-provider\", \"model-provider-info\", \"models-manager\", \"network-proxy\", \"otel\", \"plugin\", \"prompts\", \"protocol\", \"response-debug-context\", \"rmcp-client\", \"rollout\", \"rollout-trace\", \"sandboxing\", \"shell-command\", \"shell-escalation\", \"skills\", \"state\", \"terminal-detection\", \"test-binary-support\", \"thread-store\", \"tools\", \"utils/absolute-path\", \"utils/audio\", \"utils/cache\", \"utils/cargo-bin\", \"utils/home-dir\", \"utils/image\", \"utils/output-truncation\", \"utils/path-uri\", \"utils/path-utils\", \"utils/plugins\", \"utils/pty\", \"utils/redacted-string\", \"utils/stream-parser\", \"utils/string\"], \"core-api\": [\"analytics\", \"app-server-protocol\", \"arg0\", \"codex-home\", \"config\", \"core\", \"exec-server\", \"ext/extension-api\", \"ext/image-generation\", \"features\", \"history\", \"login\", \"model-provider-info\", \"models-manager\", \"protocol\", \"state\", \"utils/absolute-path\"], \"core-plugins\": [\"analytics\", \"app-server-protocol\", \"codex-mcp\", \"config\", \"connectors\", \"exec-server\", \"exec-server/tests/support\", \"git-utils\", \"hooks\", \"http-client\", \"login\", \"model-provider\", \"otel\", \"plugin\", \"protocol\", \"shell-command\", \"skills\", \"tools\", \"utils/absolute-path\", \"utils/path-uri\", \"utils/path-utils\", \"utils/plugins\"], \"exec\": [\"app-server-client\", \"app-server-protocol\", \"apply-patch\", \"arg0\", \"cloud-config\", \"config\", \"core\", \"feedback\", \"git-utils\", \"history\", \"login\", \"model-provider-info\", \"otel\", \"protocol\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/cli\", \"utils/oss\", \"utils/sandbox-summary\"], \"exec-server\": [\"codex-api\", \"config\", \"exec-server-protocol\", \"exec-server/tests/support\", \"file-system\", \"http-client\", \"network-proxy\", \"otel\", \"protocol\", \"sandboxing\", \"shell-command\", \"test-binary-support\", \"utils/absolute-path\", \"utils/home-dir\", \"utils/path-uri\", \"utils/pty\", \"utils/rustls-provider\", \"websocket-client\"], \"exec-server-protocol\": [\"file-system\", \"network-proxy\", \"protocol\", \"shell-command\", \"utils/path-uri\"], \"exec-server/tests/support\": [\"exec-server\", \"http-client\"], \"execpolicy\": [\"utils/absolute-path\"], \"ext/agent\": [\"core\", \"protocol\"], \"ext/connectors\": [\"connectors\", \"core-plugins\", \"file-system\", \"plugin\", \"utils/path-uri\"], \"ext/extension-api\": [\"codex-mcp\", \"config\", \"context-fragments\", \"exec-server-protocol\", \"protocol\", \"tools\", \"utils/absolute-path\", \"utils/path-uri\"], \"ext/git-attribution\": [\"backend-client\", \"ext/extension-api\", \"http-client\", \"login\"], \"ext/goal\": [\"analytics\", \"core\", \"ext/extension-api\", \"otel\", \"protocol\", \"rollout\", \"state\", \"tools\", \"utils/absolute-path\", \"utils/template\"], \"ext/guardian-v2\": [\"codex-api\", \"core\", \"ext/extension-api\", \"features\", \"http-client\", \"login\", \"model-provider\", \"model-provider-info\", \"models-manager\", \"network-proxy\", \"protocol\"], \"ext/history-notes\": [\"codex-api\", \"codex-client\", \"config\", \"core\", \"ext/extension-api\", \"login\", \"model-provider\", \"model-provider-info\", \"protocol\", \"tools\", \"utils/output-truncation\"], \"ext/image-generation\": [\"codex-api\", \"core\", \"exec-server\", \"ext/extension-api\", \"ext/items\", \"login\", \"model-provider\", \"model-provider-info\", \"protocol\", \"tools\", \"utils/absolute-path\", \"utils/image\", \"utils/path-uri\"], \"ext/items\": [\"utils/absolute-path\"], \"ext/mcp\": [\"codex-mcp\", \"config\", \"connectors\", \"core\", \"core-plugins\", \"exec-server\", \"ext/connectors\", \"ext/extension-api\", \"features\", \"login\", \"plugin\", \"protocol\", \"utils/absolute-path\", \"utils/path-uri\"], \"ext/memories\": [\"core\", \"ext/extension-api\", \"features\", \"otel\", \"tools\", \"utils/absolute-path\", \"utils/output-truncation\", \"utils/template\"], \"ext/queue\": [\"core\", \"ext/extension-api\", \"protocol\", \"state\", \"thread-store\", \"utils/absolute-path\"], \"ext/skills\": [\"analytics\", \"codex-mcp\", \"config\", \"exec-server\", \"ext/extension-api\", \"models-manager\", \"otel\", \"protocol\", \"skills\", \"tools\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/path-uri\", \"utils/plugins\", \"utils/string\"], \"ext/web-search\": [\"codex-api\", \"core\", \"ext/extension-api\", \"ext/items\", \"login\", \"model-provider\", \"model-provider-info\", \"otel\", \"protocol\", \"tools\"], \"external-agent-migration\": [\"analytics\", \"app-server-protocol\", \"config\", \"core\", \"core-plugins\", \"hooks\", \"login\", \"memories/write\", \"otel\", \"plugin\", \"protocol\", \"rollout\", \"thread-store\", \"utils/output-truncation\"], \"features\": [\"otel\", \"protocol\"], \"feedback\": [\"http-client\", \"login\", \"protocol\"], \"file-system\": [\"protocol\", \"utils/absolute-path\", \"utils/path-uri\"], \"git-utils\": [\"file-system\", \"protocol\", \"utils/absolute-path\", \"utils/path-uri\", \"utils/pty\"], \"history\": [\"protocol\"], \"hooks\": [\"config\", \"plugin\", \"protocol\", \"utils/absolute-path\", \"utils/output-truncation\", \"utils/path-uri\", \"utils/pty\"], \"http-client\": [\"utils/cargo-bin\", \"utils/rustls-provider\"], \"install-context\": [\"utils/absolute-path\", \"utils/home-dir\"], \"linux-sandbox\": [\"core\", \"install-context\", \"network-proxy\", \"process-hardening\", \"protocol\", \"sandboxing\", \"utils/absolute-path\"], \"lmstudio\": [\"core\", \"http-client\", \"model-provider-info\"], \"login\": [\"agent-identity\", \"config\", \"http-client\", \"keyring-store\", \"model-provider-info\", \"otel\", \"protocol\", \"secrets\", \"terminal-detection\", \"utils/template\", \"workload-identity\"], \"mcp-server\": [\"arg0\", \"codex-home\", \"config\", \"core\", \"exec-server\", \"ext/extension-api\", \"ext/git-attribution\", \"ext/image-generation\", \"ext/skills\", \"features\", \"login\", \"otel\", \"protocol\", \"shell-command\", \"utils/absolute-path\", \"utils/cli\", \"utils/json-to-toml\"], \"memories/read\": [\"protocol\", \"shell-command\", \"utils/absolute-path\"], \"memories/write\": [\"backend-client\", \"config\", \"core\", \"features\", \"git-utils\", \"login\", \"model-provider\", \"model-provider-info\", \"models-manager\", \"otel\", \"protocol\", \"rollout\", \"rollout-trace\", \"secrets\", \"state\", \"terminal-detection\", \"utils/absolute-path\", \"utils/output-truncation\", \"utils/template\"], \"model-provider\": [\"agent-identity\", \"aws-auth\", \"codex-api\", \"feedback\", \"http-client\", \"login\", \"model-provider-info\", \"models-manager\", \"otel\", \"protocol\", \"response-debug-context\", \"utils/redacted-string\"], \"model-provider-info\": [\"codex-api\", \"protocol\", \"utils/absolute-path\", \"utils/redacted-string\"], \"models-manager\": [\"collaboration-mode-templates\", \"http-client\", \"login\", \"otel\", \"protocol\", \"utils/output-truncation\", \"utils/template\"], \"network-proxy\": [\"utils/absolute-path\", \"utils/home-dir\", \"utils/rustls-provider\"], \"ollama\": [\"core\", \"http-client\", \"model-provider-info\"], \"otel\": [\"codex-api\", \"protocol\", \"utils/absolute-path\", \"utils/string\"], \"plugin\": [\"config\", \"protocol\", \"utils/absolute-path\", \"utils/path-uri\", \"utils/plugins\"], \"prompts\": [\"context-fragments\", \"execpolicy\", \"git-utils\", \"protocol\", \"utils/absolute-path\", \"utils/template\"], \"protocol\": [\"async-utils\", \"execpolicy\", \"ext/items\", \"http-client\", \"network-proxy\", \"utils/absolute-path\", \"utils/image\", \"utils/path-uri\", \"utils/redacted-string\", \"utils/string\"], \"response-debug-context\": [\"codex-api\"], \"responses-api-proxy\": [\"process-hardening\"], \"rmcp-client\": [\"codex-api\", \"config\", \"exec-server\", \"http-client\", \"keyring-store\", \"network-proxy\", \"protocol\", \"secrets\", \"utils/cargo-bin\", \"utils/home-dir\", \"utils/path-uri\", \"utils/pty\"], \"rollout\": [\"ext/items\", \"file-search\", \"git-utils\", \"history\", \"otel\", \"protocol\", \"state\", \"utils/absolute-path\", \"utils/path-utils\"], \"rollout-trace\": [\"code-mode\", \"protocol\"], \"sandboxing\": [\"network-proxy\", \"protocol\", \"utils/absolute-path\", \"utils/home-dir\", \"utils/path-uri\", \"utils/pty\"], \"secrets\": [\"git-utils\", \"keyring-store\"], \"shell-command\": [\"protocol\", \"utils/absolute-path\"], \"shell-escalation\": [\"protocol\", \"utils/absolute-path\"], \"skills\": [\"protocol\", \"shell-command\", \"utils/absolute-path\", \"utils/path-uri\"], \"state\": [\"git-utils\", \"history\", \"protocol\", \"utils/absolute-path\"], \"stdio-to-uds\": [\"uds\", \"utils/cargo-bin\"], \"test-binary-support\": [\"arg0\"], \"thread-manager-sample\": [\"core-api\"], \"thread-store\": [\"app-server-protocol\", \"ext/items\", \"git-utils\", \"install-context\", \"otel\", \"protocol\", \"rollout\", \"state\", \"utils/absolute-path\", \"utils/path-uri\", \"utils/path-utils\"], \"tools\": [\"code-mode\", \"connectors\", \"ext/items\", \"features\", \"file-system\", \"protocol\", \"utils/absolute-path\", \"utils/cargo-bin\", \"utils/output-truncation\", \"utils/string\"], \"tui\": [\"ansi-escape\", \"app-server-client\", \"app-server-protocol\", \"arg0\", \"cloud-config\", \"codex-mcp\", \"config\", \"connectors\", \"core-plugins\", \"exec-server\", \"features\", \"feedback\", \"file-search\", \"git-utils\", \"history\", \"http-client\", \"install-context\", \"login\", \"model-provider\", \"model-provider-info\", \"models-manager\", \"otel\", \"plugin\", \"protocol\", \"rollout\", \"sandboxing\", \"shell-command\", \"state\", \"terminal-detection\", \"utils/absolute-path\", \"utils/approval-presets\", \"utils/cargo-bin\", \"utils/cli\", \"utils/elapsed\", \"utils/fuzzy-match\", \"utils/home-dir\", \"utils/oss\", \"utils/path-uri\", \"utils/path-utils\", \"utils/plugins\", \"utils/sandbox-summary\", \"utils/sleep-inhibitor\", \"utils/string\"], \"utils/approval-presets\": [\"protocol\"], \"utils/audio\": [\"protocol\", \"utils/cache\", \"utils/string\"], \"utils/cli\": [\"protocol\", \"shell-command\"], \"utils/home-dir\": [\"utils/absolute-path\"], \"utils/image\": [\"utils/cache\"], \"utils/oss\": [\"core\", \"lmstudio\", \"model-provider-info\", \"ollama\"], \"utils/output-truncation\": [\"protocol\", \"utils/string\"], \"utils/path-uri\": [\"utils/absolute-path\"], \"utils/path-utils\": [\"utils/absolute-path\"], \"utils/plugins\": [\"exec-server\", \"exec-server-protocol\", \"utils/absolute-path\", \"utils/path-uri\"], \"utils/sandbox-summary\": [\"protocol\", \"utils/absolute-path\"], \"websocket-client\": [\"http-client\", \"utils/rustls-provider\"], \"workload-identity\": [\"http-client\"], \"worktree\": [\"git-utils\", \"protocol\"]};",
+ "ca_deg_js": "var CA_DEG = {\"agent-graph-store\": 1, \"agent-identity\": 3, \"agent-roles\": 1, \"analytics\": 7, \"ansi-escape\": 1, \"app-server\": 2, \"app-server-client\": 2, \"app-server-daemon\": 1, \"app-server-protocol\": 14, \"app-server-protocol-noop-macros\": 1, \"app-server-test-client\": 1, \"app-server-transport\": 2, \"apply-patch\": 3, \"arg0\": 8, \"async-utils\": 3, \"aws-auth\": 2, \"backend-client\": 5, \"build-info\": 0, \"bwrap\": 0, \"cli\": 0, \"cloud-config\": 4, \"cloud-tasks\": 1, \"cloud-tasks-client\": 2, \"cloud-tasks-mock-client\": 1, \"code-mode\": 5, \"code-mode-host\": 0, \"code-mode-protocol\": 3, \"code-mode-runtime\": 1, \"codex-api\": 16, \"codex-backend-openapi-models\": 1, \"codex-client\": 3, \"codex-experimental-api-macros\": 1, \"codex-home\": 5, \"codex-mcp\": 8, \"collaboration-mode-templates\": 1, \"config\": 25, \"connectors\": 8, \"context-fragments\": 3, \"core\": 25, \"core-api\": 1, \"core-plugins\": 7, \"diagnostics\": 3, \"exec\": 1, \"exec-server\": 17, \"exec-server-protocol\": 3, \"exec-server/tests/support\": 4, \"execpolicy\": 5, \"ext/agent\": 1, \"ext/connectors\": 1, \"ext/extension-api\": 16, \"ext/git-attribution\": 3, \"ext/goal\": 1, \"ext/guardian-v2\": 1, \"ext/history-notes\": 1, \"ext/image-generation\": 4, \"ext/items\": 8, \"ext/mcp\": 1, \"ext/memories\": 1, \"ext/queue\": 1, \"ext/skills\": 4, \"ext/web-search\": 2, \"external-agent-migration\": 1, \"features\": 12, \"feedback\": 6, \"file-search\": 3, \"file-system\": 8, \"file-watcher\": 1, \"git-utils\": 17, \"history\": 8, \"hooks\": 4, \"http-client\": 28, \"install-context\": 8, \"keyring-store\": 3, \"linux-sandbox\": 1, \"lmstudio\": 1, \"login\": 26, \"mcp-server\": 1, \"memories/read\": 1, \"memories/write\": 3, \"model-provider\": 15, \"model-provider-info\": 16, \"models-manager\": 9, \"network-proxy\": 9, \"ollama\": 1, \"otel\": 24, \"plugin\": 12, \"process-hardening\": 2, \"prompts\": 1, \"protocol\": 71, \"response-debug-context\": 2, \"responses-api-proxy\": 1, \"rmcp-client\": 4, \"rollout\": 9, \"rollout-trace\": 3, \"sandboxing\": 7, \"secrets\": 4, \"shell-command\": 11, \"shell-escalation\": 2, \"skills\": 4, \"state\": 13, \"stdio-to-uds\": 1, \"terminal-detection\": 5, \"test-binary-support\": 2, \"thread-manager-sample\": 0, \"thread-store\": 5, \"tools\": 10, \"tui\": 2, \"uds\": 4, \"utils/absolute-path\": 54, \"utils/approval-presets\": 1, \"utils/audio\": 1, \"utils/cache\": 3, \"utils/cargo-bin\": 13, \"utils/cli\": 7, \"utils/elapsed\": 1, \"utils/fuzzy-match\": 1, \"utils/home-dir\": 9, \"utils/image\": 3, \"utils/json-to-toml\": 2, \"utils/oss\": 2, \"utils/output-truncation\": 8, \"utils/path-uri\": 26, \"utils/path-utils\": 7, \"utils/plugins\": 6, \"utils/pty\": 7, \"utils/readiness\": 0, \"utils/redacted-string\": 6, \"utils/rustls-provider\": 7, \"utils/sandbox-summary\": 2, \"utils/sleep-inhibitor\": 1, \"utils/stream-parser\": 1, \"utils/string\": 9, \"utils/template\": 6, \"v8-poc\": 0, \"websocket-client\": 2, \"workload-identity\": 1, \"worktree\": 0};"
+}

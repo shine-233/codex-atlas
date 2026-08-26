@@ -16,16 +16,34 @@
 import json
 import re
 import sys
+import time
 import urllib.request
 from pathlib import Path
+
+# GBK 控制台打不出 ⚠/✗ 会直接 UnicodeEncodeError 崩掉，先兜底
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 UA = {"User-Agent": "codex-atlas-crawler"}
 API = "https://api.github.com/repos/openai/codex"
 RAW = "https://raw.githubusercontent.com/openai/codex"
 
 
-def f(url):
-    return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30).read().decode()
+def f(url, tries=3):
+    # 上百份 Cargo.toml 顺序抓取，网络抽风一次就前功尽弃，指数退避重试兜底
+    last = None
+    for i in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            return urllib.request.urlopen(req, timeout=30).read().decode()
+        except Exception as e:
+            last = e
+            if i < tries - 1:
+                time.sleep(1.5 * (i + 1))
+    raise last
 
 
 def parse_members(src):
