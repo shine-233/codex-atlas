@@ -480,6 +480,56 @@ def act1_race(ctx):
     pg.close()
 
 
+def code_city(ctx):
+    """05 代码城市：楼体=crate、楼高=实测被依赖数；悬停读数、点击选中、双标签切换。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/labs/atlas.html")
+    pg.wait_for_load_state("networkidle")
+    check("city exposed", pg.evaluate("() => !!window.CACity"))
+    n = pg.evaluate("() => CACity.state().buildings")
+    check("city has all crates as buildings", n >= 120, n)
+    pg.locator("#city-host").scroll_into_view_if_needed()
+    pg.wait_for_timeout(500)
+    painted = pg.evaluate("""() => {
+        const c = document.querySelector('#city-host canvas');
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 400) if (d[i] > 0) return true;
+        return false;
+    }""")
+    check("city paints buildings", painted)
+    # 悬停最高的楼 → 读数变化
+    b0 = pg.evaluate("() => CACity.at(0)")
+    box = pg.locator("#city-host").bounding_box()
+    hx = box["x"] + b0["x"] + b0["w"] / 2
+    hy = box["y"] + b0["y"] + b0["h"] / 2
+    read0 = pg.evaluate("() => document.getElementById('city-read').textContent")
+    pg.mouse.move(hx, hy)
+    pg.wait_for_timeout(200)
+    read1 = pg.evaluate("() => document.getElementById('city-read').textContent")
+    check("city hover reads crate info", read1 != read0 and "被依赖" in read1, [read0, read1])
+    # 点击 → 选中进详情
+    pg.mouse.click(hx, hy)
+    pg.wait_for_timeout(350)
+    check("city click selects crate", pg.evaluate(
+        "() => !document.getElementById('dc-neigh').hidden"),
+        pg.evaluate("() => document.getElementById('dc-neigh').hidden"))
+    # 双标签：切到目录树再切回
+    pg.evaluate("() => document.querySelector('.city-tabs [data-city=\"tree\"]').click()")
+    pg.wait_for_timeout(150)
+    switched = pg.evaluate("""() => ({
+      treeVis: !document.getElementById('repo-tree').hidden,
+      cityHid: document.getElementById('city-host').hidden })""")
+    check("city tab switches to tree", switched["treeVis"] and switched["cityHid"], switched)
+    pg.evaluate("() => document.querySelector('.city-tabs [data-city=\"city\"]').click()")
+    pg.wait_for_timeout(250)
+    check("city tab switches back", pg.evaluate(
+        "() => !document.getElementById('city-host').hidden"))
+    check("city no errors", not errs, errs[:3])
+    pg.close()
+
+
 def neighbor_graph(ctx):
     pg = ctx.new_page()
     pg.goto(BASE + "/labs/atlas.html")
@@ -884,6 +934,7 @@ def main():
             act1_race(ctx)
             wire_registry(ctx)
             neighbor_graph(ctx)
+            code_city(ctx)
             galaxy_wireframe(ctx)
             galaxy_mobile_perf(browser)
             patch_annotation_pen(ctx)
