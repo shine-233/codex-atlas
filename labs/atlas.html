@@ -2935,6 +2935,54 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  /* ---------- 影响面（blast radius，代码可视化工具的标配手法）----------
+     反向 BFS：改 a 会波及谁 = 所有传递依赖 a 的 crate（依赖它的 + 依赖它们的…）。
+     直接依赖者与传递波及分开计数——改动的直接后果和涟漪不是一回事。 */
+  var DEPENDENTS = null;
+  function dependentsOf(name) {
+    if (!DEPENDENTS) {
+      DEPENDENTS = {};
+      Object.keys(CA_DEPS).forEach(function (c) {
+        (CA_DEPS[c] || []).forEach(function (d) {
+          (DEPENDENTS[d] = DEPENDENTS[d] || []).push(c);
+        });
+      });
+    }
+    var seen = {};
+    var frontier = [name];
+    seen[name] = true;
+    while (frontier.length) {
+      var cur = frontier.shift();
+      (DEPENDENTS[cur] || []).forEach(function (nxt) {
+        if (!seen[nxt]) { seen[nxt] = true; frontier.push(nxt); }
+      });
+    }
+    var direct = DEPENDENTS[name] || [];
+    var directSet = {};
+    direct.forEach(function (d) { directSet[d] = true; });
+    var all = Object.keys(seen).filter(function (k) { return k !== name; });
+    var transitive = all.filter(function (k) { return !directSet[k]; });
+    return { direct: direct, all: all, transitive: transitive };
+  }
+
+  function blastHtml(a) {
+    var im = dependentsOf(a);
+    if (!im.all.length) {
+      return '<p class="dp-sum">影响面：<b>0</b> 个 crate 依赖 <code>' + esc(a) + '</code>——叶子 crate，改它只影响自己。</p>';
+    }
+    var show = im.all.slice(0, 10);
+    var html = '<p class="dp-sum">影响面：改 <code>' + esc(a) + '</code> 波及 <b>' + im.all.length +
+      '</b> 个 crate（直接依赖 ' + im.direct.length + ' + 传递 ' + im.transitive.length + '）' +
+      (im.all.length > show.length ? ' · 只列前 ' + show.length + ' 个' : '') + '</p>' +
+      '<div class="dp-chain">';
+    show.forEach(function (n, i) {
+      if (i) html += '<i class="dp-hop">·</i>';
+      html += '<button type="button" class="dp-chip" data-c="' + esc(n) + '" title="检索定位到 ' + esc(n) + '">' + esc(n) + "</button>";
+    });
+    html += "</div>";
+    return html;
+  }
+
   function run() {
     var a = fromSel.value, b = toSel.value;
     var path = bfs(a, b);
@@ -2947,7 +2995,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       });
       html += '</div><p class="dp-sum">' + esc(a) + " → " + esc(b) +
         " · <b>" + (path.length - 1) + "</b> 跳 · 每一段都是实测依赖边（CA_DEPS）</p>";
-      out.innerHTML = html;
+      out.innerHTML = html + blastHtml(a);
       Array.prototype.forEach.call(out.querySelectorAll(".dp-chip"), function (chip) {
         chip.addEventListener("click", function () { locate(chip.getAttribute("data-c")); });
       });

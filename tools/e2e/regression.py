@@ -587,6 +587,7 @@ def main():
             patch_line_explainer(ctx)
             pull_out_lab(ctx)
             dive_dial(ctx)
+            guess_crate(ctx)
             skip_link(ctx)
             reduced_motion(browser)
         browser.close()

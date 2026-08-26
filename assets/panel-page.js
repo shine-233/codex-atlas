@@ -366,6 +366,7 @@ window.CAProfileOpen = openProfile;
       { name: "↳ MCP DETOUR · 双路径对比", sub: "内置穿墙 / MCP 绕墙", href: P("labs/sandbox.html") + "#mcp-lane-panel", kw: "mcp detour 双路径 rmcp 绕墙 外部服务器" },
       { no: "04", name: "协议线路 · 报文时间线", sub: "审批分支 · 双向通道", href: P("labs/appserver.html"), kw: "protocol json-rpc 协议 报文 thread turn item 挂起" },
       { no: "05", name: "Crate 图谱", sub: "136 成员 · 列表/树图/力图", href: P("labs/atlas.html"), kw: "atlas crate 图谱 treemap 树图 workspace rust" },
+      { name: "↳ GUESS WHO · 猜 crate", sub: "Wordle × 实测边表", href: P("labs/atlas.html") + "#guess-lab", kw: "guess 猜 wordle 谜底 依赖边 游戏 daily" },
       { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
       { name: "↳ 自测模式 · 翻卡回忆", sub: "记得/忘了存档", href: P("glossary.html") + "#md=drill", kw: "flashcard drill 自测 记忆 翻卡 背题" },
       { no: "07", name: "深水区 A · 凭据流", sub: "ChatGPT vs API key", href: P("labs/deep.html") + "#mod-a", kw: "auth login 登录 凭据 token oauth auth.json api key" },
