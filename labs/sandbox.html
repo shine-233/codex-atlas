@@ -184,6 +184,7 @@
   .yard-fence.wall { stroke: rgba(240, 121, 106, .85); stroke-dasharray: none; }
   .yard-fence.off { opacity: .1; }
   .yard-fence.open { opacity: .3; stroke-dasharray: 3 10; }
+  .yard-wall3d { stroke-width: 1.1; pointer-events: none; }
   .yard-netwall { stroke: var(--line-strong); stroke-width: 2; stroke-dasharray: 6 5; }
   .yard-dot { fill: #ffb454; filter: drop-shadow(0 0 6px rgba(255, 180, 84, .85)); }
   .yard-echo { fill: none; stroke: rgba(255, 180, 84, .5); stroke-width: 1.5; }
@@ -250,7 +251,7 @@
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -381,7 +382,7 @@
       </p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · workspace_write() 可写白名单的装配</summary>
-        <pre><span class="src-loc">codex-rs/protocol/src/permissions.rs :746-779 · @cbfd999 实测（截取）</span>
+        <pre><span class="src-loc">codex-rs/protocol/src/permissions.rs :758-791 · @3ba7b69 实测（截取）</span>
 <span class="src-code">pub fn workspace_write(
     writable_roots: &amp;[AbsolutePathBuf],
     exclude_tmpdir_env_var: bool,
@@ -410,7 +411,7 @@
       </details>
       <details class="src-details">
         <summary>⌨ 看真实源码 · 策略变换管线：附加权限怎么并进沙箱模式</summary>
-        <pre><span class="src-loc">codex-rs/sandboxing/src/policy_transforms.rs :30-36 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/sandboxing/src/policy_transforms.rs :30-36 · @3ba7b69 实测</span>
 <span class="src-code">if matches!(&amp;entry.path, FileSystemPath::GlobPattern { .. })
     &amp;&amp; entry.access != FileSystemAccessMode::Deny
 {
@@ -421,7 +422,7 @@
         <p class="small muted" style="margin:8px 0 0;">
           附加权限里的 glob 通配只许用来<b>收紧</b>（deny-read），不许用来放行——配置写错直接报错，不静默降级。
         </p>
-        <pre><span class="src-loc">同文件 :75-88 · 合并保留窄授权，交集则不然（docstring 原话）· @cbfd999 实测</span>
+        <pre><span class="src-loc">同文件 :75-88 · 合并保留窄授权，交集则不然（docstring 原话）· @3ba7b69 实测</span>
 <span class="src-code">/// Resolves cwd-dependent permission entries without filtering their authority.
 ///
 /// Unlike intersection, this preserves narrower grants beneath denied paths.
@@ -436,7 +437,7 @@ pub fn materialize_additional_permissions(
     }
     normalize_additional_permissions(additional_permissions)
 }</span></pre>
-        <pre><span class="src-loc">同文件 :541-561 · 要不要上平台级沙箱，就靠这一个纯函数判定 · @cbfd999 实测</span>
+        <pre><span class="src-loc">同文件 :541-561 · 要不要上平台级沙箱，就靠这一个纯函数判定 · @3ba7b69 实测</span>
 <span class="src-code">pub fn should_require_platform_sandbox(
     file_system_policy: &amp;FileSystemSandboxPolicy,
     network_policy: NetworkSandboxPolicy,
@@ -465,7 +466,7 @@ pub fn materialize_additional_permissions(
       </details>
       <details class="src-details">
         <summary>⌨ 看真实源码 · 沙箱管理器：平台分派与三态偏好（manager.rs）</summary>
-        <pre><span class="src-loc">codex-rs/sandboxing/src/manager.rs :62-76 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/sandboxing/src/manager.rs :62-76 · @3ba7b69 实测</span>
 <span class="src-code">pub fn get_platform_sandbox(windows_sandbox_enabled: bool) -&gt; Option&lt;SandboxType&gt; {
     if cfg!(target_os = "macos") {
         Some(SandboxType::MacosSeatbelt)
@@ -485,7 +486,7 @@ pub fn materialize_additional_permissions(
           四种沙箱类型：<code>None / MacosSeatbelt / LinuxSeccomp / WindowsRestrictedToken</code>（枚举本体在同文件 :36-53，
           名字会作为 metric tag 上报）。Windows 还要再过一道开关，关着就退回 None。
         </p>
-        <pre><span class="src-loc">同文件 :310-329 · Forbid / Require / Auto 三态偏好 · @cbfd999 实测</span>
+        <pre><span class="src-loc">同文件 :310-329 · Forbid / Require / Auto 三态偏好 · @3ba7b69 实测</span>
 <span class="src-code">    pub fn should_sandbox(
         &amp;self,
         permission_profile: &amp;PermissionProfile,
@@ -613,7 +614,7 @@ pub fn materialize_additional_permissions(
       <p class="small muted" style="margin:10px 0 0;">MCP 侧的管家叫 McpManager：工具目录是两级缓存（运行时连接的工具 + 全量目录），注册来源是 plugins 与 extensions 两套体系——固定提交恰好就是给这套体系加「运行时连接状态上报」。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · McpManager 结构与两级缓存</summary>
-        <pre><span class="src-loc">codex-rs/core/src/mcp.rs :72-101 · @cbfd999 实测（构造体省略赋值体）</span>
+        <pre><span class="src-loc">codex-rs/core/src/mcp.rs :73-102 · @3ba7b69 实测（构造体省略赋值体）</span>
 <span class="src-code">#[derive(Clone)]
 pub struct McpManager {
     plugins_manager: Arc&lt;PluginsManager&gt;,
@@ -650,7 +651,7 @@ impl McpManager {
       <p class="small muted" style="margin:10px 0 0;">管理器下面是传输层：连一台 MCP 服务器有三种「配方」——进程内、本地子进程、可流式 HTTP。HTTP 那条最重：OAuth 凭据、钥匙串、重定向策略、握手截止时间全挂在配方上。握手超时的实现是个 RAII 守卫，守卫一死（Drop），截止时间即清空。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · 三种传输配方与握手截止守卫</summary>
-        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :142-175 · @cbfd999 实测（部分变体字段省略）</span>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :142-175 · @3ba7b69 实测（部分变体字段省略）</span>
 <span class="src-code">#[derive(Clone)]
 enum TransportRecipe {
     InProcess {
@@ -683,7 +684,7 @@ impl Drop for InitializeDeadlineGuard {
       <p class="small muted" style="margin:10px 0 0;">HTTP 路径上还有一段反方向的故事：MCP 服务器可以在工具执行中途反过来向你提问（elicitation）——要么是 MCP 标准的结构化输入，要么是一张 OpenAI 风格的表单。关键在计时：你思考的每一秒都不算进操作超时。提问挂起期间秒表停摆，答案一到、守卫析构，时钟接着走。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · 服务器反向提问时，超时秒表是怎么停的</summary>
-        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :298-306 与 src/elicitation_client_service.rs :74-85 · @cbfd999 实测（原文拼接，缩进压平）</span>
+        <pre><span class="src-loc">codex-rs/rmcp-client/src/rmcp_client.rs :298-305 与 src/elicitation_client_service.rs :74-85 · @3ba7b69 实测（原文拼接，缩进压平）</span>
 <span class="src-code">pub enum Elicitation {
     Mcp(ElicitRequestParams),
     OpenAiForm {
@@ -730,7 +731,7 @@ async fn create_elicitation(
       </p>
       <details class="src-details">
         <summary>⌨ 看真实源码 · 免审批白名单是 Starlark 规则驱动的</summary>
-        <pre><span class="src-loc">codex-rs/execpolicy/src/policy.rs :104-126 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/execpolicy/src/policy.rs :104-126 · @3ba7b69 实测</span>
 <span class="src-code">pub fn get_allowed_prefixes(&amp;self) -&gt; Vec&lt;Vec&lt;String&gt;&gt; {
     let mut prefixes = Vec::new();
 
@@ -842,7 +843,7 @@ async fn create_elicitation(
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @cbfd999，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
+      三种模式与读取范围出自官方博客《Unrolling the Codex agent loop》及 openai/codex 公开文档；可写范围的具体规则出自固定提交下 <code>codex-rs/protocol/src/permissions.rs</code> 的 <code>workspace_write()</code>：工作目录 + <code>/tmp</code> + <code>$TMPDIR</code> 默认可写（各有 exclude 开关）、<code>network_access</code> 默认关闭。旧社区分析引用的 <code>SandboxPermission</code>/<code>DiskWriteTempOnly</code> 等枚举名在本基线已不存在——protocol 已拆成独立 crate，符号名以固定提交为准。强制执行机制按平台对应仓库目录：<code>sandboxing/</code>（Seatbelt）、<code>linux-sandbox/</code> 与 <code>bwrap/</code>（Landlock/seccomp）。Windows 一列需特别说明：社区研究曾引用 <code>windows-sandbox-rs/</code> 目录名；经查固定提交 @3ba7b69，workspace 成员名单中并无此 crate，但 workspace.dependencies 里仍保留指向它的路径引用（<code>codex-windows-sandbox</code>）——换一个提交就得重新查证，这是本站锁定基线的原因。
       审批策略对判定的影响是<b>简化模型</b>：never 把「条件放行」压成拒绝，untrusted 把白名单外的动作升级为先问；实际 CLI 中策略与沙箱模式的组合路径更细，具体开关名以 <a href="https://developers.openai.com/codex/config-reference" target="_blank" rel="noopener">config-reference</a> 为准（仓库 docs/config.md 在固定提交下只是指路页）。CONFIG BRIDGE 生成的键名（<code>approval_policy</code>、<code>sandbox_mode</code>、<code>[sandbox_workspace_write] network_access</code>）与「CLI 旗标覆盖配置文件」的优先级同出该参考；片段为形状示意。本页不运行真实命令，所有判定均为教学演示。
     </aside>
 
@@ -865,7 +866,7 @@ async fn create_elicitation(
     linux:{ name:"Landlock + seccomp", lib:"内核 LSM 过滤", crates:"codex-rs/linux-sandbox/ · bwrap/",
             note:"用 Landlock 规则集约束文件树访问，seccomp 收窄系统调用面；另提供 bwrap 容器路线作为替代。" },
     win:  { name:"Windows WFP + 受限令牌", lib:"过滤平台 / 访问令牌", crates:"codex-rs/sandboxing/ · process-hardening/",
-            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @cbfd999 没把它列进 workspace members——构建上暂未启用。实现位置随版本演进，所以本站锁基线，换一个提交就得重查。" }
+            note:"网络层由 Windows Filtering Platform 规则管控、写入靠受限访问令牌收权。注意：windows-sandbox-rs 的源码就在仓库里，但固定提交 @3ba7b69 没把它列进 workspace members——构建上暂未启用。实现位置随版本演进，所以本站锁基线，换一个提交就得重查。" }
   };
 
   /* v: ro / ww / full 三模式的判定。cond = 条件放行 */
@@ -1536,6 +1537,71 @@ async fn create_elicitation(
     fenceT.textContent = "可写白名单围墙";
     svg.appendChild(fenceT);
 
+    /* 墙体伪 3D：把围墙挤出高度——权限越紧墙越高。
+       read-only 红墙 30px / workspace-write 半墙 16px / full 拆成贴地 3px；
+       审批开门瞬间压到 7px。补间 300ms，rAF 只在补间期间存在，reduced-motion 直接落位。 */
+    var wallG = E("g", {});
+    svg.appendChild(wallG);
+    var WALL_EDGES = [
+      [[34, 88], [532, 88]],
+      [[532, 88], [532, 292]],
+      [[34, 292], [532, 292]],
+      [[34, 88], [34, 292]]
+    ];
+    var wallPolys = WALL_EDGES.map(function () {
+      var p = E("polygon", { class: "yard-wall3d" });
+      wallG.appendChild(p);
+      return p;
+    });
+    function wallColors() {
+      if (fence.classList.contains("wall")) return { f: "rgba(240,121,106,.20)", s: "rgba(240,121,106,.75)" };
+      if (fence.classList.contains("off")) return { f: "rgba(148,163,178,.05)", s: "rgba(148,163,178,.22)" };
+      return { f: "rgba(255,180,84,.09)", s: "rgba(255,180,84,.42)" };
+    }
+    function drawWalls(h) {
+      var c = wallColors();
+      WALL_EDGES.forEach(function (ed, i) {
+        var p = wallPolys[i];
+        p.setAttribute("points",
+          ed[0][0] + "," + ed[0][1] + " " + ed[1][0] + "," + ed[1][1] + " " +
+          ed[1][0] + "," + (ed[1][1] - h).toFixed(1) + " " + ed[0][0] + "," + (ed[0][1] - h).toFixed(1));
+        p.setAttribute("fill", c.f);
+        p.setAttribute("stroke", c.s);
+      });
+    }
+    var wallH = 16, wallRaf = 0;
+    function targetWallH() {
+      if (fence.classList.contains("open")) return 7;
+      if (fence.classList.contains("wall")) return 30;
+      if (fence.classList.contains("off")) return 3;
+      return 16;
+    }
+    function tweenWall() {
+      var to = targetWallH();
+      if (to === wallH) { drawWalls(wallH); return; }
+      if (window.PrefersReducedMotion === true || !window.requestAnimationFrame) { wallH = to; drawWalls(wallH); return; }
+      var from = wallH, t0 = performance.now();
+      if (wallRaf) cancelAnimationFrame(wallRaf);
+      function step(now) {
+        var p = Math.min(1, (now - t0) / 300);
+        var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        wallH = from + (to - from) * e;
+        drawWalls(wallH);
+        if (p < 1) wallRaf = requestAnimationFrame(step);
+        else wallRaf = 0;
+      }
+      wallRaf = requestAnimationFrame(step);
+    }
+    drawWalls(wallH);
+    /* 模式切换（判定器卡片 / CONFIG BRIDGE）同步墙体高度：
+       click 冒泡到 document 时 setMode 已把 fence class 更新好，读得到新状态 */
+    document.addEventListener("click", function (e) {
+      var t = e.target;
+      if (t && t.closest && (t.closest(".mode-card") || t.closest("[data-cm]"))) setTimeout(tweenWall, 0);
+    });
+    setTimeout(tweenWall, 0);   /* hash 恢复等初始化路径兜底 */
+    window.YARD = { wallH: function () { return Math.round(wallH); } };
+
     /* 命令包（回声圈 + 本体）与结果标签 */
     var echo = E("circle", { class: "yard-echo", cx: 196, cy: 210, r: 12 });
     svg.appendChild(echo);
@@ -1611,6 +1677,7 @@ async fn create_elicitation(
       fence.classList.remove("wall", "off", "open");
       if (curMode === "ro") fence.classList.add("wall");
       else if (curMode === "full") fence.classList.add("off");
+      tweenWall();
     }
 
     function denyAt(p, text) {
@@ -1666,6 +1733,7 @@ async fn create_elicitation(
     document.getElementById("yard-yes").addEventListener("click", function () {
       hideAsk();
       fence.classList.add("open");
+      tweenWall();   /* 开门：墙体压低放行 */
       try { document.dispatchEvent(new CustomEvent("ca:stamp", { detail: { v: "cond" } })); } catch (e) { }
       walk([POS.fenceMid, POS.wo], function () { showTag(POS.wo, "已放行 · 签的是这一次", "cond"); });
     });

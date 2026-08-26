@@ -350,6 +350,20 @@ def yard_grab(ctx):
     pg.wait_for_load_state("networkidle")
     pg.locator("#yard-panel").scroll_into_view_if_needed()
     pg.wait_for_timeout(700)
+    # 墙体伪 3D：默认半墙 → ro 红墙升高 → full 拆平 → 回默认
+    check("yard walls extruded by default", pg.evaluate(
+        "() => window.YARD && YARD.wallH()") == 16,
+        pg.evaluate("() => window.YARD && YARD.wallH()"))
+    pg.evaluate("() => document.querySelector('.mode-card[data-mode=\"ro\"]').click()")
+    pg.wait_for_timeout(520)
+    check("yard ro wall rises", pg.evaluate("() => YARD.wallH()") >= 28,
+          pg.evaluate("() => YARD.wallH()"))
+    pg.evaluate("() => document.querySelector('.mode-card[data-mode=\"full\"]').click()")
+    pg.wait_for_timeout(520)
+    check("yard full collapses walls", pg.evaluate("() => YARD.wallH()") <= 5,
+          pg.evaluate("() => YARD.wallH()"))
+    pg.evaluate("() => document.querySelector('.mode-card[data-mode=\"ww\"]').click()")
+    pg.wait_for_timeout(450)
 
     def pev(name, pid, x760, y330):
         yard = pg.locator("#yard").bounding_box()
