@@ -796,6 +796,19 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
    window.CA_DEPS = CA_DEPS;
    window.CA_DEG = CA_DEG;
    window.CA_BANDS = BANDS;
+   /* 跨仪器定位：切到星系视图、选中该 crate、镜头对准（赢局直达用） */
+   window.CA_LOCATE = function (name) {
+     var B = null;
+     BANDS.forEach(function (b) { if (!B && b.crates.indexOf(name) !== -1) B = b; });
+      if (!B || !window.CA_SETVIEW) return false;
+      window.CA_SETVIEW("galaxy");
+     selectCrate(B, name, null);
+     var g = document.getElementById("galaxy");
+     if (g && !g.hidden && g.scrollIntoView) {
+       try { g.scrollIntoView({ behavior: window.PrefersReducedMotion ? "auto" : "smooth", block: "center" }); } catch (e) { }
+     }
+     return true;
+   };
 
    var bandsBox = document.getElementById("bands");
   var qInput = document.getElementById("q");
@@ -1172,6 +1185,8 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       if (window.CAGalaxy) { gal ? CAGalaxy.wake() : CAGalaxy.sleep(); }
       if (window.CAForce) { frc ? CAForce.wake() : CAForce.sleep(); }
     }
+    /* 发布给主作用域：CA_LOCATE（赢局直达）在嵌套 IIFE 外看不到 setView */
+    window.CA_SETVIEW = setView;
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-vw]"), function (b) {
       b.addEventListener("click", function () { setView(b.getAttribute("data-vw")); });
@@ -1233,6 +1248,9 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     /* 线框球模式（GitHub Globe 手法）：经纬线框舞台 + 依赖边圆弧航线 + 光点飞行。
        开关状态写进 hash（wf=1），刷新/分享不丢。 */
     var wf = false;
+    /* 自适应降级：线框模式下滚动监测帧时，持续超 26ms 就切轻量档
+       （弧段 20→12、经纬采样 60→36、光点 26→12）。低端机保交互手感。 */
+    var wfLite = false, ftAcc = 0, ftN = 0, lastTs = 0;
     var wireBtn = document.getElementById("gx-wire");
     if (wireBtn) {
       wf = PanelState.read().wf === "1";
@@ -1369,6 +1387,16 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
 
     function frame(ts) {
       var now = ts || performance.now();
+      /* 帧时监测：只统计正常间隔（切标签页回来的大 dt 不算） */
+      var dt = now - (lastTs || now);
+      lastTs = now;
+      if (wf && !REDUCED && dt > 0 && dt < 100) {
+        ftAcc += dt; ftN++;
+        if (ftN >= 90) {
+          if (!wfLite && ftAcc / ftN > 26) wfLite = true;
+          ftAcc = 0; ftN = 0;
+        }
+      }
 
       /* 入场：星图从中心长出来（start small, build big） */
       var intro = REDUCED ? 1 : Math.min(1, (now - t0) / 950);
@@ -3132,6 +3160,18 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
     if (g < s) return '<i class="dn">↑ 谜底更大</i>';
     return '<i class="eq">= 正中</i>';
   }
+  /* 赢局/败局后的直达：切星系、选中、镜头对准 */
+  function locateBtn() {
+    return ' <button class="btn" id="gw-locate" type="button" style="padding:3px 12px;font-size:11.5px;margin-left:8px;">在星系里点亮它 →</button>';
+  }
+  function wireLocate() {
+    var b = document.getElementById("gw-locate");
+    if (b) b.addEventListener("click", function () {
+      if (window.CA_LOCATE && CA_LOCATE(secret) && window.CAToast) {
+        CAToast("星系视图已选中 " + secret + "，镜头正在转过去");
+      }
+    });
+  }
   function bandLabel(n) {
     var B = BAND_OF[n];
     return B ? "第 " + B.no + " 带 · " + B.name : "—";
@@ -3178,14 +3218,16 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         : guesses.length <= 4 ? "漂亮，边表没白看。"
         : "第 " + guesses.length + " 次压哨命中——也算赢。";
       outBox.innerHTML = "<b style='color:var(--ok);'>谜底就是 " + secret + "（" + bandLabel(secret) +
-        "，被依赖 " + inDeg(secret) + " · 依赖 " + CA_DEPS[secret].length + "）。</b>" + msg;
+        "，被依赖 " + inDeg(secret) + " · 依赖 " + CA_DEPS[secret].length + "）。</b>" + msg + locateBtn();
+      wireLocate();
       if (window.CASound) CASound.play("clear");
       if (window.CAConfetti) CAConfetti.fire(true);
     } else if (guesses.length >= 6) {
       done = true;
       outBox.innerHTML = "六次用完，谜底是 <b>" + secret + "</b>（" + bandLabel(secret) +
         "，被依赖 " + inDeg(secret) + " · 依赖 " + CA_DEPS[secret].length +
-        "）。去上面的星系里点它一圈，明天再来。";
+        "）。" + locateBtn();
+      wireLocate();
       if (window.CASound) CASound.play("deny");
     } else {
       outBox.innerHTML = "第 <b>" + guesses.length + "</b>/6 猜。线索都在上面——注意关系列，一条实测边能砍掉一半可能。";
