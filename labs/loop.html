@@ -873,7 +873,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
         window.__curveDbg.downs = (window.__curveDbg.downs || 0) + 1;
         window.__curveDbg.last = { x: x, y: y, cx: e.clientX, cy: e.clientY,
           rl: r.left, rt: r.top, predX: predX(), predY: predY(),
-          near: nearPredHandle(x, y) };
+          near: nearPredHandle(x, y), scrollY: window.scrollY };
       }
       if (!nearPredHandle(x, y)) return;
       predDrag = true;

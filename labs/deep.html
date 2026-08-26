@@ -1150,11 +1150,11 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         </p>
         <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
           <div>
-            <div class="cov-num" data-gc="39">0</div>
+            <div class="cov-num" data-gc="41">0</div>
             <div class="small muted" style="margin-top:2px;">个源码文件有逐行切片</div>
           </div>
           <div>
-            <div class="cov-num" data-gc="13">0</div>
+            <div class="cov-num" data-gc="16">0</div>
             <div class="small muted" style="margin-top:2px;">个 crate 被逐行打开过</div>
           </div>
           <div>
@@ -1246,6 +1246,17 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       ]},
       { c: "code-mode", files: [
         { p: "src/lib.rs", loc: ":1-9（全文）", note: "九行看运行形态", to: "#mod-f" }
+      ]},
+      { c: "rollout", files: [
+        { p: "src/rollout_file_name.rs", loc: "struct :16-20 · parse :39-60 · render :62-74", note: "文件名规则本体：rollout-时间戳-threadId.jsonl，回滚线程在 _ 后追加第二 ID（split_once('_')）", to: "../labs/appserver.html" }
+      ]},
+      { c: "exec", files: [
+        { p: "src/cli.rs", loc: "--ephemeral :35-37 · --json :58-65 · --output-last-message :67-74", note: "无头模式旗标实测：--json 事件流走 stdout JSONL（CI 友好），--ephemeral 不落盘，-o 写出最后一条消息", to: "../labs/loop.html#s=1" }
+      ]},
+      { c: "sandboxing", files: [
+        { p: "src/seatbelt_base_policy.sbpl", loc: "3.9KB · 文件级", note: "Seatbelt 基础策略（SBPL 源码随 crate 分发）", to: "../labs/sandbox.html" },
+        { p: "src/policy_transforms.rs", loc: "20.9KB · 文件级", note: "模式间策略变换管线（未逐行，列入待拆）", to: "../labs/sandbox.html" },
+        { p: "src/manager.rs", loc: "28.2KB · 文件级", note: "沙箱管理器（未逐行，列入待拆）", to: "../labs/sandbox.html" }
       ]}
     ];
     </script>
