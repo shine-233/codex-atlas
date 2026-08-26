@@ -77,6 +77,11 @@
   .deck-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .deck-actions .grow { flex: 1; }
   .deck-tip { margin-top: 10px; }
+  /* 遗忘曲线小图：近 28 天每天「记得 / 忘了」的记得率柱状图 */
+  .curve-wrap { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .curve-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .curve-title { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; color: var(--dim); }
+  #curve { width: 100%; height: 64px; display: block; }
   /* 配对游戏：canvas 连线 */
   .mg-wrap {
     position: relative; height: 330px; margin-top: 4px;
@@ -188,6 +193,13 @@
           <button class="btn" id="d-known" type="button">✓ 记得</button>
           <button class="btn" id="d-unknown" type="button">✗ 忘了</button>
           <button class="btn" id="d-next" type="button" aria-label="下一张">▶</button>
+        </div>
+        <div class="curve-wrap">
+          <div class="curve-head">
+            <span class="curve-title">MEMORY CURVE · 近 28 天</span>
+            <span id="curve-sum" aria-live="polite"></span>
+          </div>
+          <canvas id="curve" height="64"></canvas>
         </div>
         <p class="small muted deck-tip">
           先看术语自己回忆，再翻面对答案。「记得 / 忘了」会记进本机存档——下次打开，先给你推没记牢的那些。键盘：空格翻面，← → 换张。
@@ -374,6 +386,80 @@
   try { store = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { store = {}; }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* 存不上就算了 */ } }
 
+  /* ---------- 遗忘曲线：近 28 天每天的记得/忘了计数（ca-drill-hist）。
+     每天一条 {d:"Y-M-D",k,u}，最多留 28 天；画成记得率柱状小图。 ---------- */
+  var HIST_KEY = "ca-drill-hist", HIST_MAX = 28;
+  var curveCv = document.getElementById("curve");
+  var curveSum = document.getElementById("curve-sum");
+  var CURVE_AMBER = (window.CATheme ? CATheme.rgb("--amber", "255,180,84") : "255,180,84");
+  var CURVE_FAINT = (window.CATheme ? CATheme.rgb("--faint", "90,103,116") : "90,103,116");
+
+  function loadHist() {
+    try {
+      var h = JSON.parse(localStorage.getItem(HIST_KEY) || "[]");
+      return h && typeof h.length === "number" ? h : [];
+    } catch (e) { return []; }
+  }
+  function saveHist(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch (e) { /* 存不上就算了 */ } }
+  function dayStr(dt) { return dt.getFullYear() + "-" + (dt.getMonth() + 1) + "-" + dt.getDate(); }
+
+  function drawCurve() {
+    if (!curveCv || !curveCv.getContext) return;
+    var hist = loadHist();
+    var byDay = {};
+    hist.forEach(function (x) { if (x && x.d) byDay[x.d] = x; });
+    var totK = 0, totU = 0;
+    hist.forEach(function (x) { if (x) { totK += x.k || 0; totU += x.u || 0; } });
+    if (!totK && !totU) {
+      curveSum.textContent = "做完一轮自测就开始记录";
+    } else {
+      curveSum.innerHTML = "近 28 天记得率 <b>" + Math.round(100 * totK / (totK + totU)) +
+        "%</b> · " + (totK + totU) + " 次作答";
+    }
+    if (deck.hidden) return;
+    var w = curveCv.clientWidth;
+    if (w < 10) return;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var h64 = 64;
+    curveCv.width = Math.round(w * dpr);
+    curveCv.height = Math.round(h64 * dpr);
+    var ctx = curveCv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h64);
+    /* 基线 */
+    ctx.strokeStyle = "rgba(" + CURVE_FAINT + ",.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0.5, h64 - 4.5);
+    ctx.lineTo(w - 0.5, h64 - 4.5);
+    ctx.stroke();
+    /* 28 槽柱状图：右端=今天，往左回溯；rate = k/(k+u)，琥珀色 */
+    var slotW = w / HIST_MAX;
+    var barW = Math.max(2, Math.floor(slotW * 0.62));
+    var maxH = h64 - 8;
+    for (var i = 0; i < HIST_MAX; i++) {
+      var dt = new Date();
+      dt.setDate(dt.getDate() - (HIST_MAX - 1 - i));
+      var e = byDay[dayStr(dt)];
+      if (!e || (!(e.k > 0) && !(e.u > 0))) continue;
+      var rate = e.k / (e.k + e.u);
+      var bh = Math.max(2, Math.round(rate * maxH));
+      ctx.fillStyle = "rgba(" + CURVE_AMBER + "," + (0.45 + 0.55 * rate).toFixed(2) + ")";
+      ctx.fillRect(i * slotW + (slotW - barW) / 2, h64 - 4 - bh, barW, bh);
+    }
+  }
+
+  function bumpHist(ok) {
+    var h = loadHist();
+    var t = dayStr(new Date()), e = null;
+    for (var i = 0; i < h.length; i++) if (h[i] && h[i].d === t) { e = h[i]; break; }
+    if (!e) { e = { d: t, k: 0, u: 0 }; h.push(e); }
+    if (ok) e.k++; else e.u++;
+    while (h.length > HIST_MAX) h.shift();   /* 超了丢最老的一天 */
+    saveHist(h);
+    drawCurve();
+  }
+
   /* 出队顺序：没记牢的在前，已记的垫后；组内保持页面原顺序 */
   function rank(name) { return store[name] === true ? 2 : 1; }
   var order = CARDS.map(function (c, i) { return i; })
@@ -401,6 +487,7 @@
     var n = counts();
     deckPos.innerHTML = "第 <b>" + (idx + 1) + "</b> / " + order.length + " 张";
     drillOut.innerHTML = "已记 <b>" + n.k + "</b> · 待巩固 " + n.u + " · 共 " + CARDS.length + " 条";
+    drawCurve();
   }
 
   function flip() {
@@ -414,9 +501,10 @@
 
   function mark(ok) {
     var name = CARDS[order[idx]].name;
-    if (ok) { store[name] = true; save(); if (window.CASound) CASound.play("pop"); step(1); return; }
+    if (ok) { store[name] = true; save(); bumpHist(true); if (window.CASound) CASound.play("pop"); step(1); return; }
     delete store[name];
     save();
+    bumpHist(false);
     if (window.CASound) CASound.play("deny");
     /* 忘了：当前卡退出队列、沉到队尾再练一遍 */
     order.push(order.splice(idx, 1)[0]);
@@ -512,6 +600,7 @@
 
   if (PanelState.read().md === "drill") setMode("drill");
   else if (PanelState.read().md === "match") setMode("match");
+  window.addEventListener("resize", function () { drawCurve(); });
   render();
 })();
 </script>

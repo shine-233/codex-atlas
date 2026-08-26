@@ -1454,7 +1454,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
       /* 线框球舞台：经纬细线圈包住整个星团（GitHub Globe 的点阵球语法）。
          半径取 1.26——刚好罩住带心（单位球面）加成员云（半径 ≤1.17）。 */
       if (wf) {
-        var GRAT_R = 1.26, SEG = 60;
+        var GRAT_R = 1.26, SEG = wfLite ? 36 : 60;
         ctx.lineWidth = 1;
         var gl;
         /* 纬线：-60°/-30°/0°/30°/60° 五圈 */
@@ -1572,7 +1572,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
             ctx.beginPath(); ctx.moveTo(sp._sx, sp._sy); ctx.lineTo(q._sx, q._sy); ctx.stroke();
             return;
           }
-          var NARC = 20, prevX = 0, prevY = 0, prevZ = 0;
+          var NARC = wfLite ? 12 : 20, prevX = 0, prevY = 0, prevZ = 0;
           for (var ai = 0; ai <= NARC; ai++) {
             var pt3 = arcPoint(sp, q, ai / NARC);
             var ap2 = proj(pt3.x, pt3.y, pt3.z);
@@ -1598,7 +1598,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
            reduced-motion 下退化为固定位置的静子。 */
         if (wf) {
           var totalE = (showOut ? selDeps.out.length : 0) + (showIn ? selDeps.ins.length : 0);
-          var pulseN = Math.min(totalE, 26);
+          var pulseN = Math.min(totalE, wfLite ? 12 : 26);
           for (var pi3 = 0; pi3 < pulseN; pi3++) {
             var gi = Math.floor(pi3 * totalE / pulseN);
             var isOut = showOut && gi < selDeps.out.length;
@@ -1936,7 +1936,7 @@ var CA_DEG = {"agent-graph-store": 1, "agent-identity": 3, "agent-roles": 1, "an
         var i = pickAt(x, y);
         return i >= 0 ? { name: PTS[i].name, band: BANDS[PTS[i].bi].no, x: PTS[i]._sx, y: PTS[i]._sy } : null;
       },
-      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi, wire: wf }; }
+      state: function () { return { ax: ax, ay: ay, zoom: zoomv, pan: [panX, panY], pts: PTS.length, running: running, focus: focusBi, wire: wf, lite: wfLite, fps: ftN ? Math.round(1000 * ftN / ftAcc) : 0 }; }
     };
     /* 直达 #vw=galaxy 时初始恢复先于本 IIFE 执行、当时 CAGalaxy 还不存在——这里补唤醒，
        否则画布停在默认 300×150 空白（分享链接打开即黑屏的既有 bug）。 */
