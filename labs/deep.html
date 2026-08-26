@@ -1150,8 +1150,8 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         </p>
         <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-end;margin:2px 0 16px;">
           <div>
-            <div class="cov-num" data-gc="41">0</div>
-            <div class="small muted" style="margin-top:2px;">个源码文件有逐行切片</div>
+            <div class="cov-num" data-gc="46">0</div>
+            <div class="small muted" style="margin-top:2px;">份逐行切片（每份对应一处 src-loc 标注）</div>
           </div>
           <div>
             <div class="cov-num" data-gc="16">0</div>
@@ -1160,6 +1160,10 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           <div>
             <div class="cov-num cov-dim" data-gc="136">0</div>
             <div class="small muted" style="margin-top:2px;">个 crate 有图谱注解（扫读层）</div>
+          </div>
+          <div>
+            <div class="cov-num cov-dim" data-gc="1">0</div>
+            <div class="small muted" style="margin-top:2px;">个文件只有整体注解（未逐行）</div>
           </div>
           <div style="flex:1;min-width:200px;max-width:340px;margin-left:auto;">
             <input id="cov-q" class="search-box" type="search" placeholder="过滤：crate / 文件 / 主题（如 diff、流式）" aria-label="过滤切片清单">
@@ -1171,8 +1175,9 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
           <p class="small muted" style="margin:0;">
             上面的名单之外，还有几块本站只给了图谱注解或格式描述、没有逐行切片：<code>codex-tui</code> 的
             bottom_pane/chat_composer.rs 的其余部分（一万一千行的输入框巨物，本轮只拆了能力开关一段）、textarea.rs、
-            approval_overlay.rs 与 footer.rs；<code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式）与
-            client.rs 的流式重连内部；以及 codex-exec、各类沙箱实现 crate 的执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
+            approval_overlay.rs 与 footer.rs；<code>codex-core</code> 的 rollout 归档读写（04 只解剖了落盘格式与冷档压缩工，
+            recorder.rs 本体未拆）与 client.rs 的流式重连内部；以及 codex-exec 的执行内部、各平台沙箱实现 crate
+            （seatbelt / landlock / bwrap / windows-sandbox 本体）的强制执行细节。这些名字全部来自已切源码里的类型引用与目录树实测，
             属于「知道在哪、还没拆开」——下一批切片从这里出。上游持续漂移，以固定提交下的目录树为准。
           </p>
         </div>
@@ -1226,7 +1231,8 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/lib.rs", loc: ":40", note: "provider 装配", to: "../labs/loop.html#s=10" }
       ]},
       { c: "codex-protocol", files: [
-        { p: "src/permissions.rs", loc: ":746-779", note: "审批策略判定", to: "../labs/sandbox.html" }
+        { p: "src/permissions.rs", loc: ":746-779", note: "审批策略判定", to: "../labs/sandbox.html" },
+        { p: "src/openai_models.rs", loc: ":486-497", note: "默认压缩阈值 = min(config, 窗口×90%)（02 COMPACT 有现场）", to: "../labs/prompt.html" }
       ]},
       { c: "rmcp-client", files: [
         { p: "src/rmcp_client.rs", loc: ":142-175, 297-305", note: "三种传输配方 + 握手 RAII", to: "../labs/sandbox.html" },
@@ -1248,15 +1254,17 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/lib.rs", loc: ":1-9（全文）", note: "九行看运行形态", to: "#mod-f" }
       ]},
       { c: "rollout", files: [
-        { p: "src/rollout_file_name.rs", loc: "struct :16-20 · parse :39-60 · render :62-74", note: "文件名规则本体：rollout-时间戳-threadId.jsonl，回滚线程在 _ 后追加第二 ID（split_once('_')）", to: "../labs/appserver.html" }
+        { p: "src/rollout_file_name.rs", loc: "struct :16-20 · parse :39-60 · render :62-74", note: "文件名规则本体：rollout-时间戳-threadId.jsonl，回滚线程在 _ 后追加第二 ID（split_once('_')）", to: "../labs/appserver.html" },
+        { p: "src/compression.rs", loc: "冷档常量 :255-261 · cold_file_state :709-733", note: "冷 rollout 七天后压成 .jsonl.zst：zstd level 3、锁 6h 防重叠、并发上限 2——压的是磁盘档案，与模型上下文压缩无关", to: "../labs/appserver.html" }
       ]},
       { c: "exec", files: [
-        { p: "src/cli.rs", loc: "--ephemeral :35-37 · --json :58-65 · --output-last-message :67-74", note: "无头模式旗标实测：--json 事件流走 stdout JSONL（CI 友好），--ephemeral 不落盘，-o 写出最后一条消息", to: "../labs/loop.html#s=1" }
+        { p: "src/cli.rs", loc: "--ephemeral :35-37 · --json :58-65 · --output-last-message :67-74", note: "无头模式旗标实测：--json 事件流走 stdout JSONL（CI 友好），--ephemeral 不落盘，-o 写出最后一条消息", to: "../labs/loop.html" },
+        { p: "src/exec_events.rs", loc: "ThreadEvent :8-37 · 条目类型 :105-133", note: "--json stdout 的事件模式：thread/turn/item 三层八种事件、九种条目载荷（01 CI VIEW 有现场）", to: "../labs/loop.html" }
       ]},
       { c: "sandboxing", files: [
         { p: "src/seatbelt_base_policy.sbpl", loc: "3.9KB · 文件级", note: "Seatbelt 基础策略（SBPL 源码随 crate 分发）", to: "../labs/sandbox.html" },
-        { p: "src/policy_transforms.rs", loc: "20.9KB · 文件级", note: "模式间策略变换管线（未逐行，列入待拆）", to: "../labs/sandbox.html" },
-        { p: "src/manager.rs", loc: "28.2KB · 文件级", note: "沙箱管理器（未逐行，列入待拆）", to: "../labs/sandbox.html" }
+        { p: "src/policy_transforms.rs", loc: "glob 仅限 deny-read :30-36 · materialize :75-88 · 平台沙箱判定 :541-561", note: "模式间策略变换管线：合并保留窄授权而交集不然；是否要上平台沙箱收在一个纯函数里", to: "../labs/sandbox.html" },
+        { p: "src/manager.rs", loc: "平台分派 :62-76 · 三态偏好 :310-329", note: "沙箱管理器：四型枚举按平台分派（Windows 还要过开关）；Auto 档整个委托 policy_transforms 判定", to: "../labs/sandbox.html" }
       ]}
     ];
     </script>
@@ -2502,7 +2510,7 @@ window.CATOUR_STEPS = [
   { sel: "#mod-d", title: "D · TUI 后台", text: "播放一段对话，点任意一格看驱动它的事件；下面还有斜杠命令面板。" },
   { sel: "#mod-e", title: "E · 扩展机制", text: "挂点卡与主干管线互相指。下方 hooks 事件轴有 8 个实测事件名，逐个点着看挂点。" },
   { sel: "#mod-f", title: "F · Code Mode", text: "实验位：普通模式逐张发单 vs V8 跑一段 JS。注意 host 函数依然走沙箱——编排自由不是权限自由。" },
-  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：39 个文件、13 个 crate 逐行拆过，悬停行看完整源码路径，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
+  { sel: "#mod-g", title: "G · 覆盖地图", text: "全站切片台账：46 份切片、16 个 crate 逐行拆过，悬停行看完整源码路径，点行直达仪器；还没拆的也如实列在下面。支持过滤，?cov= 可分享。" }
 ];
 </script>
 

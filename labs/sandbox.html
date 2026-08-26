@@ -408,6 +408,110 @@
         ));
     }</span></pre>
       </details>
+      <details class="src-details">
+        <summary>⌨ 看真实源码 · 策略变换管线：附加权限怎么并进沙箱模式</summary>
+        <pre><span class="src-loc">codex-rs/sandboxing/src/policy_transforms.rs :30-36 · @cbfd999 实测</span>
+<span class="src-code">if matches!(&amp;entry.path, FileSystemPath::GlobPattern { .. })
+    &amp;&amp; entry.access != FileSystemAccessMode::Deny
+{
+    return Err(
+        "glob file system permissions only support deny-read entries".to_string(),
+    );
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          附加权限里的 glob 通配只许用来<b>收紧</b>（deny-read），不许用来放行——配置写错直接报错，不静默降级。
+        </p>
+        <pre><span class="src-loc">同文件 :75-88 · 合并保留窄授权，交集则不然（docstring 原话）· @cbfd999 实测</span>
+<span class="src-code">/// Resolves cwd-dependent permission entries without filtering their authority.
+///
+/// Unlike intersection, this preserves narrower grants beneath denied paths.
+pub fn materialize_additional_permissions(
+    mut additional_permissions: AdditionalPermissionProfile,
+    cwd: &amp;Path,
+) -&gt; Result&lt;AdditionalPermissionProfile, String&gt; {
+    if let Some(file_system) = additional_permissions.file_system.as_mut() {
+        for entry in &amp;mut file_system.entries {
+            *entry = materialize_cwd_dependent_entry(entry, cwd);
+        }
+    }
+    normalize_additional_permissions(additional_permissions)
+}</span></pre>
+        <pre><span class="src-loc">同文件 :541-561 · 要不要上平台级沙箱，就靠这一个纯函数判定 · @cbfd999 实测</span>
+<span class="src-code">pub fn should_require_platform_sandbox(
+    file_system_policy: &amp;FileSystemSandboxPolicy,
+    network_policy: NetworkSandboxPolicy,
+    has_managed_network_requirements: bool,
+) -&gt; bool {
+    if has_managed_network_requirements {
+        return true;
+    }
+
+    if !network_policy.is_enabled() {
+        return !matches!(
+            file_system_policy.kind,
+            FileSystemSandboxKind::ExternalSandbox
+        );
+    }
+
+    match file_system_policy.kind {
+        FileSystemSandboxKind::Restricted =&gt; !file_system_policy.has_full_disk_write_access(),
+        FileSystemSandboxKind::Unrestricted | FileSystemSandboxKind::ExternalSandbox =&gt; false,
+    }
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          托管网络在管时必须上平台沙箱；没网要求时除了 external-sandbox 都要；有网要求时，
+          只有「受限模式但没给全盘写」才需要——三条规则全部收在一个无副作用函数里。
+        </p>
+      </details>
+      <details class="src-details">
+        <summary>⌨ 看真实源码 · 沙箱管理器：平台分派与三态偏好（manager.rs）</summary>
+        <pre><span class="src-loc">codex-rs/sandboxing/src/manager.rs :62-76 · @cbfd999 实测</span>
+<span class="src-code">pub fn get_platform_sandbox(windows_sandbox_enabled: bool) -&gt; Option&lt;SandboxType&gt; {
+    if cfg!(target_os = "macos") {
+        Some(SandboxType::MacosSeatbelt)
+    } else if cfg!(target_os = "linux") {
+        Some(SandboxType::LinuxSeccomp)
+    } else if cfg!(target_os = "windows") {
+        if windows_sandbox_enabled {
+            Some(SandboxType::WindowsRestrictedToken)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          四种沙箱类型：<code>None / MacosSeatbelt / LinuxSeccomp / WindowsRestrictedToken</code>（枚举本体在同文件 :36-53，
+          名字会作为 metric tag 上报）。Windows 还要再过一道开关，关着就退回 None。
+        </p>
+        <pre><span class="src-loc">同文件 :310-329 · Forbid / Require / Auto 三态偏好 · @cbfd999 实测</span>
+<span class="src-code">    pub fn should_sandbox(
+        &amp;self,
+        permission_profile: &amp;PermissionProfile,
+        pref: SandboxablePreference,
+        has_managed_network_requirements: bool,
+    ) -&gt; bool {
+        match pref {
+            SandboxablePreference::Forbid =&gt; false,
+            SandboxablePreference::Require =&gt; true,
+            SandboxablePreference::Auto =&gt; {
+                let (file_system_policy, network_policy) =
+                    permission_profile.to_runtime_permissions();
+                should_require_platform_sandbox(
+                    &amp;file_system_policy,
+                    network_policy,
+                    has_managed_network_requirements,
+                )
+            }
+        }
+    }</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          Auto 档不是拍脑袋：它把判定整个委托给上面那个 <code>should_require_platform_sandbox</code>——
+          两份切片在同一条调用链上。真正的 argv 包裹（seatbelt-exec 前缀、codex-linux-sandbox 注入、arg0 覆盖）
+          发生在同文件的 <code>transform()</code> :331-482，按 SandboxType 分岔。
+        </p>
+      </details>
     </section>
 
     <!-- SANDBOX YARD · 空间沙盘 -->

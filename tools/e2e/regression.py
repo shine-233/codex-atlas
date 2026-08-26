@@ -27,6 +27,7 @@ import json
 import sys
 import threading
 import functools
+from datetime import datetime
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
@@ -356,6 +357,7 @@ def match_game(ctx):
     pg.close()
 
 
+
 def prompt_toggles(ctx):
     pg = ctx.new_page()
     errs = []
@@ -456,9 +458,14 @@ def galaxy_wireframe(ctx):
     pg.evaluate("() => document.querySelector('[data-vw=\"galaxy\"]').click()" if pg.evaluate("() => !!document.querySelector('#galaxy[hidden]')") else "() => {}")
     pg.wait_for_timeout(400)
     check("wire restored after reload", pg.evaluate("() => window.CAGalaxy && CAGalaxy.state().wire === true"))
+    # 桌面快机器：线框开 3s 不该触发自适应降级
+    pg.wait_for_timeout(3000)
+    check("desktop fast machine stays full quality", pg.evaluate(
+        "() => window.CAGalaxy && CAGalaxy.state().lite === false"))
     pg.evaluate("() => document.getElementById('gx-wire').click()")   # 恢复现场
     _ = hash0
     pg.close()
+
 
 
 def patch_annotation_pen(ctx):
@@ -531,21 +538,28 @@ def patch_line_explainer(ctx):
 
 
 def pull_out_lab(ctx):
-    """02 抽层实验：抽层扣稳定度、抽塌有塌法文案、重置还原。"""
+    """02 抽层实验：抽层扣稳定度、抽塌有塌法文案、重置还原；
+       抽/放镜像到上方主开关（负载预览跟着变），「砌回去」不动开关。"""
     pg = ctx.new_page()
     pg.goto(BASE + "/labs/prompt.html")
     pg.wait_for_load_state("networkidle")
     check("pull lab exposed", pg.evaluate("() => !!window.PULLLAB"))
     check("tower has 7 blocks", pg.evaluate("() => document.querySelectorAll('#pol-tower .pol-block').length") == 7)
+    budget0 = pg.evaluate("() => document.getElementById('budget-total').textContent")
+    cb0 = "document.querySelector('#toggles > label.switch-row > input')"
     pg.evaluate("() => PULLLAB.pull('instr')")
     pg.wait_for_timeout(120)
     check("one layer pulled", pg.evaluate("() => PULLLAB.count()") == 1)
     check("instr weight 34 -> stab 66", pg.evaluate("() => PULLLAB.stability()") == 66)
     check("block marked out", pg.evaluate(
         "() => document.querySelector('#pol-tower .pol-block').getAttribute('aria-pressed')") == "true")
+    check("pull syncs main switch off", pg.evaluate(f"() => ({cb0}).checked") is False)
+    check("pull moves budget total", pg.evaluate(
+        "() => document.getElementById('budget-total').textContent") != budget0)
     pg.evaluate("() => PULLLAB.reset()")
     pg.wait_for_timeout(100)
     check("reset restores 100", pg.evaluate("() => PULLLAB.stability()") == 100)
+    check("reset keeps mirrored switch off (doc behavior)", pg.evaluate(f"() => ({cb0}).checked") is False)
     # 抽 history(48)+instr(34)+agents(26) = 108 -> 塌
     pg.evaluate("() => { PULLLAB.pull('history'); PULLLAB.pull('instr'); }")
     pg.wait_for_timeout(150)
@@ -617,6 +631,55 @@ def guess_crate(ctx):
     pg.close()
 
 
+def ci_view(ctx):
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)))
+    pg.goto(BASE + "/labs/loop.html")
+    pg.wait_for_load_state("networkidle")
+    pg.locator("#ci-panel").scroll_into_view_if_needed()
+    # scenario A: play to completion
+    pg.click("#ci-play")
+    pg.wait_for_timeout(700)
+    lines = pg.evaluate("() => document.querySelectorAll('#ci-log > div').length")
+    check("ci scenario A starts streaming", 1 <= lines < 6, lines)
+    pg.wait_for_timeout(4200)
+    check("ci scenario A finishes 6/6", "6 / 6" in pg.evaluate(
+        "() => document.getElementById('ci-count').textContent"))
+    log_text = pg.evaluate("() => document.getElementById('ci-log').textContent")
+    check("ci A has thread.started and turn.completed",
+          "thread.started" in log_text and "turn.completed" in log_text, log_text[:80])
+    check("ci A usage is structured JSONL",
+          '"cached_input_tokens":4402' in log_text.replace(" ", ""))
+    check("ci A exit chip ok", "exit 0" in pg.evaluate(
+        "() => document.getElementById('ci-chip-exit').textContent"))
+    # scenario switch: fail path
+    pg.click('[data-ci="fail"]')
+    pg.wait_for_timeout(200)
+    check("ci scenario switch resets", pg.evaluate(
+        "() => document.querySelectorAll('#ci-log > div').length") == 0)
+    check("ci scenario persisted to hash", "ci=fail" in pg.evaluate("() => location.hash"))
+    pg.click("#ci-play")
+    pg.wait_for_timeout(3400)
+    log_text = pg.evaluate("() => document.getElementById('ci-log').textContent")
+    check("ci C finishes 4/4", "4 / 4" in pg.evaluate(
+        "() => document.getElementById('ci-count').textContent"))
+    check("ci C has turn.failed and error event",
+          "turn.failed" in log_text and '"type":"error"' in log_text.replace(" ", ""))
+    check("ci C exit chip fail", "exit 1" in pg.evaluate(
+        "() => document.getElementById('ci-chip-exit').textContent"))
+    # hash deep link restores scenario
+    pg.goto("about:blank")
+    pg.goto(BASE + "/labs/loop.html#ci=fail")
+    pg.wait_for_load_state("networkidle")
+    pg.wait_for_timeout(400)
+    on_btn = pg.evaluate(
+        "() => { const b = document.querySelector('[data-ci].on'); return b ? b.getAttribute('data-ci') : null; }")
+    check("ci deep link restores scenario", on_btn == "fail", on_btn)
+    check("ci no errors", not errs, errs[:3])
+    pg.close()
+
+
 def reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 960}, reduced_motion="reduce")
     pg = ctx.new_page()
@@ -649,6 +712,7 @@ def main():
             force_view(ctx)
             tree_zoom(ctx)
             sse_waterfall(ctx)
+            ci_view(ctx)
             hist_curve(ctx)
             yard_grab(ctx)
             match_game(ctx)

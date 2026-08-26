@@ -320,20 +320,20 @@
           </tr>
           <tr>
             <td>历史越滚越大怎么办</td>
-            <td>Codex 不用 previous_response_id，每次全量重发以保持无状态（兼容零数据保留）。当 token 总量超过 <code>model_auto_compact_token_limit</code> 阈值，自动调用 <b>/responses/compact</b> 压缩历史，压缩项携带 encrypted_content 供模型延续理解。</td>
+            <td>Codex 不用 previous_response_id，每次全量重发以保持无状态（兼容零数据保留）。触顶判断是<b>双条件</b>（<code>context_window.rs :77-79</code> 实测）：token 摸到压缩阈值，或整个上下文窗口用满——任一命中即调 <b>/responses/compact</b>。默认阈值不是拍脑袋：源码里取<b>上下文窗口的 90%</b>，config 配了 <code>model_auto_compact_token_limit</code> 就两者取小。压缩项携带 encrypted_content 供模型延续理解。</td>
           </tr>
         </tbody>
       </table>
       <!-- COMPACT 演示 -->
       <div class="compact-demo" style="margin-top:18px;border:1px dashed var(--line-strong);padding:16px 18px;">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-          <span class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">COMPACT 演示 · 历史增长与自动压缩（示意刻度）</span>
+          <span class="lc-head" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;">COMPACT 演示 · 历史增长与自动压缩（刻度示意 · 触发规则实测）</span>
           <span class="match-readout">第 <b id="cd-round">1</b> 轮 · 上下文 ≈ <b id="cd-tok">20</b> 单位 · 已压缩 <b id="cd-count">0</b> 次</span>
         </div>
         <div class="cd-track" id="cd-track">
           <i id="cd-fill"></i>
           <em id="cd-sum" hidden title="encrypted_content：被压掉的旧轮次变成一段加密摘要"></em>
-          <b id="cd-limit" title="model_auto_compact_token_limit 阈值"></b>
+          <b id="cd-limit" title="触顶线的实测规则：min(config 阈值, 上下文窗口×90%)，红虚线位置为示意"></b>
         </div>
         <div class="cost-slider" style="margin-top:10px;">
           <input type="range" id="cd-slider" min="1" max="14" step="1" value="5" aria-label="模拟对话轮数">
@@ -356,6 +356,47 @@ let token_limit_reached = buffered_auto_compact_limit
           <pre><span class="src-loc">codex-rs/core/src/client.rs :163-165</span>
 <span class="src-code">const RESPONSES_ENDPOINT: &amp;str = "/responses";
 const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
+          <pre><span class="src-loc">codex-rs/protocol/src/openai_models.rs :486-497 · @cbfd999 实测 · 默认阈值的来历</span>
+<span class="src-code">    pub fn auto_compact_token_limit(&amp;self) -&gt; Option&lt;i64&gt; {
+        let context_limit = self
+            .resolved_context_window()
+            .map(|context_window| (context_window * 9) / 10);
+        let config_limit = self.auto_compact_token_limit;
+        if let Some(context_limit) = context_limit {
+            return Some(
+                config_limit.map_or(context_limit, |limit| std::cmp::min(limit, context_limit)),
+            );
+        }
+        config_limit
+    }</span></pre>
+          <p class="small muted" style="margin:8px 0 0;">
+            没配 <code>model_auto_compact_token_limit</code> 时，阈值就是<b>上下文窗口 × 90%</b>（整除）；
+            配了则取两者较小——配置只能让压缩更早，不能让它更晚。另外 scope 还有第二口径
+            <code>BodyAfterPrefix</code>（<code>context_window.rs :37-50</code>）：只数前缀之后新增的部分，
+            默认仍是全量口径（<code>Total</code>，<code>config_types.rs :49-55</code> 的 <code>#[default]</code>）。
+          </p>
+          <pre><span class="src-loc">codex-rs/core/src/session/turn.rs :1024-1040 · @cbfd999 实测 · 触顶后的现场</span>
+<span class="src-code">    // Compact if the configured auto-compaction budget or usable context window is exhausted.
+    if token_status.token_limit_reached {
+        // Pre-turn compaction runs before run_turn creates the normal sampling step.
+        let step_context = sess
+            .capture_step_context(Arc::clone(turn_context), cancellation_token)
+            .await?;
+        run_auto_compact(
+            sess,
+            step_context,
+            /*fallback_step_context*/ None,
+            client_session,
+            InitialContextInjection::DoNotInject,
+            CompactionReason::ContextLimit,
+            CompactionPhase::PreTurn,
+        )
+        .await?;
+    }</span></pre>
+          <p class="small muted" style="margin:8px 0 0;">
+            触顶分两个时机：轮次开跑前的 pre-turn 检查（上面这段），和采样中途的检查（同文件 :424-470：
+            触顶时走 rollover 或收束，不触发 fallback prompt）。压完历史接着跑，模型靠摘要续上。
+          </p>
         </details>
       </div>
       <details class="src-details" style="margin-top:14px;">
@@ -422,7 +463,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       <p class="muted small" style="padding:0 24px;margin-bottom:14px;">
         开关只能证明「这层在」，抽积木才告诉你「这层值多少」。点任意一块把它从请求里抽走，
         看塔斜多少、稳定度掉多少；抽塌了读读塌法——那正是每层的真实分量。
-        实验独立于上方的层开关，随便折腾。
+        抽/放会同步上方开关，负载预览跟着变；「砌回去」只还原塔，不动上方开关。
       </p>
       <div class="pol-grid">
         <div class="pol-stage">
@@ -443,7 +484,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限、model_auto_compact_token_limit 与 /responses/compact 行为，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。
+      组装顺序、developer/user 角色划分、AGENTS.md 目录层叠与 32 KiB 默认上限，均出自 OpenAI 官方博客《Unrolling the Codex agent loop》；<code>~/.codex/config.toml</code> 与 <code>model_instructions_file</code> 同源。<code>gpt_5_codex_prompt.md</code> 位于仓库 <code>codex-rs/core/</code>，可在固定提交下直接复核。COMPACT 的触发机制本站已按固定提交源码实测（<code>context_window.rs</code> 双条件、<code>openai_models.rs :486-497</code> 的 90% 默认阈值、<code>turn.rs</code> 的 pre-turn 触发现场），见上方切片。
       <b>柱状刻度是示意相对体积，不是实测 token 数。</b>本站不运行模型，不测量任何真实请求。
     </aside>
 
@@ -1019,7 +1060,8 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       sum.style.width = (compacts ? sumW / MAX * 100 : 0) + "%";
       sum.hidden = !compacts;
       if (compacts && lastAt === rounds) {
-        note.innerHTML = "<b>第 " + rounds + " 轮触顶：</b>token 摸到 model_auto_compact_token_limit 阈值（红虚线），" +
+        note.innerHTML = "<b>第 " + rounds + " 轮触顶：</b>token 摸到触顶线（实测规则：" +
+          "min(配置阈值, 窗口×90%)，红虚线位置为示意），" +
           "自动调用 /responses/compact——旧轮次压成一段 encrypted_content 摘要（蓝色斜纹块），" +
           "上下文从 " + peak + " 掉回 " + tok + " 单位，对话接着走。压缩对模型透明：它靠摘要延续理解。";
       } else if (compacts) {
@@ -1290,7 +1332,6 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
         if (window.CASound) CASound.play("stamp");
       }
       update(L2);
-    }
     function collapse(last) {
       toppled = true;
       tower.classList.add("toppled");

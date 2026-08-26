@@ -481,6 +481,97 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
       </details>
     </section>
 
+    <!-- CI 视角：codex exec --json 的 stdout 事件流 -->
+    <section class="panel" id="ci-panel" style="margin-top:26px;">
+      <div class="panel-title">
+        <h3>CI VIEW · codex exec --json：同一轮在流水线里的样子</h3>
+        <span class="readout">事件模式按 exec_events.rs 实测 · 报文内容为示意</span>
+      </div>
+      <p class="muted small" style="padding:0 24px;margin-bottom:12px;">
+        TUI 里那些动画，到了 CI 里一行都不剩。带 <code>--json</code> 跑 <code>exec</code> 子命令，
+        核心泵出的事件换成<b>一行一个 JSON 对象</b>直接写 stdout——事件类型与字段名全部实测自
+        <code>exec/src/exec_events.rs</code> 的 ThreadEvent / ThreadItem 定义；数值是编的，形状是真的。
+      </p>
+      <div class="sse-grid">
+        <pre class="sse-log" id="ci-log" aria-label="codex exec --json 的 stdout JSONL 输出示意"></pre>
+        <div class="sse-right">
+          <div class="lap-head" style="margin-bottom:7px;">
+            <span class="lap-tag">PIPELINE · 流水线侧怎么消费</span>
+          </div>
+          <pre class="cfg-pre" id="ci-jq" style="font-size:11px;">$ codex exec --json "跑通测试再汇报" \
+  | jq -r 'select(.type=="item.completed")
+           | .item.command // .item.text // empty'</pre>
+          <div class="sim-state-row" style="margin-top:10px;">
+            <span class="sim-chip" id="ci-chip-ev">0 events</span>
+            <span class="sim-chip" id="ci-chip-exit">idle</span>
+          </div>
+          <p class="small" id="ci-out" style="color:var(--dim);line-height:1.8;min-height:72px;margin:10px 0 0;">
+            按「播放」，左边逐行吐 JSONL，右边看流水线抓到什么。
+          </p>
+        </div>
+      </div>
+      <div class="seg" role="group" aria-label="回放剧本" style="margin:0 24px 8px;">
+        <button data-ci="text" class="on">剧本 A · 纯文本收尾</button>
+        <button data-ci="tool">剧本 B · 一圈工具调用</button>
+        <button data-ci="fail">剧本 C · turn.failed</button>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="ci-play" type="button">▶ 播放事件流</button>
+        <button class="btn" id="ci-reset" type="button">↺ 重放</button>
+        <span class="match-readout" id="ci-count" aria-live="polite"></span>
+      </div>
+      <details class="src-details" style="margin:14px 24px 20px;">
+        <summary>⌨ 看真实源码 · --json 旗标与 ThreadEvent 全家福</summary>
+        <pre><span class="src-loc">codex-rs/exec/src/cli.rs :58-65 · @cbfd999 实测</span>
+<span class="src-code">    /// Print events to stdout as JSONL.
+    #[arg(
+        long = "json",
+        alias = "experimental-json",
+        default_value_t = false,
+        global = true
+    )]
+    pub json: bool,</span></pre>
+        <pre><span class="src-loc">codex-rs/exec/src/exec_events.rs :8-37 · @cbfd999 实测（doc 注释截取）</span>
+<span class="src-code">/// Top-level JSONL events emitted by codex exec
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, TS)]
+#[serde(tag = "type")]
+pub enum ThreadEvent {
+    /// Emitted when a new thread is started as the first event.
+    #[serde(rename = "thread.started")]
+    ThreadStarted(ThreadStartedEvent),
+    /// Emitted when a turn is started by sending a new prompt to the model.
+    #[serde(rename = "turn.started")]
+    TurnStarted(TurnStartedEvent),
+    /// Emitted when a turn is completed.
+    #[serde(rename = "turn.completed")]
+    TurnCompleted(TurnCompletedEvent),
+    /// Indicates that a turn failed with an error.
+    #[serde(rename = "turn.failed")]
+    TurnFailed(TurnFailedEvent),
+    /// Emitted when a new item is added to the thread.
+    #[serde(rename = "item.started")]
+    ItemStarted(ItemStartedEvent),
+    /// Emitted when an item is updated.
+    #[serde(rename = "item.updated")]
+    ItemUpdated(ItemUpdatedEvent),
+    /// Signals that an item has reached a terminal state.
+    #[serde(rename = "item.completed")]
+    ItemCompleted(ItemCompletedEvent),
+    /// Represents an unrecoverable error emitted directly by the event stream.
+    #[serde(rename = "error")]
+    Error(ThreadErrorEvent),
+}</span></pre>
+        <p class="small muted" style="margin:8px 0 0;">
+          条目载荷是 <code>ThreadItem</code> + <code>ThreadItemDetails</code>（同文件 :96-133）九选一：
+          agent_message / reasoning / command_execution / file_change / mcp_tool_call / collab_tool_call /
+          web_search / todo_list / error。<code>Usage</code> 五字段（含 cached 与 cache_write）在 :59-73。
+          TUI 和 --json 共用同一个核心，差别只在末端渲染器：人话版是
+          <code>event_processor_with_human_output.rs</code>，JSONL 版是 <code>event_processor_with_jsonl_output.rs</code>
+          （serde_json::to_string 后 println，:104-110 附近）。退出码语义本站未实测，右侧 exit 标签仅示意。
+        </p>
+      </details>
+    </section>
+
     <!-- 重采样成本对照 -->
     <section class="cost-demo" id="cost-demo">
       <h2>为什么改一行代码常常要过两次模型</h2>
@@ -534,7 +625,7 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@cbfd999 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
+      本页是教学模型：不发起网络请求，不运行真实 Codex。阶段划分依据固定提交 openai/codex@cbfd999 的源码结构（<code>core/src/session/mod.rs</code>、<code>app-server</code> 分发层）与 OpenAI 官方博客《Unrolling the Codex agent loop》；用户输入在该基线下由 <code>Op::TurnInput</code> 承载（协议层的 UserInput 类型装进核心操作入队），类型名随版本可能漂移，以固定提交为准。端点域名取自官方博客原文。重采样回路图与 TURN SIMULATOR 均为状态机示意，规则对齐第 6–8 站的源码行为；CI VIEW 的 JSONL 事件类型与字段名按 <code>exec/src/exec_events.rs</code> 实测，报文数值为示意，退出码语义未实测；成本对比柱状图用示意单位演示「全量重发 → 平方增长 / 缓存命中 → 近似线性」的机制，非实测 token 数。
     </aside>
 
   </main>
@@ -1735,6 +1826,182 @@ fn active_turn_steer_race(error: &amp;TypedRequestError) -&gt; Option&lt;ActiveT
     });
   })();
 
+  /* ---------- CI VIEW · codex exec --json 的 stdout JSONL 回放。
+     事件类型与字段名按 exec_events.rs 实测；数值为示意。
+     三剧本：A 纯文本 / B 一圈工具调用 / C turn.failed。场景写入 hash（ci=）。 ---------- */
+  (function () {
+    var log = document.getElementById("ci-log");
+    if (!log) return;
+    var playBtn = document.getElementById("ci-play");
+    var resetBtn = document.getElementById("ci-reset");
+    var countEl = document.getElementById("ci-count");
+    var outEl = document.getElementById("ci-out");
+    var chipEv = document.getElementById("ci-chip-ev");
+    var chipExit = document.getElementById("ci-chip-exit");
+
+    var SCEN = {
+      text: [
+        { o: { type: "thread.started", thread_id: "9f3c1b2a-4d8e-4f60-a1c2-3e5b7d9f0c42" },
+          out: "线程句柄拿到了——CI 里可以拿 thread_id 做续跑或归档键。" },
+        { o: { type: "turn.started" }, out: null },
+        { o: { type: "item.started", item: { id: "item_0", type: "agent_message", text: "" } }, out: null },
+        { o: { type: "item.updated", item: { id: "item_0", type: "agent_message", text: "正在检查测试…" } }, out: null },
+        { o: { type: "item.completed", item: { id: "item_0", type: "agent_message",
+            text: "137 个测试全部通过，无需改动。" } },
+          out: "jq 抓到 item.completed 的 .text —— 这就是要进 PR 描述的那句话。" },
+        { o: { type: "turn.completed", usage: { input_tokens: 5123, cached_input_tokens: 4402,
+            cache_write_input_tokens: 0, output_tokens: 187, reasoning_output_tokens: 64 } },
+          out: "usage 也结构化：cached_input_tokens 4402 / 5123——大部分前缀走了缓存价。jq 一行取走，不用解析屏幕。" }
+      ],
+      tool: [
+        { o: { type: "thread.started", thread_id: "c81d7e55-0a94-4b6e-9f21-6d3a8c5b2e70" }, out: null },
+        { o: { type: "turn.started" }, out: null },
+        { o: { type: "item.started", item: { id: "item_0", type: "command_execution",
+            command: "cargo test -q", aggregated_output: "", status: "in_progress" } }, out: null },
+        { o: { type: "item.updated", item: { id: "item_0", type: "command_execution",
+            command: "cargo test -q", aggregated_output: "running 137 tests...\ntest result: ok.", status: "in_progress" } },
+          out: null },
+        { o: { type: "item.completed", item: { id: "item_0", type: "command_execution",
+            command: "cargo test -q", aggregated_output: "running 137 tests...\ntest result: ok. 137 passed; 0 failed",
+            exit_code: 0, status: "completed" } },
+          out: "命令条目自带 exit_code 与聚合输出——CI 日志里命令结果不用再 grep 终端转义符。" },
+        { o: { type: "item.started", item: { id: "item_1", type: "agent_message", text: "" } }, out: null },
+        { o: { type: "item.completed", item: { id: "item_1", type: "agent_message",
+            text: "测试全绿，可以合并。" } }, out: null },
+        { o: { type: "turn.completed", usage: { input_tokens: 8940, cached_input_tokens: 7715,
+            cache_write_input_tokens: 0, output_tokens: 342, reasoning_output_tokens: 210 } },
+          out: "一圈工具调用：input_tokens 比纯文本大，但 cached 占比同样高——重采样成本的结构和上面成本对照讲的一致。" }
+      ],
+      fail: [
+        { o: { type: "thread.started", thread_id: "52ab90de-6f47-4c13-b8a9-0d2e5f7a1c63" }, out: null },
+        { o: { type: "turn.started" }, out: null },
+        { o: { type: "error", message: "stream disconnected before completion: connection reset by peer" },
+          out: "error 是流级致命错误，不带 item 包裹。" },
+        { o: { type: "turn.failed", error: { message: "request failed after retries: upstream unavailable" } },
+          out: "turn.failed 收尾。CI 脚本靠它区分「任务完成」与「没跑成」——失败要重试或告警，不能当成功吞掉。" }
+      ]
+    };
+
+    var key = "text";
+    var played = 0, timer = null;
+
+    function escHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    /* 紧凑单行 JSON，type 高亮：真实 --json 输出就是 serde_json::to_string 的紧凑形 */
+    function renderJson(o) {
+      var rest = {};
+      Object.keys(o).forEach(function (k) { if (k !== "type") rest[k] = o[k]; });
+      var rs = JSON.stringify(rest);
+      var head = '{"type":"' + o.type + '"';
+      var tail = rs === "{}" ? "}" : "," + rs.slice(1);
+      return '<span class="ev-name">' + escHtml(head) + "</span><span class=\"ev-note\">" + escHtml(tail) + "</span>";
+    }
+
+    function steps() { return SCEN[key]; }
+
+    function chips() {
+      chipEv.textContent = played + " / " + steps().length + " events";
+      var last = played > 0 ? steps()[played - 1].o : null;
+      if (!last) {
+        chipExit.textContent = "idle";
+        chipExit.className = "sim-chip";
+      } else if (last.type === "turn.failed") {
+        chipExit.textContent = "exit 1（示意）";
+        chipExit.className = "sim-chip";
+      } else if (last.type === "turn.completed") {
+        chipExit.textContent = "exit 0（示意）";
+        chipExit.className = "sim-chip donechip";
+      } else {
+        chipExit.textContent = "running…";
+        chipExit.className = "sim-chip live";
+      }
+    }
+
+    function applyStep(i, instant) {
+      var s = steps()[i];
+      var div = document.createElement("div");
+      div.setAttribute("data-i", i);
+      div.innerHTML = '<span class="st-tag">' + ("0" + (i + 1)).slice(-2) + "</span> " + renderJson(s.o);
+      if (!instant && !window.PrefersReducedMotion) div.classList.add("ca-rise");
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      if (s.out) outEl.innerHTML = escHtml(s.out).replace(/`([^`]+)`/g, "<code>$1</code>");
+      countEl.textContent = "已回放 " + (i + 1) + " / " + steps().length + " 条";
+      chips();
+      if (i === steps().length - 1) finish();
+    }
+
+    function finish() {
+      playing = false;
+      playBtn.textContent = "▶ 再播一遍";
+      if (window.CASound) CASound.play(steps()[played - 1].o.type === "turn.failed" ? "deny" : "ok");
+    }
+
+    function clearAll() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      playing = false; played = 0;
+      log.textContent = "";
+      countEl.textContent = "";
+      outEl.textContent = "";
+      chips();
+      playBtn.textContent = "▶ 播放事件流";
+    }
+
+    function stepNext() {
+      if (played >= steps().length) return;
+      var i = played;
+      played++;   /* 先记账再渲染：chips/finish 读到的就是当前这条 */
+      applyStep(i, false);
+      if (played < steps().length) timer = setTimeout(stepNext, 720);
+    }
+
+    var playing = false;
+    function flushRest() {
+      /* 播放中再点一次：剩余行即时补完，不留半截 */
+      if (timer) { clearTimeout(timer); timer = null; }
+      while (played < steps().length) { var i = played; played++; applyStep(i, true); }
+      playing = false;
+    }
+    playBtn.addEventListener("click", function () {
+      if (playing) { flushRest(); return; }
+      if (played >= steps().length) clearAll();
+      playing = true;
+      playBtn.textContent = "❚❚ 立即补完";
+      if (!window.PrefersReducedMotion && window.CASound) CASound.play("tx");
+      if (window.PrefersReducedMotion) {
+        flushRest();
+      } else {
+        stepNext();
+      }
+    });
+    resetBtn.addEventListener("click", clearAll);
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ci]"), function (b) {
+      b.addEventListener("click", function () {
+        var k = b.getAttribute("data-ci");
+        if (k === key) return;
+        key = k;
+        Array.prototype.forEach.call(document.querySelectorAll("[data-ci]"), function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        clearAll();
+        try { window.PanelState && PanelState.write({ ci: k }); } catch (e) { /* 忽略 */ }
+      });
+    });
+
+    /* hash 恢复场景 */
+    try {
+      var st = window.PanelState && PanelState.read();
+      if (st && SCEN[st.ci]) {
+        key = st.ci;
+        Array.prototype.forEach.call(document.querySelectorAll("[data-ci]"), function (x) {
+          x.classList.toggle("on", x.getAttribute("data-ci") === key);
+        });
+      }
+    } catch (e) { /* 忽略 */ }
+    chips();
+  })();
+
   LoopScope.mount(document.getElementById("miniscope"), {
     width: 132, height: 78, labels: false, plain: true, speed: 22
   });
@@ -1767,6 +2034,7 @@ window.CATOUR_STEPS = [
   { sel: "#loopmap-panel", title: "重采样回路", text: "第 9–12 步是个会转圈的环：有工具调用就再来一次采样。停在第 13 站再按「下一步」，亲眼看环转回去、历史条长一格。" },
   { sel: "#sse-panel", title: "SSE 事件瀑布", text: "第 11 站现场：一条回答是怎么一个事件一个事件流回来的。播放后右边 TUI 会跟着打字。" },
   { sel: "#sim-panel", title: "TURN SIMULATOR", text: "自己开一轮：发输入、调工具、试试运行中插话——steer 会把你的新输入并进当前轮，不是排队。" },
+  { sel: "#ci-panel", title: "CI 视角", text: "同一轮在 codex exec --json 里的样子：一行一个 JSON 事件进 stdout，事件模式按源码实测。切剧本看成功、工具调用和失败各自怎么收尾。" },
   { sel: ".cost-demo", title: "成本对照", text: "先猜无缓存是缓存的几倍，再拉滑杆对答案。全量重发是平方增长，缓存命中把它压回近似线性。" }
 ];
 </script>
