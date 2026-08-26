@@ -221,6 +221,79 @@ def hist_curve(ctx):
         return false;
     }""")
     check("curve paints at lap 13", painted)
+    # Place Your Bets：拖预测把手下注（18px 命中半径；先等 .rv 浮现动画落定再量坐标）
+    pg.locator("#hist-curve").scroll_into_view_if_needed()
+    pg.wait_for_timeout(900)
+    check("pred starts at naive 100", pg.evaluate("() => CAHistCurve.pred()") == 100)
+    box = pg.locator("#hist-curve canvas").bounding_box()
+    hx = box["x"] + box["width"] - 16            # predX = xOf(MAXLAP-1)：恒在右缘内 16px
+
+    def y_at(u):
+        # yOf(u)，lap13 后 MAXU=150、PADT=14、PADB=26
+        return box["y"] + box["height"] - 26 - (box["height"] - 40) * u / 150.0
+
+    pg.mouse.move(hx, y_at(100))
+    pg.mouse.down()
+    pg.mouse.move(hx, y_at(70), steps=6)
+    mid_drag = pg.evaluate("() => CAHistCurve.predDrag()")
+    pg.mouse.move(hx, y_at(40), steps=6)
+    pg.mouse.up()
+    pg.wait_for_timeout(150)
+    check("bet drag engages handle", mid_drag is True)
+    final_pred = pg.evaluate("() => CAHistCurve.pred()")
+    check("bet lands near drop point", abs(final_pred - 40) <= 2, final_pred)
+    read_txt = pg.evaluate("() => document.getElementById('hc-read').textContent")
+    check("bet verdict vs actual shown",
+          "你的预测" in read_txt and str(final_pred) in read_txt, read_txt[:80])
+    pg.close()
+
+
+def dive_keyframes(ctx):
+    """08 滚动叙事关键帧：pin 剖面随滚动三分步 + 站点浮现。"""
+    pg = ctx.new_page()
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(BASE + "/labs/dive.html")
+    pg.wait_for_load_state("networkidle")
+
+    def step_state():
+        return pg.evaluate("""() => {
+            const on = document.querySelector('.pin-step.on');
+            return { s: on ? on.dataset.s : null,
+                     label: document.getElementById('pq-label').textContent,
+                     pkt: document.getElementById('pq-pkt').style.transform };
+        }""")
+
+    # STEP 1：pin 区顶对齐视口顶 → prog=0
+    pg.evaluate("""() => window.scrollTo(0, document.querySelector('.pin-sec')
+                   .getBoundingClientRect().top + window.scrollY)""")
+    pg.wait_for_timeout(350)
+    st = step_state()
+    check("keyframe step1 on entry", st["s"] == "0" and "提交队列" in st["label"], st)
+    ih = pg.evaluate("() => innerHeight")
+    pin = pg.locator(".pin-sec").bounding_box()
+    total = pin["height"] - ih
+    # STEP 2：滚过 pin 可滚动行程的 55%
+    pg.evaluate(f"() => window.scrollTo(0, window.scrollY + {total * 0.55})")
+    pg.wait_for_timeout(400)
+    st = step_state()
+    check("keyframe step2 mid-pin", st["s"] == "1" and "CORE" in st["label"].upper()
+          and "140" in st["pkt"], st)
+    # STEP 3：接近 pin 行程末端
+    pg.evaluate(f"() => window.scrollTo(0, window.scrollY + {total * 0.44})")
+    pg.wait_for_timeout(400)
+    st = step_state()
+    check("keyframe step3 exit", st["s"] == "2" and "events" in st["label"]
+          and "330" in st["pkt"], st)
+    # 站点浮现：IO 按视口触发，须模拟真实阅读的渐进滚动（瞬跳不触发中途站点）
+    for frac in (0.25, 0.5, 0.75, 1.0):
+        pg.evaluate(f"() => window.scrollTo(0, document.body.scrollHeight * {frac})")
+        pg.wait_for_timeout(300)
+    vis = pg.evaluate("() => document.querySelectorAll('.dive-stop.vis').length")
+    check("stations revealed by scroll", vis >= 8, vis)
+    check("trench visible at bottom", pg.evaluate(
+        "() => !!document.querySelector('.trench.vis')"))
+    check("dive narrative no errors", not errs, errs[:3])
     pg.close()
 
 
@@ -587,6 +660,7 @@ def main():
             patch_line_explainer(ctx)
             pull_out_lab(ctx)
             dive_dial(ctx)
+            dive_keyframes(ctx)
             guess_crate(ctx)
             skip_link(ctx)
             reduced_motion(browser)
