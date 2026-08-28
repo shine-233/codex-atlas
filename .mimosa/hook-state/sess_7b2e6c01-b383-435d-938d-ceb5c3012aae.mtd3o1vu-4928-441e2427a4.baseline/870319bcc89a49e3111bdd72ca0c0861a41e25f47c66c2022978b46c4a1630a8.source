@@ -22,12 +22,9 @@ import json
 import re
 import sys
 import time
+import urllib.request
 import urllib.error
 from pathlib import Path
-
-# 上游抓取统一走守卫：协议/域名白名单 + 公网 IP 校验 + 重定向守卫（防 SSRF）
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from upstream_guard import open_guarded  # noqa: E402
 
 # GBK 控制台打不出 ⚠/✗ 会直接 UnicodeEncodeError 崩掉，先兜底
 for _s in (sys.stdout, sys.stderr):
@@ -75,7 +72,9 @@ def fetch(url, binary=False, tries=3):
     last = None
     for i in range(tries):
         try:
-            data = open_guarded(url, headers=UA, binary=True)
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
             return data if binary else data.decode("utf-8")
         except Exception as e:
             last = e

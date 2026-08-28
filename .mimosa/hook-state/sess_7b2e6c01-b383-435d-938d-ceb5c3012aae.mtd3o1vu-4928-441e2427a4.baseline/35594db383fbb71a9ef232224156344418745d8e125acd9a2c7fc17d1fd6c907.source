@@ -16,7 +16,8 @@ import html as htmllib
 import json
 import re
 import sys
-import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 try:
@@ -31,13 +32,23 @@ WIN_B, WIN_A = 4, 14
 
 _cache = {}
 
-# 上游抓取统一走守卫：协议/域名白名单 + 公网 IP 校验 + 重定向守卫（防 SSRF）
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from upstream_guard import open_guarded  # noqa: E402
+# 上游只可能是这几个域名：抓取前先校验，防 SSRF（路径/提交号来自站点数据，不可拼进任意主机）
+ALLOWED_HOSTS = {"raw.githubusercontent.com", "api.github.com", "github.com"}
+
+
+def guard_url(url):
+    p = urllib.parse.urlparse(url)
+    if p.scheme not in ("https", "http") or p.hostname not in ALLOWED_HOSTS:
+        raise ValueError(f"refusing to fetch non-upstream url: {url!r}")
+    if any(ch in url for ch in ("\n", "\r", " ", "@")):
+        raise ValueError(f"refusing to fetch malformed url: {url!r}")
+    return url
 
 
 def fetch(url):
-    return open_guarded(url, headers=UA)
+    req = urllib.request.Request(guard_url(url), headers=UA)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8")
 
 
 def get_lines(path, sha):
@@ -250,7 +261,9 @@ def main():
             print("找不到基线提交号")
             sys.exit(3)
         api = f"https://api.github.com/repos/openai/codex/commits/{mm.group(1)}"
-        sha = json.loads(open_guarded(api, headers=UA))["sha"]
+        req = urllib.request.Request(api, headers=UA)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            sha = json.loads(r.read().decode())["sha"]
     print(f"基线：{sha[:12]}")
 
     results = []
