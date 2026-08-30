@@ -210,7 +210,7 @@
     <a class="rail-ch" href="deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -343,7 +343,7 @@
         <p class="small muted" id="cd-note" style="margin:8px 0 0;" aria-live="polite"></p>
         <details class="src-details">
           <summary>⌨ 看真实源码 · 触顶判断与压缩端点</summary>
-          <pre><span class="src-loc">codex-rs/core/src/session/context_window.rs :71-79 · @cbfd999 实测</span>
+          <pre><span class="src-loc">codex-rs/core/src/session/context_window.rs :71-79 · @3ba7b69 实测</span>
 <span class="src-code">let buffered_auto_compact_limit = auto_compact_scope_limit
     .map(|limit| limit.saturating_add(auto_compact_fallback_buffer_tokens));
 
@@ -353,10 +353,10 @@ let full_context_window_limit_reached =
 let token_limit_reached = buffered_auto_compact_limit
     .is_some_and(|limit| auto_compact_scope_tokens &gt;= limit)
     || full_context_window_limit_reached;</span></pre>
-          <pre><span class="src-loc">codex-rs/core/src/client.rs :163-165</span>
+          <pre><span class="src-loc">codex-rs/core/src/client.rs :164-166</span>
 <span class="src-code">const RESPONSES_ENDPOINT: &amp;str = "/responses";
 const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
-          <pre><span class="src-loc">codex-rs/protocol/src/openai_models.rs :486-497 · @cbfd999 实测 · 默认阈值的来历</span>
+          <pre><span class="src-loc">codex-rs/protocol/src/openai_models.rs :486-497 · @3ba7b69 实测 · 默认阈值的来历</span>
 <span class="src-code">    pub fn auto_compact_token_limit(&amp;self) -&gt; Option&lt;i64&gt; {
         let context_limit = self
             .resolved_context_window()
@@ -375,7 +375,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
             <code>BodyAfterPrefix</code>（<code>context_window.rs :37-50</code>）：只数前缀之后新增的部分，
             默认仍是全量口径（<code>Total</code>，<code>config_types.rs :49-55</code> 的 <code>#[default]</code>）。
           </p>
-          <pre><span class="src-loc">codex-rs/core/src/session/turn.rs :1024-1040 · @cbfd999 实测 · 触顶后的现场</span>
+          <pre><span class="src-loc">codex-rs/core/src/session/turn.rs :1036-1052 · @3ba7b69 实测 · 触顶后的现场</span>
 <span class="src-code">    // Compact if the configured auto-compaction budget or usable context window is exhausted.
     if token_status.token_limit_reached {
         // Pre-turn compaction runs before run_turn creates the normal sampling step.
@@ -401,7 +401,7 @@ const RESPONSES_COMPACT_ENDPOINT: &amp;str = "/responses/compact";</span></pre>
       </div>
       <details class="src-details" style="margin-top:14px;">
         <summary>⌨ 看真实源码 · AGENTS.md 目录发现与预算截断</summary>
-        <pre><span class="src-loc">codex-rs/core/src/agents_md.rs :234-251 · @cbfd999 实测</span>
+        <pre><span class="src-loc">codex-rs/core/src/agents_md.rs :218-235 · @3ba7b69 实测</span>
 <span class="src-code">let search_dirs = if let Some(root) = project_root {
     let mut dirs = Vec::new();
     let mut cursor = dir.clone();

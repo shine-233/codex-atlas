@@ -267,4 +267,7 @@
       if (currentTrigger === mark) hide(); else showFor(mark);
     });
   });
+
+  /* 暴露给全站命令面板（assets/cmdk.js）做术语检索；数组保持只读约定 */
+  window.CATERMS = TERMS;
 })();

@@ -440,8 +440,11 @@ window.CAProfileOpen = openProfile;
       { no: "00", name: "总览 · 按问题查路由表", sub: "找入口", href: P("index.html"), kw: "overview 总览 路由 入口 route" },
       { no: "01", name: "循环回路 · 单步仪", sub: "13 站 · 播放/键盘", href: P("labs/loop.html"), kw: "loop agent turn 阶段 循环 回路" },
       { name: "↳ 第10站 · POST /responses", sub: "出站与 SSE", href: P("labs/loop.html") + "#s=10", kw: "sse api endpoint 出站 采样" },
+      { name: "↳ SSE WATERFALL · 事件瀑布", sub: "一条回答的一生", href: P("labs/loop.html") + "#sse-panel", kw: "sse waterfall 瀑布 completed 打字 双剧本" },
       { name: "↳ 会话建立段 / 重采样回路图", sub: "拓扑联动", href: P("labs/loop.html") + "#setup-panel", kw: "topology 拓扑 setup 建立段" },
       { name: "↳ TURN SIMULATOR · 自己开一轮", sub: "队列对 / steer 沙盒", href: P("labs/loop.html") + "#sim-panel", kw: "simulator 沙盒 队列 steer 并入 状态机 turn 自己开" },
+      { name: "↳ CI VIEW · exec --json", sub: "JSONL 三剧本回放", href: P("labs/loop.html") + "#ci-panel", kw: "ci jsonl exec --json 流水线 jq thread.started turn.failed" },
+      { name: "↳ 成本对照 · 缓存 vs 无缓存", sub: "先猜后揭", href: P("labs/loop.html") + "#cost-demo", kw: "cost 缓存 cache 折扣 平方 线性" },
       { no: "02", name: "输入组装 · 组装仪", sub: "七层开关", href: P("labs/prompt.html"), kw: "prompt payload agents 层叠 32kib 负载" },
       { name: "↳ PULL-OUT LAB · 抽层实验", sub: "把请求塔抽塌", href: P("labs/prompt.html") + "#pull-lab", kw: "抽层 jenga 塔 稳定度 塌 后果 pull" },
       { no: "03", name: "权限沙箱 · 场景判定器", sub: "模式×审批×动作", href: P("labs/sandbox.html"), kw: "sandbox 权限 沙箱 seatbelt landlock wfp 判定 审批" },
@@ -453,6 +456,7 @@ window.CAProfileOpen = openProfile;
       { name: "↳ GUESS WHO · 猜 crate", sub: "Wordle × 实测边表", href: P("labs/atlas.html") + "#guess-lab", kw: "guess 猜 wordle 谜底 依赖边 游戏 daily" },
       { no: "06", name: "术语速查 · 人话版", sub: "可检索", href: P("glossary.html"), kw: "glossary 术语 名词 解释" },
       { name: "↳ 自测模式 · 翻卡回忆", sub: "记得/忘了存档", href: P("glossary.html") + "#md=drill", kw: "flashcard drill 自测 记忆 翻卡 背题" },
+      { name: "↳ 术语星图 · 三维点云", sub: "拖转/缩放/点选直达", href: P("glossary.html") + "#md=star", kw: "star 星图 点云 3d constellation 旋转" },
       { no: "07", name: "深水区 A · 凭据流", sub: "ChatGPT vs API key", href: P("labs/deep.html") + "#mod-a", kw: "auth login 登录 凭据 token oauth auth.json api key" },
       { name: "深水区 B · 配置系统全貌", sub: "优先级阶梯", href: P("labs/deep.html") + "#mod-b", kw: "config toml profile 配置 优先级 覆盖" },
       { name: "深水区 C · apply_patch 解剖台", sub: "可编辑可应用", href: P("labs/deep.html") + "#mod-c", kw: "patch 补丁 apply diff hunk 锚点 格式" },
@@ -460,7 +464,7 @@ window.CAProfileOpen = openProfile;
       { name: "深水区 E · 扩展挂点地图", sub: "skills/hooks/memories", href: P("labs/deep.html") + "#mod-e", kw: "skill hook memory 扩展 插件 技能 记忆 钩子" },
       { name: "↳ HOOKS 事件轴 · 8 个实测钩子", sub: "session_start…session_end", href: P("labs/deep.html") + "#mod-e", kw: "hooks events 事件 钩子 pre_tool_use post_tool_use" },
       { name: "深水区 F · Code Mode 实验位", sub: "V8 跑模型代码（推演）", href: P("labs/deep.html") + "#mod-f", kw: "code mode v8 实验 javascript host" },
-      { name: "深水区 G · 源码覆盖地图", sub: "39 文件 · 13 crate 切片台账", href: P("labs/deep.html") + "#mod-g", kw: "coverage 覆盖 台账 切片 清单 files sliced" },
+      { name: "深水区 G · 源码覆盖地图", sub: "46 份切片 · 16 crate 台账", href: P("labs/deep.html") + "#mod-g", kw: "coverage 覆盖 台账 切片 清单 files sliced" },
       { name: "08 · 调用栈下潜", sub: "滚动即下潜：L0 命令行到海沟底", href: P("labs/dive.html"), kw: "dive 下潜 调用栈 call stack 深度 纵览 scrollytelling" },
       { name: "↳ ACT III · rollout 文件解剖", sub: "JSONL 落盘与恢复", href: P("labs/appserver.html") + "#act3-panel", kw: "rollout jsonl 落盘 恢复 文件名 解剖" },
       { act: "keys", no: "?", name: "快捷键速查", sub: "按 ? 也行", href: "", kw: "shortcut keyboard 键盘 快捷键 help 帮助" },
@@ -501,6 +505,21 @@ window.CAProfileOpen = openProfile;
       shown = CMDS.filter(function (c) {
         return !q || (c.name + " " + c.sub + " " + c.kw + " " + (c.no || "")).toLowerCase().indexOf(q) !== -1;
       });
+      /* 术语与 crate 是动态源：术语来自 window.CATERMS（assets/terms.js），
+         crate 仅在 05 图谱页有 window.CA_DEPS 时出现，命中后带 ?crate= 深链回图谱检索。 */
+      var i, t;
+      for (i = 0; q && window.CATERMS && i < window.CATERMS.length; i++) {
+        t = window.CATERMS[i];
+        if ((t.name + " " + (t.v || []).join(" ") + " " + t.d).toLowerCase().indexOf(q) !== -1)
+          shown.push({ no: "★", name: t.name, sub: "术语 · " + (t.w || ""), href: P(t.href) });
+      }
+      if (q && typeof window.CA_DEPS === "object" && window.CA_DEPS) {
+        var crates = Object.keys(window.CA_DEPS);
+        for (i = 0; i < crates.length; i++) {
+          if (crates[i].indexOf(q) !== -1)
+            shown.push({ no: "⬡", name: crates[i], sub: "Crate · 打开图谱检索", href: P("labs/atlas.html") + "?crate=" + encodeURIComponent(crates[i]) });
+        }
+      }
       hot = Math.max(0, Math.min(hot, shown.length - 1));
       if (!shown.length) {
         listBox.innerHTML =

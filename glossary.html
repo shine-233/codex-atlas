@@ -112,7 +112,7 @@
     <a class="rail-ch" href="labs/deep.html"><span class="ch-no">07</span>深水区</a>
     <a class="rail-ch" href="labs/dive.html"><span class="ch-no">08</span>调用栈下潜</a>
   </div>
-  <div class="rail-foot">基线 openai/codex<br>@cbfd999 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
+  <div class="rail-foot">基线 openai/codex<br>@3ba7b69 · Apache-2.0<br>非官方 · 与 OpenAI 无关</div>
 </nav>
 
 <div class="topbar">
@@ -169,6 +169,7 @@
           <button data-md="look" class="on">速查</button>
           <button data-md="drill">自测</button>
           <button data-md="match">配对</button>
+          <button data-md="star">星图</button>
         </div>
         <span class="match-readout" id="drill-out" aria-live="polite"></span>
       </div>
@@ -217,6 +218,22 @@
         <p class="small muted deck-tip">
           按住左边的术语，拖到右边它的人话短句上松手。连错会晃一下弹回；五条全连对收一轮，失误最少的纪录存在本机。
           短句是浓缩版，完整解释都在下面速查表里。
+        </p>
+      </div>
+
+      <div class="deck" id="star-deck" hidden>
+        <div class="deck-bar">
+          <span class="match-readout" id="star-out" aria-live="polite">拖动旋转 · 滚轮缩放 · 悬停看解释 · 点击直达仪器</span>
+          <span style="flex:1;"></span>
+          <button class="btn" id="star-spin" type="button" aria-pressed="false">⟳ 自转</button>
+        </div>
+        <div id="star-stage" style="position:relative;height:400px;" role="img"
+             aria-label="术语星图：全部术语按所属线路聚成六个星座的三维点云，可拖拽旋转、滚轮缩放、悬停查看解释、点击直达讲它的仪器"></div>
+        <div id="star-card" hidden
+             style="position:absolute;pointer-events:none;max-width:270px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:9px;background:var(--bg);box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:12.5px;line-height:1.6;color:var(--dim);z-index:5;"></div>
+        <p class="small muted deck-tip">
+          六种颜色对应六条线路的星座：拖动旋转（松手带惯性）、滚轮或触屏双指缩放、悬停亮星弹出人话解释、点击直达讲它的仪器。
+          ← → 方向键也能转。「静」开启时自转停止，交互不受影响。
         </p>
       </div>
     </section>
@@ -298,7 +315,7 @@
       <table class="rt">
         <thead><tr><th style="width:170px;">术语</th><th>人话解释</th><th style="width:90px;">在哪看</th></tr></thead>
         <tbody>
-          <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——136 这个数字的出处。</td><td><a href="labs/atlas.html">05</a></td></tr>
+          <tr data-k="crate rust 包 workspace cargo.toml members 编译单元 成员"><td><code>crate / workspace</code></td><td>crate 是 Rust 的编译单元，约等于「一个包」。workspace 是一群 crate 的集合，名单写在 Cargo.toml 的 members 字段——137 这个数字的出处。</td><td><a href="labs/atlas.html">05</a></td></tr>
           <tr data-k="codex exec 非交互 ci 脚本 一次性 自动化"><td><code>codex exec</code></td><td>非交互式一次性执行入口：codex exec "任务"。不进终端界面，CI 和脚本场景的主力形态。</td><td><a href="labs/atlas.html">05</a> B1</td></tr>
           <tr data-k="apply_patch apply-patch 补丁 改文件 patch"><td><code>apply_patch</code></td><td>Codex 的特色补丁工具：模型输出的修改以补丁形式描述，由它落成磁盘上的真实变更。</td><td><a href="labs/atlas.html">05</a> B3</td></tr>
           <tr data-k="tui 终端界面 terminal 终端 ui"><td><code>TUI</code></td><td>Terminal UI，终端里的交互界面。正在重构为 App Server 的标准子进程客户端。</td><td><a href="labs/loop.html">01</a> 第3站；<a href="labs/deep.html">07</a> D 房</td></tr>
@@ -311,7 +328,7 @@
 
     <aside class="evidence">
       <div class="ev-h">证据边界</div>
-      解释按本站五个线路的语境撰写，够用就好；要较真，顺着「在哪看」回到对应线路，再回到固定提交 openai/codex@cbfd999 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
+      解释按本站五个线路的语境撰写，够用就好；要较真，顺着「在哪看」回到对应线路，再回到固定提交 openai/codex@3ba7b69 的源码本体。发现哪条解释有歧义或错误，欢迎提 issue 指明词条。
     </aside>
 
   </main>
@@ -322,6 +339,7 @@
 <script src="assets/panel-pet.js"></script>
 <script src="assets/panel-theme.js"></script>
 <script src="assets/sound.js"></script>
+<script src="assets/terms.js"></script>
 <script>
 (function () {
   "use strict";
@@ -369,6 +387,7 @@
 
   var deck = document.getElementById("deck");
   var matchDeck = document.getElementById("match-deck");
+  var starDeck = document.getElementById("star-deck");
   if (!deck || !CARDS.length) return;
   var cats = Array.prototype.slice.call(document.querySelectorAll(".gl-cat"));
   var searchRow = document.querySelector(".search-row");
@@ -571,15 +590,18 @@
   function setMode(m) {
     var drill = m === "drill";
     var match = m === "match";
+    var star = m === "star";
     Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (x) {
       x.classList.toggle("on", x.getAttribute("data-md") === m);
     });
     deck.hidden = !drill;
     if (matchDeck) matchDeck.hidden = !match;
-    cats.forEach(function (s) { s.style.display = (drill || match) ? "none" : ""; });
-    if (searchRow) searchRow.style.display = (drill || match) ? "none" : "";
-    PanelState.write({ md: drill ? "drill" : (match ? "match" : "") });
+    if (starDeck) starDeck.hidden = !star;
+    cats.forEach(function (s) { s.style.display = (drill || match || star) ? "none" : ""; });
+    if (searchRow) searchRow.style.display = (drill || match || star) ? "none" : "";
+    PanelState.write({ md: drill ? "drill" : (match ? "match" : (star ? "star" : "")) });
     if (match && window.CAMatch) CAMatch.wake();
+    if (window.CAMap) { star ? CAMap.wake() : CAMap.sleep(); }
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-md]"), function (b) {
@@ -600,8 +622,279 @@
 
   if (PanelState.read().md === "drill") setMode("drill");
   else if (PanelState.read().md === "match") setMode("match");
+  else if (PanelState.read().md === "star") setMode("star");
   window.addEventListener("resize", function () { drawCurve(); });
   render();
+})();
+
+/* ---------- 星图模式：术语三维点云（手写透视投影，零依赖）。
+   每个术语按所属线路聚成星座；拖拽旋转带惯性、滚轮缩放、悬停弹解释卡、点击直达仪器。
+   「静」或系统减少动态效果时自转与惯性关闭，拖拽仍可用；点云稳定后自动停止重绘省电。 ---------- */
+(function () {
+  "use strict";
+
+  var host = document.getElementById("star-stage");
+  var deckEl = document.getElementById("star-deck");
+  if (!host || !deckEl) return;
+  var out = document.getElementById("star-out");
+  var card = document.getElementById("star-card");
+  var spinBtn = document.getElementById("star-spin");
+  var TERMS = window.CATERMS || [];
+  var reduced = window.PrefersReducedMotion === true;
+  var idleMsg = "拖动旋转 · 滚轮缩放 · 悬停看解释 · 点击直达仪器";
+  if (!TERMS.length || !window.CanvasRenderingContext2D) {
+    if (out) out.textContent = "星图不可用：术语数据缺失。";
+    return;
+  }
+
+  /* 六条线路 → 六个星座，颜色对齐站内 token */
+  var CLUSTERS = [
+    { key: "labs/loop.html", n: "01 循环", rgb: function () { return CATheme.rgb("--amber", "255,180,84"); } },
+    { key: "labs/prompt.html", n: "02 输入", rgb: function () { return CATheme.rgb("--steel", "143,199,232"); } },
+    { key: "labs/sandbox.html", n: "03 沙箱", rgb: function () { return "123,201,139"; } },
+    { key: "labs/appserver.html", n: "04 协议", rgb: function () { return "186,150,232"; } },
+    { key: "labs/atlas.html", n: "05 图谱", rgb: function () { return "240,121,106"; } },
+    { key: "labs/deep.html", n: "07 深水", rgb: function () { return "110,205,190"; } }
+  ];
+  function clusterOf(t) {
+    for (var k = 0; k < CLUSTERS.length; k++) if ((t.href || "").indexOf(CLUSTERS[k].key) === 0) return k;
+    return CLUSTERS.length - 1;
+  }
+  function rnd(i) { var x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+
+  /* 单位球面：簇质心按黄金角铺开，成员绕质心小半径散布（确定性布局） */
+  var _cd = [];
+  (function () {
+    for (var k = 0; k < CLUSTERS.length; k++) {
+      var phi = k * 2.399963, zz = 1 - (k / CLUSTERS.length) * 1.5 + 0.55;
+      var cxy = Math.sqrt(Math.max(0.08, 1 - zz * zz));
+      _cd.push({ x: Math.cos(phi) * cxy, y: Math.sin(phi) * cxy, z: zz });
+    }
+  })();
+  var pts = TERMS.map(function (t, i) {
+    var ci = clusterOf(t);
+    var u = rnd(i + 1), v = rnd(i + 17);
+    var th = u * 6.2832, ph = Math.acos(2 * v - 1);
+    var r = 0.4 + 0.22 * rnd(i + 31);
+    var c = _cd[ci];
+    var px = c.x + r * Math.sin(ph) * Math.cos(th);
+    var py = c.y + r * Math.sin(ph) * Math.sin(th);
+    var pz = c.z + r * Math.cos(ph);
+    var len = Math.sqrt(px * px + py * py + pz * pz) || 1;
+    return { t: t, ci: ci, x: px / len, y: py / len, z: pz / len };
+  });
+
+  var cc = window.CACanvas ? CACanvas.create(host, { draw: draw }) : null;
+  if (!cc) {
+    if (out) out.textContent = "星图不可用：canvas 初始化失败。";
+    return;
+  }
+  var ctx = cc.ctx;
+  var rotX = -0.22, rotY = 0.55, ivx = 0, ivy = 0, zoom = 1;
+  var spinOn = !reduced;                 /* 自转开关（「静」= 关） */
+  var SPIN = 0.0021;
+  var pick = -1, dragging = false, moved = 0, lx = 0, ly = 0;
+  var running = false, rafId = 0;
+  var mouse = { x: null, y: null };
+
+  spinBtn.hidden = reduced;
+  spinBtn.setAttribute("aria-pressed", String(spinOn));
+  spinBtn.addEventListener("click", function () {
+    spinOn = !spinOn && !reduced ? false : !spinOn;
+    spinOn = !spinOn === false ? spinOn : spinOn;   /* 保持布尔 */
+    if (!spinOn) ivx = ivy = 0;
+    spinBtn.setAttribute("aria-pressed", String(spinOn));
+    wake();
+  });
+
+  function proj(p, W, H) {
+    var cy = Math.cos(rotY), sy = Math.sin(rotY);
+    var cxr = Math.cos(rotX), sxr = Math.sin(rotX);
+    var x1 = p.x * cy - p.z * sy;
+    var z1 = p.x * sy + p.z * cy;
+    var y1 = p.y * cxr - z1 * sxr;
+    var z2 = p.y * sxr + z1 * cxr;
+    var f = 3 / (3 + z2);
+    var R = Math.min(W, H) * 0.42 * zoom;
+    return { sx: W / 2 + x1 * f * R, sy: H / 2 + y1 * f * R, z: z2, f: f };
+  }
+
+  function draw() {
+    if (!cc.size()) return;
+    var W = cc.W(), H = cc.H();
+    var light = window.CATheme && CATheme.isLight();
+    ctx.clearRect(0, 0, W, H);
+    var i, pr;
+
+    var P = new Array(pts.length);
+    var best = -1, bd = 18 * 18;
+    for (i = 0; i < pts.length; i++) {
+      P[i] = proj(pts[i], W, H);
+      if (mouse.x != null && pick !== i) {
+        var dxm = mouse.x - P[i].sx, dym = mouse.y - P[i].sy;
+        var dm = dxm * dxm + dym * dym;
+        if (dm < bd) { bd = dm; best = i; }
+      }
+    }
+    if (best !== -1) setPick(best);
+
+    /* 外接参考圈 */
+    ctx.strokeStyle = "rgba(" + CATheme.rgb("--faint", "90,103,116") + "," + (light ? 0.3 : 0.22) + ")";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) * 0.42 * zoom, 0, 6.2832); ctx.stroke();
+
+    /* 星座连线：成员 → 簇质心（远端更淡） */
+    for (i = 0; i < pts.length; i++) {
+      var pc = proj(_cd[pts[i].ci], W, H);
+      ctx.strokeStyle = "rgba(" + CLUSTERS[pts[i].ci].rgb() + "," + (P[i].f > 1 ? 0.32 : 0.12) + ")";
+      ctx.beginPath();
+      ctx.moveTo(P[i].sx, P[i].sy); ctx.lineTo(pc.sx, pc.sy);
+      ctx.stroke();
+    }
+
+    /* 星体：近大远亮 */
+    for (i = 0; i < pts.length; i++) {
+      pr = P[i];
+      var rr = 1.9 + pr.f * 1.7;
+      ctx.fillStyle = "rgba(" + CLUSTERS[pts[i].ci].rgb() + "," + Math.min(1, 0.35 + pr.f * 0.75) + ")";
+      ctx.beginPath(); ctx.arc(pr.sx, pr.sy, rr, 0, 6.2832); ctx.fill();
+      if (i === pick) {
+        ctx.strokeStyle = "rgba(" + CLUSTERS[pts[i].ci].rgb() + ",1)";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(pr.sx, pr.sy, rr + 5, 0, 6.2832); ctx.stroke();
+        ctx.font = "11px 'IBM Plex Mono',monospace";
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = light ? "#28303a" : "#e7edf3";
+        ctx.fillText(pts[i].t.name, pr.sx + rr + 9, pr.sy);
+      }
+    }
+
+    /* 图例 */
+    ctx.font = "10.5px 'IBM Plex Mono',monospace";
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    for (var g = 0; g < CLUSTERS.length; g++) {
+      ctx.fillStyle = "rgba(" + CLUSTERS[g].rgb() + ",0.95)";
+      ctx.beginPath(); ctx.arc(W - 116, 16 + g * 17, 3.4, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = light ? "rgba(40,48,58,.85)" : "rgba(200,212,224,.78)";
+      ctx.fillText(CLUSTERS[g].n, W - 106, 16 + g * 17);
+    }
+  }
+
+  function setPick(i) {
+    if (pick === i) { positionCard(i); return; }
+    pick = i;
+    var t = pts[i].t;
+    card.innerHTML = "<b style='color:rgb(" + CLUSTERS[pts[i].ci].rgb() + ")'>" + escHtml(t.name) + "</b><br>" +
+      escHtml(t.d) + "<br><span style='color:var(--faint)'>" + escHtml(t.w || "") + " · 点击直达</span>";
+    card.hidden = false;
+    positionCard(i);
+    if (out) out.innerHTML = "<b>" + escHtml(t.name) + "</b> · " + escHtml(t.w || "");
+  }
+  function clearPick() {
+    if (pick === -1) return;
+    pick = -1; card.hidden = true;
+    if (out) out.textContent = idleMsg;
+    requestDraw();
+  }
+  function positionCard(i) {
+    var pr = proj(pts[i], cc.W(), cc.H());
+    card.style.left = Math.max(6, Math.min(cc.W() - 292, pr.sx + 14)) + "px";
+    card.style.top = Math.max(6, Math.min(cc.H() - 118, pr.sy - 12)) + "px";
+  }
+  function escHtml(v) { return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  /* 指针交互：单指/鼠标拖转、悬停拾取、点选直达、双指/滚轮缩放 */
+  host.style.touchAction = "none";
+  host.style.cursor = "grab";
+  host.addEventListener("pointerdown", function (e) {
+    dragging = true; moved = 0; lx = e.clientX; ly = e.clientY;
+    try { host.setPointerCapture(e.pointerId); } catch (err) {}
+    host.style.cursor = "grabbing";
+    e.preventDefault();
+    wake();
+  });
+  host.addEventListener("pointermove", function (e) {
+    var r = host.getBoundingClientRect();
+    mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
+    if (!dragging) {
+      if (pick !== -1) positionCard(pick);
+      requestDraw();
+      return;
+    }
+    var dx = e.clientX - lx, dy = e.clientY - ly;
+    moved += Math.abs(dx) + Math.abs(dy);
+    rotY += dx * 0.0055;
+    rotX = Math.max(-1.25, Math.min(1.25, rotX + dy * 0.0045));
+    ivy = dx * 0.00045; ivx = dy * 0.00035;
+    lx = e.clientX; ly = e.clientY;
+    requestDraw();
+  });
+  host.addEventListener("pointerup", function () {
+    if (!dragging) return;
+    dragging = false;
+    host.style.cursor = "grab";
+    if (moved < 6 && pick >= 0) {           /* 视为点击：直达该术语的仪器 */
+      var href = pts[pick].t.href;
+      if (href) { if (window.CASound) CASound.play("pop"); location.href = href; }
+      return;
+    }
+    wake();
+  });
+  host.addEventListener("pointercancel", function () { dragging = false; host.style.cursor = "grab"; });
+  host.addEventListener("pointerleave", function () { mouse.x = mouse.y = null; clearPick(); });
+  host.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    zoom = Math.max(0.65, Math.min(1.8, zoom * (e.deltaY < 0 ? 1.08 : 0.93)));
+    requestDraw();
+  }, { passive: false });
+
+  document.addEventListener("keydown", function (e) {
+    if (deckEl.hidden) return;
+    var tag = e.target.tagName;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+    if (e.key === "ArrowLeft") { rotY -= 0.14; wake(); }
+    else if (e.key === "ArrowRight") { rotY += 0.14; wake(); }
+  });
+
+  /* 主循环：只在有活干时跑（自转 / 惯性 / 拖拽），稳定后自停省电 */
+  function frame() {
+    if (!running) return;
+    if (!cc.inView()) { rafId = requestAnimationFrame(frame); return; }
+    if (!dragging) {
+      rotY += (spinOn ? SPIN : 0) + ivy;
+      rotX += ivx;
+      ivx *= 0.94; ivy *= 0.94;
+      if (Math.abs(ivx) < 2e-5) ivx = 0;
+      if (Math.abs(ivy) < 2e-5) ivy = 0;
+    }
+    draw();
+    var busy = dragging || spinOn || ivx !== 0 || ivy !== 0;
+    if (!busy) { running = false; return; }   /* 稳定即停，交互再唤醒 */
+    rafId = requestAnimationFrame(frame);
+  }
+  function wake() {
+    if (running || reduced) {
+      if (running) return;
+      draw();                                  /* reduced-motion：直接画一帧静态 */
+      return;
+    }
+    running = true;
+    rafId = requestAnimationFrame(frame);
+  }
+  function sleep() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+  function requestDraw() {
+    if (running) return;
+    draw();
+  }
+
+  window.CAMap = { wake: wake, sleep: sleep };
+
+  /* hash 直接进入星图模式时 setMode 先执行过——这里补启动 */
+  if (!deckEl.hidden) wake();
 })();
 </script>
 
@@ -610,6 +903,7 @@ window.CATOUR_STEPS = [
   { sel: "#q", title: "检索", text: "中文英文都能匹配，命中数实时显示。看不懂正文里的虚线词时，回来这里敲一下最快。" },
   { sel: "#deck", title: "翻卡记忆", text: "41 张卡，正面术语、背面人话。会与不会各标一边，进度存本机，首页线路图的 06 站外圈就是这个进度。" },
   { sel: "#match-deck", title: "连线配对", text: "按住术语拖到人话短句上松手：连对锁琥珀线，连错晃一下弹回——弹回时成绩行会给出「去现场」直达链接，一步跳到讲它的仪器。五条全对收一轮，失误纪录存本机。" },
+  { sel: "#star-deck", title: "术语星图", text: "全部术语按所属线路聚成六个星座的三维点云：拖拽旋转带惯性、滚轮缩放、悬停弹出人话解释，点击直达讲它的仪器。「静」开启时只关自转，玩法都在。" },
   { sel: ".rail-profile", title: "学习档案", text: "全站自检成绩和翻卡进度都在左栏这份档案里，能一键导出带走，也能整体清空重来。" }
 ];
 </script>

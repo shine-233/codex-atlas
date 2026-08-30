@@ -647,7 +647,7 @@ pub developer_instructions: Option&lt;String&gt;,                               
             </p>
             <details class="src-details">
               <summary>⌨ 看真实源码 · 输入框的三档能力开关与粘贴处置枚举</summary>
-              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/chat_composer.rs :442-446, 452-483 · @3ba7b69 实测</span>
+              <pre><span class="src-loc">codex-rs/tui/src/bottom_pane/chat_composer.rs :442-445, 452-483 · @3ba7b69 实测</span>
 <span class="src-code">enum PendingPasteHandling {
     Expand,
     Preserve,
@@ -844,7 +844,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这台节拍器不悬空：分块策略与两条流控制器就住在 ChatWidget 的字段上——正文一条流，计划输出另一条流，共享同一个策略实例。谁积压了、队龄多老了，钟一敲全部如实上报。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · 流式三件套在 ChatWidget 上的落位</summary>
-         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :596-601 · @3ba7b69 实测</span>
+         <pre><span class="src-loc">codex-rs/tui/src/chatwidget.rs :597-602 · @3ba7b69 实测</span>
 <span class="src-code">    adaptive_chunking: AdaptiveChunkingPolicy,
     // Stream lifecycle controller
     stream_controller: Option&lt;StreamController&gt;,
@@ -855,7 +855,7 @@ pub(crate) fn run_commit_tick(
        <p class="small muted" style="margin:14px 0 0;">这些流排出来的行，最终落成屏上的一段段「cell」：你的消息、模型的回答、一条命令输出，各自是一个 HistoryCell。宽度是它的入参——cell 拿着当前宽度现算显示行；连占几行都按同一宽度重新量。源码特意注明：含 URL 的行比终端还宽时，逻辑行数会低估，所以量的必须是换行后的真实行数。</p>
        <details class="src-details">
          <summary>🔍 看真实源码 · HistoryCell trait：宽度进、行数出</summary>
-          <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :175-187, 214-232 · @3ba7b69 实测</span>
+          <pre><span class="src-loc">codex-rs/tui/src/history_cell/mod.rs :175-186, 214-232 · @3ba7b69 实测</span>
 <span class="src-code">/// A single renderable unit of conversation history.
 ///
 /// Each cell produces logical `Line`s and reports how many viewport
@@ -1113,16 +1113,16 @@ pub async fn run_post_tool_use(&amp;self, request: PostToolUseRequest) -&gt; Pos
             <code>code-mode</code>（主 crate）· <code>code-mode-host</code>（宿主侧 V8 环境）·
             <code>code-mode-protocol</code>（内部协议）· <code>code-mode-runtime</code>（运行时实现）·
             <code>v8-poc</code>（概念验证——名字就是公告栏）。
-            实测依赖里 <code>code-mode</code> 还连着 <code>http-client</code> 与 <code>websocket-client</code>：远程执行通道的伏笔。
+            实测依赖里 <code>code-mode</code> 连着 <code>http-client</code>——远程会话的出站通道。
           </p>
           <p class="small muted" style="margin:10px 0 0;">
-            主 crate 的 lib.rs 一共九行，却把运行形态交代完了：WebSocket 与 gRPC 两条远程会话通道、
-            进程托管的会话形态，外加一个 Disabled 兜底。上文说的「远程执行通道伏笔」，在类型名里已经兑现；
-            至于哪条通道默认启用属于行为配置，本站不猜。
+            主 crate 的 lib.rs 只有八行有效内容：gRPC 一条显式远程通道、进程托管的会话形态，
+            外加一个 Disabled 兜底。上一基线里还有 WebSocket 会话提供者——这个提交把它从导出面拿掉了，
+            上游在收缩实验面。至于哪条通道默认启用属于行为配置，本站不猜。
           </p>
           <details class="src-details">
-            <summary>🔍 看真实源码 · code-mode 主 crate 全部九行 lib.rs</summary>
-            <pre><span class="src-loc">codex-rs/code-mode/src/lib.rs :1-9 · @3ba7b69 实测（全文）</span>
+            <summary>🔍 看真实源码 · code-mode 主 crate 全部八行 lib.rs</summary>
+            <pre><span class="src-loc">codex-rs/code-mode/src/lib.rs :1-8 · @3ba7b69 实测（全文）</span>
 <span class="src-code">mod grpc_session;
 mod remote_session;
 
@@ -1189,13 +1189,13 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
     window.CACOVERAGE = [
       { c: "codex-tui", files: [
         { p: "src/lib.rs", loc: ":269", note: "TUI 入口与终端初始化", to: "../labs/loop.html#s=3" },
-        { p: "src/app.rs", loc: ":660-689", note: "steer 竞态：Missing 与 ExpectedTurnMismatch", to: "../labs/loop.html" },
+        { p: "src/app.rs", loc: ":669-698", note: "steer 竞态：Missing 与 ExpectedTurnMismatch", to: "../labs/loop.html" },
         { p: "src/app_backtrack.rs", loc: ":57-82", note: "Esc 预演回溯的四件套", to: "#mod-d" },
-        { p: "src/chatwidget.rs", loc: ":596-601", note: "流式策略与双控制器落位", to: "#mod-d" },
+        { p: "src/chatwidget.rs", loc: ":597-602", note: "流式策略与双控制器落位", to: "#mod-d" },
         { p: "src/diff_render.rs", loc: ":400-408, 422-425", note: "(+N -N) 头部的逐行聚合", to: "#mod-d" },
         { p: "src/diff_render.rs", loc: ":591-598, 617-631", note: "大补丁弃高亮的性能闸门", to: "#mod-d" },
         { p: "src/insert_history.rs", loc: ":54-103", note: "四层入屏链与视口插入", to: "#mod-d" },
-        { p: "src/history_cell/mod.rs", loc: ":175-187, 214-232", note: "HistoryCell trait：宽度进、行数出", to: "#mod-d" },
+        { p: "src/history_cell/mod.rs", loc: ":175-186, 214-232", note: "HistoryCell trait：宽度进、行数出", to: "#mod-d" },
         { p: "src/bottom_pane/paste_burst.rs", loc: ":1-55", note: "粘贴爆发状态机：Enter 何时只算换行", to: "#mod-d" },
         { p: "src/bottom_pane/chat_composer.rs", loc: ":442-483", note: "输入框能力开关：弹窗/斜杠/图片粘贴", to: "#mod-d" },
         { p: "src/markdown_render.rs", loc: ":288-298", note: "宽度契约：表格降级键值对", to: "#mod-d" },
@@ -1207,21 +1207,21 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/wrapping.rs", loc: ":683-727", note: "URL 混排的换行分流", to: "#mod-d" }
       ]},
       { c: "codex-core", files: [
-        { p: "src/agents_md.rs", loc: ":172-178, 234-251", note: "AGENTS.md 层叠与预算截断", to: "../labs/prompt.html" },
-        { p: "src/client.rs", loc: ":161-163", note: "请求装配", to: "../labs/prompt.html" },
-        { p: "src/mcp.rs", loc: ":72-101", note: "MCP 两级工具缓存", to: "../labs/sandbox.html" },
+        { p: "src/agents_md.rs", loc: ":156-162, 234-251", note: "AGENTS.md 层叠与预算截断", to: "../labs/prompt.html" },
+        { p: "src/client.rs", loc: ":162-164", note: "请求装配", to: "../labs/prompt.html" },
+        { p: "src/mcp.rs", loc: ":73-102", note: "MCP 两级工具缓存", to: "../labs/sandbox.html" },
         { p: "src/session/context_window.rs", loc: ":71-79", note: "上下文窗口上限", to: "../labs/prompt.html" },
-        { p: "src/session/mod.rs", loc: ":533（容量 :461 = 512）", note: "会话队列容量常量", to: "../labs/loop.html#s=6" },
-        { p: "src/session/turn.rs", loc: ":500, 1312, 2226, 2397", note: "采样循环与收束分支", to: "../labs/loop.html#s=13" },
-        { p: "src/session/turn_input.rs", loc: ":282, 478-487, 546-564", note: "Op::TurnInput 入队核心", to: "../labs/loop.html#s=5" },
+        { p: "src/session/mod.rs", loc: ":539（容量 :461 = 512）", note: "会话队列容量常量", to: "../labs/loop.html#s=6" },
+        { p: "src/session/turn.rs", loc: ":502, 1312, 2226, 2397", note: "采样循环与收束分支", to: "../labs/loop.html#s=13" },
+        { p: "src/session/turn_input.rs", loc: ":350, 478-487, 546-564", note: "Op::TurnInput 入队核心", to: "../labs/loop.html#s=5" },
         { p: "src/tasks/regular.rs", loc: ":50", note: "RegularTask 起点", to: "../labs/loop.html#s=8" },
         { p: "src/tools/router.rs", loc: ":148 + stream_events_utils :296", note: "工具路由与事件转发", to: "../labs/loop.html#s=12" }
       ]},
       { c: "codex-app-server", files: [
-        { p: "src/request_processors/turn_processor.rs", loc: ":447, 478", note: "turn/start 的两条处理路径", to: "../labs/loop.html#s=5" }
+        { p: "src/request_processors/turn_processor.rs", loc: ":449, 478", note: "turn/start 的两条处理路径", to: "../labs/loop.html#s=5" }
       ]},
       { c: "app-server-protocol", files: [
-        { p: "src/protocol/common.rs", loc: ":1721-1733", note: "wire 注册表条目形状", to: "../labs/appserver.html" }
+        { p: "src/protocol/common.rs", loc: ":1724-1736", note: "wire 注册表条目形状", to: "../labs/appserver.html" }
       ]},
       { c: "codex-api", files: [
         { p: "src/common.rs", loc: ":76（Completed :92）", note: "SSE 事件类型", to: "../labs/loop.html#s=11" },
@@ -1231,7 +1231,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/lib.rs", loc: ":40", note: "provider 装配", to: "../labs/loop.html#s=10" }
       ]},
       { c: "codex-protocol", files: [
-        { p: "src/permissions.rs", loc: ":746-779", note: "审批策略判定", to: "../labs/sandbox.html" },
+        { p: "src/permissions.rs", loc: ":758-791", note: "审批策略判定", to: "../labs/sandbox.html" },
         { p: "src/openai_models.rs", loc: ":486-497", note: "默认压缩阈值 = min(config, 窗口×90%)（02 COMPACT 有现场）", to: "../labs/prompt.html" }
       ]},
       { c: "rmcp-client", files: [
@@ -1251,7 +1251,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
         { p: "src/registry.rs", loc: ":154-167, 212-225", note: "dispatch 中止规则", to: "#mod-e" }
       ]},
       { c: "code-mode", files: [
-        { p: "src/lib.rs", loc: ":1-9（全文）", note: "九行看运行形态", to: "#mod-f" }
+        { p: "src/lib.rs", loc: ":1-8（全文）", note: "九行看运行形态", to: "#mod-f" }
       ]},
       { c: "rollout", files: [
         { p: "src/rollout_file_name.rs", loc: "struct :16-20 · parse :39-60 · render :62-74", note: "文件名规则本体：rollout-时间戳-threadId.jsonl，回滚线程在 _ 后追加第二 ID（split_once('_')）", to: "../labs/appserver.html" },
@@ -1264,7 +1264,7 @@ pub use remote_session::WebSocketCodeModeSessionProvider;</span></pre>
       { c: "sandboxing", files: [
         { p: "src/seatbelt_base_policy.sbpl", loc: "3.9KB · 文件级", note: "Seatbelt 基础策略（SBPL 源码随 crate 分发）", to: "../labs/sandbox.html" },
         { p: "src/policy_transforms.rs", loc: "glob 仅限 deny-read :30-36 · materialize :75-88 · 平台沙箱判定 :541-561", note: "模式间策略变换管线：合并保留窄授权而交集不然；是否要上平台沙箱收在一个纯函数里", to: "../labs/sandbox.html" },
-        { p: "src/manager.rs", loc: "平台分派 :62-76 · 三态偏好 :310-329", note: "沙箱管理器：四型枚举按平台分派（Windows 还要过开关）；Auto 档整个委托 policy_transforms 判定", to: "../labs/sandbox.html" }
+        { p: "src/manager.rs", loc: "平台分派 :62-76 · 三态偏好 :314-333", note: "沙箱管理器：四型枚举按平台分派（Windows 还要过开关）；Auto 档整个委托 policy_transforms 判定", to: "../labs/sandbox.html" }
       ]}
     ];
     </script>

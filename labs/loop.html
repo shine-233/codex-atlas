@@ -435,7 +435,7 @@
       </div>
       <details class="src-details" style="margin:0 24px 20px;">
         <summary>⌨ 看真实源码 · steer_input：把新输入并进正在跑的轮</summary>
-        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :477-486（签名）+ :545-563（入队核心）· @3ba7b69 实测</span>
+        <pre><span class="src-loc">codex-rs/core/src/session/turn_input.rs :551-560（签名）+ :619-637（入队核心）· @3ba7b69 实测</span>
 <span class="src-code">async fn steer_input(
     &amp;self,
     input: &amp;mut Vec&lt;UserInput&gt;,
@@ -468,7 +468,7 @@ Ok(active_turn_id.clone())</span></pre>
       <p class="small muted" style="margin:14px 0 0;">上面演的是 steer 成功并入。源码里还要处理 steer <b>输掉竞态</b>的两种情况：轮次已经结束（没有 active turn 可插话），或者缓存里的 turn id 过期——后者会带着服务器当前的真实 id 重试一次。</p>
       <details class="src-details">
         <summary>🔍 看真实源码 · steer 竞态的两种败局与恢复</summary>
-        <pre><span class="src-loc">codex-rs/tui/src/app.rs :660-689 · @3ba7b69 实测</span>
+        <pre><span class="src-loc">codex-rs/tui/src/app.rs :669-698 · @3ba7b69 实测</span>
 <span class="src-code">#[derive(Debug, Clone, PartialEq, Eq)]
 enum ActiveTurnSteerRace {
     Missing,

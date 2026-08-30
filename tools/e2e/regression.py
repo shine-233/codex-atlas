@@ -906,6 +906,124 @@ def ci_view(ctx):
     pg.close()
 
 
+def cmdk_star(ctx):
+    """命令面板（Ctrl+K / '/'）：跨页直达 + 术语/Crate 动态组 + 星图模式。"""
+    errs = []
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(BASE + "/labs/loop.html")
+    pg.wait_for_load_state("networkidle")
+    pg.wait_for_timeout(600)
+    pg.keyboard.press("Control+k")
+    pg.wait_for_timeout(300)
+    check("cmdk opens", pg.evaluate("() => !!document.querySelector('.cmdk-layer.open')"))
+    pg.keyboard.type("sse")
+    pg.wait_for_timeout(250)
+    check("cmdk sse results", pg.evaluate(
+        "() => document.querySelectorAll('.cmdk-item').length") >= 2)
+    top = pg.evaluate(
+        "() => { const b = document.querySelector('.cmdk-item.hot'); return b ? b.textContent : ''; }")
+    check("cmdk top hit is SSE row", "SSE" in top.upper(), top[:60])
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(200)
+    # 术语动态组（window.CATERMS）
+    pg.keyboard.press("Control+k")
+    pg.wait_for_timeout(250)
+    pg.keyboard.press("Control+a")
+    pg.keyboard.type("压缩")
+    pg.wait_for_timeout(300)
+    check("cmdk term group appears", pg.evaluate(
+        "() => Array.from(document.querySelectorAll('.ck-no')).some(x => x.textContent.indexOf('★') !== -1)"))
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(200)
+    # 星图入口在面板里
+    pg.keyboard.press("/")
+    pg.wait_for_timeout(250)
+    pg.keyboard.type("星图")
+    pg.wait_for_timeout(250)
+    check("cmdk star-map entry", pg.evaluate(
+        "() => Array.from(document.querySelectorAll('.ck-name')).some(x => x.textContent.indexOf('星图') !== -1)"))
+    pg.keyboard.press("Escape")
+    check("cmdk no errors on loop", not errs, errs[:3])
+    pg.close()
+    # Crate 组仅在 05 图谱页出现
+    pga = ctx.new_page()
+    ea = []
+    pga.on("pageerror", lambda e: ea.append(str(e)))
+    pga.goto(BASE + "/labs/atlas.html")
+    pga.wait_for_load_state("networkidle")
+    pga.wait_for_timeout(700)
+    pga.keyboard.press("Control+k")
+    pga.wait_for_timeout(300)
+    pga.keyboard.type("agent-identity")
+    pga.wait_for_timeout(350)
+    check("cmdk crate group on atlas", pga.evaluate(
+        "() => Array.from(document.querySelectorAll('.ck-name')).some(x => x.textContent === 'agent-identity')"))
+    check("atlas palette no errors", not ea, ea[:3])
+    pga.close()
+    # glossary 星图模式：canvas 点云 + 拖拽 + hash 恢复
+    pg2 = ctx.new_page()
+    e2 = []
+    pg2.on("pageerror", lambda e: e2.append(str(e)))
+    pg2.goto(BASE + "/glossary.html")
+    pg2.wait_for_load_state("networkidle")
+    pg2.click('[data-md="star"]')
+    pg2.wait_for_timeout(500)
+    check("star mode opens", pg2.evaluate(
+        "() => !document.getElementById('star-deck').hidden"))
+    check("star canvas mounted", pg2.evaluate(
+        "() => document.querySelectorAll('#star-stage canvas').length === 1"))
+    painted = pg2.evaluate("""() => {
+        const c = document.querySelector('#star-stage canvas');
+        if (!c) return false;
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 397) if (d[i] > 0) return true;
+        return false;
+    }""")
+    check("star map paints", painted)
+    box = pg2.locator("#star-stage").bounding_box()
+    pg2.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    pg2.mouse.down()
+    pg2.mouse.move(box["x"] + box["width"] / 2 - 80, box["y"] + box["height"] / 2, steps=6)
+    pg2.mouse.up()
+    pg2.wait_for_timeout(250)
+    pg2.mouse.move(box["x"] + box["width"] * 0.52, box["y"] + box["height"] * 0.5, steps=8)
+    pg2.wait_for_timeout(250)
+    check("star hover card", pg2.evaluate(
+        "() => !document.getElementById('star-card').hidden"))
+    check("star interactions clean", not e2, e2[:3])
+    pg2.goto(BASE + "/glossary.html#md=star")
+    pg2.wait_for_load_state("networkidle")
+    pg2.wait_for_timeout(400)
+    check("star hash restore", pg2.evaluate(
+        "() => { const b = document.querySelector('[data-md].on'); return b && b.getAttribute('data-md') === 'star'; }"))
+    pg2.close()
+    # sandbox 判定盖章事件（音效总线）
+    pg3 = ctx.new_page()
+    e3 = []
+    pg3.on("pageerror", lambda e: e3.append(str(e)))
+    pg3.goto(BASE + "/labs/sandbox.html")
+    pg3.wait_for_load_state("networkidle")
+    pg3.wait_for_timeout(600)
+    res3 = pg3.evaluate("""() => new Promise(res => {
+        const cell = document.querySelector('[data-act][data-mode]');
+        if (!cell) return res({err: 'no-btn'});
+        let stamped = false;
+        const h = () => { stamped = true; };
+        document.addEventListener('ca:stamp', h);
+        cell.click();
+        setTimeout(() => {
+            document.removeEventListener('ca:stamp', h);
+            const st = document.querySelector('.v-stamp');
+            res({stamped, cls: st ? st.className : ''});
+        }, 700);
+    })""")
+    check("sandbox stamp event fires", isinstance(res3, dict) and
+          res3.get("stamped") and "v-stamp" in str(res3.get("cls", "")), res3)
+    check("sandbox stamp no errors", not e3, e3[:3])
+    pg3.close()
+
+
 def reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 960}, reduced_motion="reduce")
     pg = ctx.new_page()
@@ -939,6 +1057,7 @@ def main():
             tree_zoom(ctx)
             sse_waterfall(ctx)
             ci_view(ctx)
+            cmdk_star(ctx)
             hist_curve(ctx)
             helix_sync(ctx)
             yard_grab(ctx)
