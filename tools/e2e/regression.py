@@ -119,7 +119,10 @@ def pet_fling(ctx):
     pg.mouse.down()
     pg.mouse.move(px - 240, py - 300, steps=8)
     pg.mouse.up()
-    pg.wait_for_timeout(4300)
+    # A fling may run for the six-second physics timeout, followed by the
+    # settle delay and the 780 ms swim-back animation.  Wait for that full
+    # path before asserting the home position.
+    pg.wait_for_timeout(8200)
     back = pg.locator(".cod-pet").bounding_box()
     check("pet returns home", abs(back["x"] - pre["x"]) < 30 and abs(back["y"] - pre["y"]) < 30, [pre, back])
     pg.mouse.click(pre["x"] + 23, pre["y"] + 20)

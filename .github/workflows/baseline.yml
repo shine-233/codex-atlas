@@ -51,6 +51,12 @@ jobs:
         run: |
           MOVED=$(python -c "import json;print(json.load(open('baseline-report.json')).get('upstream_moved', False))")
           if [ "$MOVED" != "True" ]; then echo "基线未漂移，不开 issue"; exit 0; fi
+          # The label is repository metadata and may not exist in a fresh
+          # clone. Create it idempotently so issue creation is not the source
+          # of a second, unrelated CI failure.
+          gh label create baseline-drift \
+            --color B60205 \
+            --description "上游基线发生漂移，需要重新确认钉住提交" 2>/dev/null || true
           EXISTS=$(gh issue list --label baseline-drift --state open --json number --jq 'length')
           if [ "$EXISTS" = "0" ]; then
             gh issue create \
