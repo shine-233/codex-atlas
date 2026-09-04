@@ -22,7 +22,16 @@ jobs:
           python-version: "3.12"
 
       - name: 核对基线（全量，含 135 份依赖爬取）
-        run: python tools/verify_baseline.py --json baseline-report.json --summary baseline-summary.md
+        run: |
+          set +e
+          python tools/verify_baseline.py --json baseline-report.json --summary baseline-summary.md
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "基线数字核对一致，上游已漂移 (exit code 2)；后续步骤将处理漂移 issue。"
+          elif [ "$code" -ne 0 ]; then
+            exit "$code"
+          fi
 
       - name: 核对切片行号（src-loc 锚点比对；有漂移只报告不阻塞数字核对）
         run: python tools/verify_slices.py --json slices-report.json --summary slices-summary.md || true
